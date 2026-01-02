@@ -2,6 +2,7 @@ using NUnit.Framework;
 using System.IO;
 using OpenCvSharp;
 using PCBInspection.Core;
+using System.Linq;
 
 namespace PCBInspection.Tests.Integration
 {

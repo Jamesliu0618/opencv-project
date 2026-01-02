@@ -15,7 +15,10 @@ jobs:
 
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v1
-
+    - name: Install NUnit.Console runner (choco)
+      shell: pwsh
+      run: |
+        choco install nunit3-console -y || Write-Host "choco install failed or not available; continuing"
     - name: Restore, Build & Test (PowerShell)
       shell: pwsh
       run: |

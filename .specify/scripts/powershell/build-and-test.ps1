@@ -56,14 +56,16 @@ if (-not $msbuild) {
 }
 
 # Restore packages
-Write-Host "Restoring packages..."
-# Try nuget.exe restore, dotnet restore, msbuild /t:Restore
-$nugetExe = (Get-Command nuget.exe -ErrorAction SilentlyContinue).Source
-if ($nugetExe) {
-    & $nugetExe restore $Solution
+Write-Host "Restoring packages..."n# Try nuget.exe restore, dotnet restore, msbuild /t:Restore
+$nugetCmd = Get-Command nuget.exe -ErrorAction SilentlyContinue
+if ($nugetCmd) {
+    Write-Host "Using nuget: $($nugetCmd.Path)"
+    & $nugetCmd.Path restore $Solution
 } elseif (Get-Command dotnet -ErrorAction SilentlyContinue) {
+    Write-Host "Using dotnet restore"
     & dotnet restore $Solution
 } elseif ($msbuild) {
+    Write-Host "Using msbuild to restore"
     & $msbuild $Solution /t:Restore /p:Configuration=$Configuration /p:Platform=$Platform
 } else {
     Write-Warning "Could not find nuget/dotnet/msbuild for package restore. Skipping restore."
@@ -99,7 +101,10 @@ if (-not $testDlls) { Write-Warning "No test assemblies found under solution out
 
 # Find vstest.console.exe or use dotnet test
 $vstest = (Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio" -Filter "vstest.console.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName)
+$nugetNunitCmd = Get-Command nunit3-console.exe -ErrorAction SilentlyContinue
 if ($vstest) { Write-Host "Using vstest: $vstest" }
+elseif ($nugetNunitCmd) { Write-Host "Using nunit3-console from PATH: $($nugetNunitCmd.Path)"; $nunitConsolePath = $nugetNunitCmd.Path }
+else { Write-Host "No vstest or nunit3-console found in standard locations; will fallback to dotnet vstest if available" }
 
 $reportFiles = @()
 foreach ($dll in $testDlls) {
@@ -109,8 +114,11 @@ foreach ($dll in $testDlls) {
     if ($vstest) {
         & $vstest $dll /logger:trx /ResultsFile:$trx
         $rc = $LASTEXITCODE
+    } elseif ($nunitConsolePath) {
+        # Use NUnit Console runner for .NET Framework test assemblies
+        & $nunitConsolePath $dll --result=$trx; $rc = $LASTEXITCODE
     } else {
-        # try dotnet vstest
+        # try dotnet vstest as fallback (may trigger adapter warnings on some hosts)
         if (Get-Command dotnet -ErrorAction SilentlyContinue) {
             & dotnet vstest $dll --logger:trx; $rc = $LASTEXITCODE
         } else {

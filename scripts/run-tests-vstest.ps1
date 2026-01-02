@@ -11,6 +11,14 @@ if ($vstest) {
     exit $LASTEXITCODE
 }
 
+# fallback: try nunit3-console.exe in PATH
+$nunitCmd = Get-Command nunit3-console.exe -ErrorAction SilentlyContinue
+if ($nunitCmd) {
+    Write-Host "Using nunit3-console.exe at $($nunitCmd.Path)"
+    & $nunitCmd.Path $assembly | Write-Host
+    exit $LASTEXITCODE
+}
+
 # fallback: try nunit3-console.exe in tools folder
 $nuPath = Join-Path (Get-Location) "tools\nunit3-console.exe"
 if (Test-Path $nuPath) {
