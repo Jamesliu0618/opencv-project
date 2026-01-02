@@ -4,6 +4,7 @@ using OpenCvSharp;
 
 namespace PCBInspection.Drivers
 {
+    using PCBInspection.Core.Interfaces;
     public class MockCamera : ICameraAdapter
     {
         private readonly string _fixturesDir;
@@ -19,7 +20,7 @@ namespace PCBInspection.Drivers
                 _images = Array.Empty<string>();
         }
 
-        public void Initialize(IDriverConfig config = null)
+        public void Initialize(object config = null)
         {
             // noop for mock
         }

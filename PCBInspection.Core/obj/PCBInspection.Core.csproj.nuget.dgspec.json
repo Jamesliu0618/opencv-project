@@ -62,7 +62,11 @@
             },
             "OpenCvSharp4": {
               "target": "Package",
-              "version": "[4.7.0.20230124, )"
+              "version": "[4.8.0.20230708, )"
+            },
+            "OpenCvSharp4.runtime.win": {
+              "target": "Package",
+              "version": "[4.8.0.20230708, )"
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101\\RuntimeIdentifierGraph.json"

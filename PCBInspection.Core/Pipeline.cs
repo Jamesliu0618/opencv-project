@@ -3,7 +3,7 @@ using System.IO;
 using Newtonsoft.Json;
 using OpenCvSharp;
 using PCBInspection.Core.Models;
-using PCBInspection.Drivers;
+using PCBInspection.Core.Interfaces;
 
 namespace PCBInspection.Core
 {
@@ -26,7 +26,20 @@ namespace PCBInspection.Core
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var frame = _camera.CaptureFrame();
 
-            // Simple placeholder: annotate frame by writing timestamp
+            // Detect components and annotate frame with measurements
+            var comps = Localization.DetectComponents(frame);
+            foreach (var c in comps)
+            {
+                var (wmm, hmm) = Measurement.ComponentSizeMm(c);
+                c.WidthMm = wmm; c.HeightMm = hmm;
+
+                var tl = new Point((int)(c.CenterX_Px - c.SizeW_Px / 2.0), (int)(c.CenterY_Px - c.SizeH_Px / 2.0));
+                var br = new Point((int)(c.CenterX_Px + c.SizeW_Px / 2.0), (int)(c.CenterY_Px + c.SizeH_Px / 2.0));
+                var rect = new Rect(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y);
+                Cv2.Rectangle(frame, rect, Scalar.Green, 2);
+                Cv2.PutText(frame, $"{wmm:F2}x{hmm:F2} mm", new Point(tl.X, tl.Y - 6), HersheyFonts.HersheySimplex, 0.5, Scalar.Blue, 1);
+            }
+
             var annotatedPath = Path.Combine(_artifactsDir, $"{pcbId}_annotated_{DateTime.UtcNow:yyyyMMddHHmmss}.png");
             Cv2.PutText(frame, "Annotated", new Point(10, 30), HersheyFonts.HersheySimplex, 1.0, Scalar.Red, 2);
             Cv2.ImWrite(annotatedPath, frame);
@@ -40,6 +53,7 @@ namespace PCBInspection.Core
                 AnnotatedImagePath = annotatedPath,
                 CreatedAt = DateTime.UtcNow
             };
+            result.Components.AddRange(comps);
 
             // Send OK signal
             try

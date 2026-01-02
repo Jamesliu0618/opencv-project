@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PCBInspection.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cb320ba7920d7fcb43255db60fbcea2a9f70abf7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+69eb17456bb2125019d36637a81a7a0db7335974")]
 [assembly: System.Reflection.AssemblyProductAttribute("PCBInspection.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PCBInspection.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

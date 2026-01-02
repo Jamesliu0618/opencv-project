@@ -38,6 +38,30 @@
           }
         }
       },
+      "OpenCvSharp4.runtime.win/4.8.0.20230708": {
+        "type": "package",
+        "build": {
+          "build/net48/OpenCvSharp4.runtime.win.props": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win-x64/native/OpenCvSharpExtern.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          },
+          "runtimes/win-x64/native/opencv_videoio_ffmpeg480_64.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          },
+          "runtimes/win-x86/native/OpenCvSharpExtern.dll": {
+            "assetType": "native",
+            "rid": "win-x86"
+          },
+          "runtimes/win-x86/native/opencv_videoio_ffmpeg480.dll": {
+            "assetType": "native",
+            "rid": "win-x86"
+          }
+        }
+      },
       "System.Buffers/4.5.1": {
         "type": "package",
         "frameworkAssemblies": [
@@ -170,6 +194,25 @@
         "lib/netstandard2.1/OpenCvSharp.xml",
         "opencvsharp4.4.8.0.20230708.nupkg.sha512",
         "opencvsharp4.nuspec"
+      ]
+    },
+    "OpenCvSharp4.runtime.win/4.8.0.20230708": {
+      "sha512": "V9zbVQXazSSoEG04nF1KEkxfY62WMQAcKAlDe7xgkNErY7WQZzEcj8dMEuHXQMaDr45jPvrJi50SQroi+w4wNw==",
+      "type": "package",
+      "path": "opencvsharp4.runtime.win/4.8.0.20230708",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "build/net48/OpenCvSharp4.runtime.win.props",
+        "build/net5.0/OpenCvSharp4.runtime.win.props",
+        "build/netcoreapp/OpenCvSharp4.runtime.win.props",
+        "build/netstandard/OpenCvSharp4.runtime.win.props",
+        "opencvsharp4.runtime.win.4.8.0.20230708.nupkg.sha512",
+        "opencvsharp4.runtime.win.nuspec",
+        "runtimes/win-x64/native/OpenCvSharpExtern.dll",
+        "runtimes/win-x64/native/opencv_videoio_ffmpeg480_64.dll",
+        "runtimes/win-x86/native/OpenCvSharpExtern.dll",
+        "runtimes/win-x86/native/opencv_videoio_ffmpeg480.dll"
       ]
     },
     "System.Buffers/4.5.1": {
@@ -346,7 +389,8 @@
   "projectFileDependencyGroups": {
     ".NETFramework,Version=v4.8": [
       "Newtonsoft.Json >= 13.0.1",
-      "OpenCvSharp4 >= 4.7.0.20230124"
+      "OpenCvSharp4 >= 4.8.0.20230708",
+      "OpenCvSharp4.runtime.win >= 4.8.0.20230708"
     ]
   },
   "packageFolders": {
@@ -413,23 +457,15 @@
           },
           "OpenCvSharp4": {
             "target": "Package",
-            "version": "[4.7.0.20230124, )"
+            "version": "[4.8.0.20230708, )"
+          },
+          "OpenCvSharp4.runtime.win": {
+            "target": "Package",
+            "version": "[4.8.0.20230708, )"
           }
         },
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101\\RuntimeIdentifierGraph.json"
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1603",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "PCBInspection.Core 依賴 OpenCvSharp4 (>= 4.7.0.20230124)，但找不到 OpenCvSharp4 4.7.0.20230124。已改為解析 OpenCvSharp4 4.8.0.20230708。",
-      "libraryId": "OpenCvSharp4",
-      "targetGraphs": [
-        ".NETFramework,Version=v4.8"
-      ]
-    }
-  ]
+  }
 }

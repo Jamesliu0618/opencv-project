@@ -17,6 +17,7 @@ namespace PCBInspection.Core.Models
         public string PcbId { get; set; }
         public bool Ok { get; set; }
         public List<Defect> Defects { get; set; } = new List<Defect>();
+        public List<Component> Components { get; set; } = new List<Component>();
         public string AnnotatedImagePath { get; set; }
         public string ReportPath { get; set; }
         public string ModelVersion { get; set; }

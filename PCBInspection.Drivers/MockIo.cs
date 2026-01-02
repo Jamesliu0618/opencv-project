@@ -3,6 +3,7 @@ using System.IO;
 
 namespace PCBInspection.Drivers
 {
+    using PCBInspection.Core.Interfaces;
     public class MockIo : IAdvantechAdapter
     {
         private readonly string _logPath;

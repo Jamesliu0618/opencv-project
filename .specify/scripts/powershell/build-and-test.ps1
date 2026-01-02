@@ -71,11 +71,25 @@ if ($nugetExe) {
 
 # Build
 if ($msbuild) {
-    Write-Host "Building solution..."
-    $buildExit = & $msbuild $Solution /p:Configuration=$Configuration /p:Platform=$Platform
-    if ($LASTEXITCODE -ne 0) { Write-Error "MSBuild failed"; exit $LASTEXITCODE }
+    Write-Host "Building solution with MSBuild..."
+    & $msbuild $Solution /p:Configuration=$Configuration /p:Platform=$Platform
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "MSBuild failed; falling back to dotnet build..."
+        if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+            & dotnet build $Solution -c $Configuration
+            if ($LASTEXITCODE -ne 0) { Write-Error "dotnet build also failed"; exit $LASTEXITCODE }
+        } else {
+            Write-Error "dotnet CLI not available to fall back to"; exit $LASTEXITCODE
+        }
+    }
 } else {
-    Write-Error "MSBuild not found - cannot build"; exit 3
+    if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+        Write-Host "MSBuild not found; using dotnet build..."
+        & dotnet build $Solution -c $Configuration
+        if ($LASTEXITCODE -ne 0) { Write-Error "dotnet build failed"; exit $LASTEXITCODE }
+    } else {
+        Write-Error "MSBuild and dotnet not found - cannot build"; exit 3
+    }
 }
 
 # Discover test assemblies

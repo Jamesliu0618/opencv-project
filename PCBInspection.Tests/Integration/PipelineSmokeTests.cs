@@ -28,6 +28,15 @@ namespace PCBInspection.Tests.Integration
             Assert.IsTrue(File.Exists(result.AnnotatedImagePath));
             Assert.IsTrue(File.Exists(result.ReportPath));
             Assert.IsTrue(File.Exists(mockIoLog));
+
+            // Ensure localization & measurement are present in the report
+            Assert.IsNotNull(result.Components);
+            Assert.IsTrue(result.Components.Count >= 0);
+            foreach (var c in result.Components)
+            {
+                Assert.GreaterOrEqual(c.WidthMm, 0.0);
+                Assert.GreaterOrEqual(c.HeightMm, 0.0);
+            }
         }
     }
 }

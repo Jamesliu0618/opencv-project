@@ -1,0 +1,87 @@
+# .gitignore - 忽略自動產生與大型檔案，避免上傳到 AI 導致佔用過多上下文
+
+# Build output
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# NuGet
+*.nupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Test results
+TestResults/
+**/TestResults/
+*.trx
+
+# VS Code
+.vscode/
+
+# Logs, temp, caches
+*.log
+*.tmp
+*.cache
+*.bak
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Binary / build artifacts
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.obj
+
+# Rider / JetBrains
+.idea/
+*.iml
+
+# Generated assembly info / intermediate files
+**/obj/**
+**/bin/**
+**/*AssemblyInfo.*
+
+# Coverage / profiler
+*.coverage
+*.coveragexml
+
+# Specification/tooling caches
+.specify/output/
+.specify/cache/
+
+# Large data / models / images (自訂：若需要版本控制請移除或改為 LFS)
+data/
+datasets/
+images/
+raw_images/
+captures/
+*.onnx
+*.tfrecord
+*.pth
+*.pt
+*.h5
+
+# Node
+node_modules/
+
+# Archives
+*.zip
+*.7z
+*.tar
+*.gz
+
+# Temporary test artifacts
+**/bin/Debug/
+**/bin/Release/
+
+# End of file
