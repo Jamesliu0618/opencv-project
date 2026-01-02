@@ -80,5 +80,9 @@ namespace PCBInspection.Core
         {
             _pixelsPerMm = pixelsPerMm;
         }
+
+        // expose scale and rotation for persistence / UI
+        public static double GetPixelsPerMm() => _pixelsPerMm;
+        public static double GetRotationDeg() => _rotationDeg;
     }
 }

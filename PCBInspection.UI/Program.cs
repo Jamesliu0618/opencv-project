@@ -10,8 +10,16 @@ namespace PCBInspection.UI
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            // TODO: launch main form
-            Application.Run(new Form() { Text = "PCB Inspection UI (placeholder)" });
+            // Launch main UI or calibration wizard via CLI flag
+            var args = Environment.GetCommandLineArgs();
+            if (args.Length > 1 && args[1].ToLowerInvariant().Contains("calibrate"))
+            {
+                Application.Run(new CalibrationWizardForm());
+            }
+            else
+            {
+                Application.Run(new Form() { Text = "PCB Inspection UI (placeholder)" });
+            }
         }
     }
 }
