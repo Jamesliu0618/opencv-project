@@ -18,10 +18,22 @@ namespace PCBInspection.Core
         public double HeightMm { get; set; }
     }
 
+    public class LocalizationOptions
+    {
+        public int MinArea { get; set; } = 50;
+        public int BlurKernel { get; set; } = 5; // must be odd
+        public int AdaptiveBlockSize { get; set; } = 15; // must be odd
+        public int AdaptiveC { get; set; } = 7;
+        public int MorphKernel { get; set; } = 3;
+        public bool UseMorphClose { get; set; } = true;
+        public bool UseMomentsForCentroid { get; set; } = true;
+    }
+
     public static class Localization
     {
-        public static List<Component> DetectComponents(Mat image, int minArea = 50)
+        public static List<Component> DetectComponents(Mat image, LocalizationOptions opts = null)
         {
+            if (opts == null) opts = new LocalizationOptions();
             var components = new List<Component>();
             Mat gray = null;
             try
@@ -36,8 +48,18 @@ namespace PCBInspection.Core
                     gray = image.Clone();
                 }
 
-                Cv2.GaussianBlur(gray, gray, new Size(5,5), 0);
-                Cv2.AdaptiveThreshold(gray, gray, 255, AdaptiveThresholdTypes.MeanC, ThresholdTypes.BinaryInv, 15, 7);
+                var blurSize = (opts.BlurKernel % 2 == 1) ? opts.BlurKernel : opts.BlurKernel + 1;
+                Cv2.GaussianBlur(gray, gray, new Size(blurSize, blurSize), 0);
+
+                var block = (opts.AdaptiveBlockSize % 2 == 1) ? opts.AdaptiveBlockSize : opts.AdaptiveBlockSize + 1;
+                Cv2.AdaptiveThreshold(gray, gray, 255, AdaptiveThresholdTypes.MeanC, ThresholdTypes.BinaryInv, block, opts.AdaptiveC);
+
+                if (opts.UseMorphClose)
+                {
+                    var morphSize = opts.MorphKernel > 0 ? opts.MorphKernel : 3;
+                    var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(morphSize, morphSize));
+                    Cv2.MorphologyEx(gray, gray, MorphTypes.Close, kernel);
+                }
 
                 Cv2.FindContours(gray, out var contours, out var hierarchy, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 
@@ -45,11 +67,29 @@ namespace PCBInspection.Core
                 foreach (var c in contours)
                 {
                     var area = Cv2.ContourArea(c);
-                    if (area < minArea) continue;
+                    if (area < opts.MinArea) continue;
+
                     var rect = Cv2.MinAreaRect(c);
-                    var center = rect.Center;
-                    var size = rect.Size;
-                    var angle = rect.Angle;
+                    Point2f center;
+                    double angle = rect.Angle;
+                    Size2f size = rect.Size;
+
+                    if (opts.UseMomentsForCentroid)
+                    {
+                        var m = Cv2.Moments(c);
+                        if (m.M00 != 0)
+                        {
+                            center = new Point2f((float)(m.M10 / m.M00), (float)(m.M01 / m.M00));
+                        }
+                        else
+                        {
+                            center = rect.Center;
+                        }
+                    }
+                    else
+                    {
+                        center = rect.Center;
+                    }
 
                     var (cxMm, cyMm) = Calibration.PixelToMm(center.X, center.Y);
 

@@ -22,7 +22,7 @@ namespace PCBInspection.Tests.Unit
 
             Calibration.SetManualScale(10.0); // 10 px per mm
 
-            var comps = Localization.DetectComponents(img, minArea: 10);
+            var comps = Localization.DetectComponents(img, new LocalizationOptions { MinArea = 10 });
             Assert.AreEqual(2, comps.Count);
 
             var c0 = comps[0];
