@@ -1,0 +1,84 @@
+# production.yaml — Deployment checklist & sample settings for PCB Inspection
+
+# General
+app:
+  name: PCBInspection
+  deploy_path: C:\\Program Files\\PCBInspection
+  service_name: PCBInspectionService
+  run_user: LocalSystem
+
+# .NET
+dotnet:
+  framework: ".NET Framework 4.8"
+  verify_command: "Test-Path 'HKLM:\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full' -ErrorAction SilentlyContinue"
+
+# Advantech driver
+advantech:
+  required: true
+  drivers:
+    - name: PCI-1245E
+    - name: PCI-1756
+  install_check:
+    - command: "Get-PnpDevice | Where-Object { $_.FriendlyName -Match 'Advantech' }"
+  notes: |
+    Install Advantech SDK and drivers per vendor instructions. Confirm device present in Device Manager and that user running service has permission to access the device.
+
+# Basler / camera
+camera:
+  vendor: Basler
+  sdk: pylon
+  install_instructions: |
+    1. Install Basler pylon SDK for Windows (match OS/x64)
+    2. Configure camera IP and ensure GigE network is reachable
+    3. If large frames used, enable Jumbo Frames on NIC and switch (MTU >= 9000)
+  network:
+    recommended_mtu: 9000
+
+# Network
+network:
+  recommended:
+    - isolate camera network (VLAN)
+    - ensure low-latency path between camera and IPC
+
+# IO / Motion control
+io:
+  advantech_adapter:
+    module: PCI-1245E
+    pin_map_example:
+      OUTPUT_OK: { module: PCI-1245E, port: 0, bit: 0 }
+      OUTPUT_NG: { module: PCI-1245E, port: 0, bit: 1 }
+  checks:
+    - "Verify Advantech SDK is installed and APS_initial() succeeds"
+
+# Health checks & smoke tests
+health_checks:
+  - name: smoke-test
+    command: "PowerShell -ExecutionPolicy Bypass -File scripts\\smoke-test.ps1 -Mode production"
+  - name: service-health
+    command: "Invoke-WebRequest -UseBasicParsing http://localhost:5000/health"
+
+# Permissions
+permissions:
+  install:
+    - Administrator privileges required for driver installation
+  runtime:
+    - Service account with LocalSystem or specified account with device access
+
+# Auto-start
+autostart:
+  method: windows-service
+  recipe: |
+    sc.exe create PCBInspectionService binPath= "C:\\Program Files\\PCBInspection\\PCBInspection.Service.exe" start= auto
+    sc.exe description PCBInspectionService "PCB Inspection service - captures images, runs inspection pipeline and emits IO signals"
+
+# Logging & retention
+logging:
+  path: C:\\ProgramData\\PCBInspection\\logs
+  retention_days: 30
+  ng_image_path: C:\\ProgramData\\PCBInspection\\ng_images
+
+# Notes / Post-deploy
+post_deploy:
+  - "Run hardware smoke tests (see scripts/smoke-test.ps1)"
+  - "Confirm camera and IO mappings in config/camera_config.json and config/io_config.json"
+  - "Record initial performance baseline in artifacts/perf/baseline.json"
