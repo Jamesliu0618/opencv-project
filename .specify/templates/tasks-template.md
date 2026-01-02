@@ -68,6 +68,9 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T007 Create base models/entities that all stories depend on
 - [ ] T008 Configure error handling and logging infrastructure
 - [ ] T009 Setup environment configuration management
+- [ ] T010 [P] Prepare deterministic image fixtures and sample datasets in `tests/fixtures/images/` with metadata and license files
+- [ ] T011 Add performance testing harness and capture initial baseline metrics (FPS / p95 latency / memory)
+- [ ] T012 Add visual regression & smoke tests that save/compare golden images for primary flows
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

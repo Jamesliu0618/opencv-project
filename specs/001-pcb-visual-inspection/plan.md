@@ -1,31 +1,25 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: PCB Visual Inspection (001-pcb-visual-inspection)
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Branch**: `001-pcb-visual-inspection` | **Date**: 2026-01-02 | **Spec**: `spec.md`
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Build a Windows-based automated PCB quality inspection application using OpenCV for image processing, supporting live capture from industrial cameras, offline image analysis, defect detection (rule-based CV + optional ML fallback), component localization, dimension measurement, OK/NG decisioning, report generation and Digital IO-based motion-control integration. The approach emphasizes deterministic fixtures, CI-driven visual regression, and a modular driver/abstraction layer for camera and motion control to permit vendor-specific integration.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (primary)
+**Primary Dependencies**: OpenCV (opencv-python), NumPy, scikit-image, PySide6 (UI), pandas, PyTorch (optional for ML), pytest
+**Storage**: File-system for images & reports, SQLite for inspection metadata and indexing
+**Testing**: pytest + custom image test harness, deterministic fixtures in `tests/fixtures/images/`, golden image visual regression tests, performance harness for per-image timing
+**Target Platform**: Windows industrial PC (x64). Minimum: quad-core CPU, 8 GB RAM. Recommended: 16 GB RAM + optional NVIDIA GPU for ML
+**Project Type**: Single desktop application (service + native UI) with modular drivers
+**Performance Goals**: Single-image processing ≤3s (p95), startup ≤10s, motion-control signal latency ≤100 ms, detection accuracy ≥99%, FP <1%
+**Constraints**: Must operate 8+ hours continuously, tolerate ±2 mm PCB shift, robust to moderate illumination variation
+**Scale/Scope**: Single-station inspection, designed to be replicable across multiple stations
 
 ## Constitution Check
 
@@ -47,13 +41,13 @@ Gates determined based on constitution file:
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-pcb-visual-inspection/
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
+├── contracts/
+└── checklists/requirements.md
 ```
 
 ### Source Code (repository root)
@@ -100,8 +94,7 @@ ios/ or android/
 └── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single-project layout with driver abstractions (see `src/drivers/`) to isolate hardware/vendor specifics and keep processing and UI decoupled.
 
 ## Complexity Tracking
 

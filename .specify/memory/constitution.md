@@ -1,50 +1,59 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: none → 0.1.0
+Modified principles:
+- I. Image-First Design (added)
+- II. Performance & Real-time (added)
+- III. Test-First & Reproducible (added)
+- IV. Observability & Explainability (added)
+- V. Cross-Platform & Minimal Dependencies (added)
+Added sections: Performance & Resource Constraints; Data Privacy & Licensing; Constitution Check gates for CV features
+Templates updated: 
+- .specify/templates/plan-template.md ✅ updated
+- .specify/templates/spec-template.md ✅ updated
+- .specify/templates/tasks-template.md ✅ updated
+Follow-ups: RATIFICATION_DATE TODO (needs confirmation)
+-->
+
+# OpenCV Application Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Image-First Design
+Every feature MUST begin with a clearly specified image/video data contract: formats, resolutions, color spaces, annotation schemas and preprocessing steps. Pipelines MUST be designed to be deterministic and independently testable; data contracts are treated as public interfaces and changes to them are breaking changes unless properly versioned and migrated.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Performance & Real-time (NON-NEGOTIABLE where applicable)
+When a feature processes images or video, the specification MUST define measurable performance targets (e.g., target FPS, p95 latency, memory and CPU/GPU limits). Implementations MUST include profiling plans, baseline measurements and regression tests; exceeding agreed degradation thresholds constitutes a breaking change.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-First & Reproducible (NON-NEGOTIABLE)
+Tests MUST be written before implementation. This includes unit tests for processing functions, integration tests using deterministic image fixtures, and reproducible model inference with fixed seeds. CI pipelines MUST run these tests and fail on regressions.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Observability & Explainability
+All components MUST emit structured logs and metrics, and provide visual debug outputs (e.g., overlayed bounding boxes, difference images) to enable rapid diagnosis. Implementations MUST capture sufficient artifacts (inputs, outputs, parameters, seeds) to reproduce observed behavior.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Cross-Platform & Minimal Dependencies
+The project SHOULD support Windows, Linux and macOS. Core functionality SHOULD rely on OpenCV and well‑maintained, properly licensed dependencies. Any breaking changes to public interfaces, data contracts or supported platforms MUST follow the versioning policy documented below.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Additional Constraints
+- **Data Handling & Privacy**: Images that contain personal data MUST include a documented redaction policy, consent metadata, retention policy, and storage protections.
+- **Licensing & Provenance**: All third‑party models and datasets used MUST include license and provenance information; inclusion of incompatible licensed assets is prohibited.
+- **Platform Guarantees**: GPU acceleration is permitted but any GPU‑only feature MUST document a CPU fallback or clear platform limitation.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Workflow
+- PRs MUST include or update tests that validate new behaviors; at least one approver is required for merge.
+- CI gates MUST include: unit tests, image smoke tests using fixtures, and performance baseline checks where applicable.
+- Release & Versioning: Use semantic versioning where:
+  - MAJOR: Breaking changes to data contracts, public APIs, or supported platforms.
+  - MINOR: New, backwards-compatible features.
+  - PATCH: Documentation, wording, or minor clarifications.
+- Performance or data handling changes MUST include a migration and validation plan in the associated spec/plan.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+Amendments to this constitution MUST be introduced via PR that:
+- Documents the proposed change and rationale
+- Updates this constitution and any affected templates or specs
+- Includes validation steps, tests, and a suggested version bump
+- Receives approval from a majority of maintainers listed in the repository governance
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+**Version**: 0.1.0 | **Ratified**: 2026-01-02 | **Last Amended**: 2026-01-02
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->

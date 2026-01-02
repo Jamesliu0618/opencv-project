@@ -95,6 +95,17 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Performance & Resource Constraints (MANDATORY for CV features)
+
+- **PR-001**: If feature processes images/video, the specification MUST define target throughput (e.g., FPS), p95 latency, memory and CPU/GPU constraints.
+- **PR-002**: Acceptable degradation thresholds for model updates and fallback strategies MUST be stated.
+
+### Data Privacy & Licensing (MANDATORY for data-driven features)
+
+- **DP-001**: All datasets used for tests or training MUST document consent, PII handling, retention, and storage location.
+- **DP-002**: Third-party models and datasets MUST include license and provenance information and be approved before inclusion.
+- **DP-003**: Any exported artifacts (images, video) MUST avoid leaking sensitive information unless explicitly permitted in the spec.
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
