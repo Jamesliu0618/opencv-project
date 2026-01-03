@@ -604,7 +604,7 @@ namespace PCBInspection.UI
 
 		private void RunSequence()
 		{
-			if(imageViewer.Image == null)
+			if(_originalImage == null)
 			{
 				Log("請先載入影像", TraceLevel.Error);
 				return;
@@ -616,8 +616,11 @@ namespace PCBInspection.UI
 				r.Cells[2].Value             = "Wait";
 				r.DefaultCellStyle.BackColor = Color.White;
 			}
-			Mat currentMat = imageViewer.Image.ToMat();
+			
+			// 使用原始影像的副本開始
+			Mat currentMat = _originalImage.ToMat();
 			Mat roiMask    = null;
+			List<Defect> accumulatedDefects = new List<Defect>(); // [Fix] 累積缺陷 context
 
 			if(imageViewer.Rois.Count > 0)
 			{
@@ -641,7 +644,11 @@ namespace PCBInspection.UI
 					InspectionItem  item = _sequence[i];
 					DataGridViewRow row  = dgvSequence.Rows[i];
 					row.Cells[2].Value = "Running...";
-					Application.DoEvents();
+					Application.DoEvents(); // 讓 UI 更新
+					
+					// [Fix] 注入 Context
+					InjectContext(item.Parameters, accumulatedDefects);
+					
 					Stopwatch swStep = Stopwatch.StartNew();
 
 					try
@@ -655,9 +662,17 @@ namespace PCBInspection.UI
 							currentMat.CopyTo(maskedInput, roiMask);
 							inputToTool = maskedInput;
 						}
+						
+						// 執行工具
 						(bool IsOk, Mat ResultImage, List<Defect> Defects) result = item.Action(inputToTool, item.Parameters);
 						swStep.Stop();
 						row.Cells[1].Value = $"{swStep.ElapsedMilliseconds}ms";
+						
+						// [Fix] 收集缺陷
+						if (result.Defects != null)
+						{
+							accumulatedDefects.AddRange(result.Defects);
+						}
 
 						if(result.IsOk)
 						{
@@ -753,6 +768,7 @@ namespace PCBInspection.UI
 
 					if(lastValidItem != null)
 					{
+						// 更新 Viewer 顯示最終結果
 						imageViewer.Image = (Bitmap)lastValidItem.LastResultImage.Clone();
 						RefreshInfoPanel(swTotal.ElapsedMilliseconds);
 					}
