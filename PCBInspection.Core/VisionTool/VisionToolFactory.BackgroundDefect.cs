@@ -9,6 +9,7 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>註冊背景處理與缺陷檢測類別工具</summary>
 		private static void AddBackgroundDefectTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

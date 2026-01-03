@@ -8,6 +8,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊幾何變換類別工具。
+		/// 包含：旋轉翻轉、縮放與裁切 (ROI) 運算。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddTransformTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

@@ -5,46 +5,67 @@ using System.Linq;
 
 namespace PCBInspection.Core
 {
+	/// <summary>點組件或零件資訊</summary>
 	public class Component
 	{
+		/// <summary>組件 ID</summary>
 		public string Id         { get; set; }
+		/// <summary>中心 X 座標 (像素)</summary>
 		public double CenterX_Px { get; set; }
+		/// <summary>中心 Y 座標 (像素)</summary>
 		public double CenterY_Px { get; set; }
+		/// <summary>中心 X 座標 (毫米)</summary>
 		public double CenterX_Mm { get; set; }
+		/// <summary>中心 Y 座標 (毫米)</summary>
 		public double CenterY_Mm { get; set; }
+		/// <summary>組件旋轉角度 (度)</summary>
 		public double AngleDeg   { get; set; }
+		/// <summary>邊界框寬度 (像素)</summary>
 		public double SizeW_Px   { get; set; }
+		/// <summary>邊界框高度 (像素)</summary>
 		public double SizeH_Px   { get; set; }
+		/// <summary>實際寬度 (毫米)</summary>
 		public double WidthMm    { get; set; }
+		/// <summary>實際高度 (毫米)</summary>
 		public double HeightMm   { get; set; }
 	}
 
+	/// <summary>組件定位與檢測的配置參數</summary>
 	public class LocalizationOptions
 	{
+		/// <summary>最小有效面積 (像素)</summary>
 		[DisplayName("最小面積 (px)")] [Description("過濾小於此面積的輪廓。\n單位: 像素 (Pixel)")]
 		public int MinArea { get; set; } = 50;
 
+		/// <summary>預處理的高斯模糊核心大小</summary>
 		[DisplayName("高斯模糊核 (px)")] [Description("預處理的模糊半徑，必須為奇數。\n單位: 像素 (Pixel)")]
 		public int BlurKernel { get; set; } = 5; // must be odd
 
+		/// <summary>自適應二值化的局部區塊大小</summary>
 		[DisplayName("自適應區塊大小 (px)")] [Description("自適應閾值的區塊大小，必須為奇數。\n單位: 像素 (Pixel)")]
 		public int AdaptiveBlockSize { get; set; } = 15; // must be odd
 
+		/// <summary>自適應二值化常數，調整其敏感度</summary>
 		[DisplayName("自適應常數 C")] [Description("自適應閾值的常數，值越大閾值越低 (越不易被選中)。")]
 		public int AdaptiveC { get; set; } = 7;
 
+		/// <summary>形態學結構元素的大小</summary>
 		[DisplayName("形態學核大小 (px)")] [Description("形態學操作的結構元素大小。\n單位: 像素 (Pixel)")]
 		public int MorphKernel { get; set; } = 3;
 
+		/// <summary>是否在二值化後執行閉運算 (Close Operation) 以連接斷裂輪廓</summary>
 		[DisplayName("使用閉運算")] [Description("是否使用形態學閉運算來連接斷裂的輪廓。\nTrue: 啟用, False: 停用")]
 		public bool UseMorphClose { get; set; } = true;
 
+		/// <summary>是否使用影像矩 (Moments) 來計算更精確的中心點，而非僅使用矩形中心</summary>
 		[DisplayName("使用矩計算中心")] [Description("使用影像矩 (Moments) 計算更精確的質心。\nTrue: 使用矩, False: 使用邊界框中心")]
 		public bool UseMomentsForCentroid { get; set; } = true;
 	}
 
+	/// <summary>組件定位與檢測邏輯靜態類別</summary>
 	public static class Localization
 	{
+		/// <summary>在影像中搜尋並定位所有 PCB 組件</summary>
 		public static List<Component> DetectComponents(Mat image, LocalizationOptions opts = null)
 		{
 			if(opts == null)

@@ -8,6 +8,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊色彩處理類別工具。
+		/// 包含：色彩空間轉換、直方圖均衡 (CLAHE)、物理範圍過濾、主要顏色分析與色差計算。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddColorProcessingTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

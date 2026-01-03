@@ -7,6 +7,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊降噪類別工具。
+		/// 包含：非局部均值降噪 (Non-local Means Denoising)。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddDenoiseTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

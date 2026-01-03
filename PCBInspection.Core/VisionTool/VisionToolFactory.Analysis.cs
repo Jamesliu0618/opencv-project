@@ -10,6 +10,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊測量與分析類別工具。
+		/// 包含：幾何距離測量、物件輪廓分析、影像直方圖統計與灰階剖面線分析。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddAnalysisTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

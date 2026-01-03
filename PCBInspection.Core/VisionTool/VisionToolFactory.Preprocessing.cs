@@ -7,6 +7,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊預處理類別工具。
+		/// 包含：灰階化、濾波模糊、二值化、形態學運算。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddPreprocessingTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

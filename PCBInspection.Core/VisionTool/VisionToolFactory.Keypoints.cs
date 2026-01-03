@@ -8,6 +8,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊特徵點偵測類別工具。
+		/// 包含：ORB、FAST、BRISK、AKAZE 等偵測器。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddKeypointsTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

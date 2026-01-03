@@ -5,8 +5,17 @@ using System.Collections.Generic;
 
 namespace PCBInspection.Core.Services
 {
+	/// <summary>
+	/// 註冊繪圖與標註類別工具。
+	/// 包含：繪製文字與圖形標註功能。
+	/// </summary>
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊幾何變換類別工具。
+		/// 包含：旋轉翻轉、縮放與裁切 (ROI) 運算。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddDrawingTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

@@ -10,6 +10,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊校正與品質評估類別工具。
+		/// 包含：相機標定、影像畸變矯正、四點透視變換與影像品質評估。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddCalibrationTools(List<ToolDefinition> tools)
 		{
 			// =========================================================

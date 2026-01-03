@@ -10,6 +10,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
+		/// <summary>
+		/// 註冊特徵提取類別工具。
+		/// 包含：邊緣偵測 (Canny/Sobel/Laplacian)、輪廓搜尋、霍夫直線/圓形偵測、模板匹配。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddFeatureExtractionTools(List<ToolDefinition> tools)
 		{
 			// =========================================================
