@@ -14,7 +14,8 @@ namespace PCBInspection.Core.Services
 	public static class ReportingService
 	{
 		/// <summary>
-		///     生成完整檢測報告
+		///     根據檢測結果生成結構化的統計報表 (InspectionReport)。
+		///     將原始影像處理數據轉換為更便於報表呈現與彙整的格式。
 		/// </summary>
 		public static InspectionReport GenerateReport(InspectionResult result, ReportOptions options = null)
 		{
@@ -28,6 +29,7 @@ namespace PCBInspection.Core.Services
 				Decision         = result.Ok ? "OK" : "NG",
 				ProcessingTimeMs = result.ProcessingTimeMs,
 				ModelVersion     = result.ModelVersion ?? "1.0.0",
+				// 彙整元件摘要資訊
 				Components = result.Components?.Select(c => new ComponentSummary
 				                   {
 					                   Id       = c.Id,
@@ -37,6 +39,7 @@ namespace PCBInspection.Core.Services
 				                   })
 				                   .ToList()
 				          ?? new List<ComponentSummary>(),
+				// 彙整缺陷摘要資訊
 				Defects = result.Defects?.Select(d => new DefectSummary
 				                {
 					                Id         = d.Id,
@@ -47,6 +50,7 @@ namespace PCBInspection.Core.Services
 				                })
 				                .ToList()
 				       ?? new List<DefectSummary>(),
+				// 計算統計指標 (如: 各類型缺陷計數、最大嚴重度等)
 				Statistics = new ReportStatistics
 				{
 					TotalComponents = result.Components?.Count                                                      ?? 0,
@@ -57,7 +61,7 @@ namespace PCBInspection.Core.Services
 				Files = new ReportFiles
 				{
 					AnnotatedImage = result.AnnotatedImagePath,
-					OriginalImage  = null, // 可從外部傳入
+					OriginalImage  = null, 
 				},
 			};
 			return report;

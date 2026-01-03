@@ -3,7 +3,11 @@ using System.ComponentModel;
 
 namespace PCBInspection.Core.Models
 {
-	/// <summary>檢測物件資料類別，用於存儲輪廓分析或特徵點偵測的結果</summary>
+	/// <summary>
+	/// 檢測物件資料實體類別。
+	/// 用於封裝視覺處理後產生的各種幾何、統計、特徵資訊，
+	/// 並作為工具間傳遞或者是 UI 列表顯示的資料載體。
+	/// </summary>
 	public class DetectedObject
 	{
 		/// <summary>物件識別編號</summary>

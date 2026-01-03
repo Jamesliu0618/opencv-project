@@ -18,37 +18,69 @@ using Size = System.Drawing.Size;
 
 namespace PCBInspection.UI
 {
+	/// <summary>
+	/// 主表單類別
+	/// 負責管理整個 PCB 檢測流程、影像顯示與使用者互動
+	/// </summary>
 	public partial class MainForm : Form
 	{
+		/// <summary>操作歷史管理器，用於復原/重做 ROI 編輯與影像狀態</summary>
 		private readonly HistoryManager       _history  = new HistoryManager();
+		
+		/// <summary>檢測流程的步驟清單</summary>
 		private readonly List<InspectionItem> _sequence = new List<InspectionItem>();
+		
+		/// <summary>目前載入的影像檔案路徑</summary>
 		private          string               _currImagePath;
 
+		/// <summary>最後一次偵測到的物件清單（如圓形、缺陷、邊緣等）</summary>
 		private List<DetectedObject> _lastDetectedObjects = new List<DetectedObject>();
+		
+		/// <summary>載入影像時保存的原始影像副本，確保檢測流程從乾淨的影像開始</summary>
 		private Bitmap               _originalImage;
 
+		/// <summary>步驟清單右鍵選單</summary>
 		private ContextMenuStrip _sequenceContextMenu;
 
 		// 循環執行相關
+		/// <summary>循環執行專用計時器</summary>
 		private System.Windows.Forms.Timer _loopTimer;
+		
+		/// <summary>目前正在循環執行的步驟索引</summary>
 		private int                        _loopStepIndex = -1;
+		
+		/// <summary>是否處於循環執行模式</summary>
 		private bool                       _isLooping;
 
+		/// <summary>
+		/// 初始化主表單
+		/// </summary>
 		public MainForm()
 		{
 			InitializeComponent();
+			
+			// 設定 UI 主題與外觀
 			SetupTheme();
+			
+			// 從視覺工廠載入所有可用工具到左側工具箱
 			InitializeToolbox();
+			
+			// 載入工具列圖示
 			LoadToolbarIcons();
+			
+			// 綁定所有控制項事件
 			WireEvents();
 			
-			// [新增] 初始化標註控制項
+			// 初始化手動標註控制項並連結影像檢視器
 			if(defectLabelingControl1 != null)
 			{
 				defectLabelingControl1.Setup(imageViewer);
 			}
 		}
 
+		/// <summary>
+		/// 輸出 UI 佈局偵錯資訊，用於排查 SplitContainer 與面板大小問題
+		/// </summary>
 		private void DumpLayoutInfo()
 		{
 			try
@@ -80,6 +112,9 @@ namespace PCBInspection.UI
 			}
 		}
 
+		/// <summary>
+		/// 設定 UI 主題配色與預設高度
+		/// </summary>
 		private void SetupTheme()
 		{
 			BackColor                      = SystemColors.Control;
@@ -87,6 +122,9 @@ namespace PCBInspection.UI
 			toolStripMain.Height           = 50;
 		}
 
+		/// <summary>
+		/// 從 Resources 目錄載入工具列所需的所有 PNG 圖示
+		/// </summary>
 		private void LoadToolbarIcons()
 		{
 			try
@@ -131,6 +169,9 @@ namespace PCBInspection.UI
 			}
 		}
 
+		/// <summary>
+		/// 輔助方法：從指定路徑載入單張圖示影像
+		/// </summary>
 		private Image LoadIcon(string dir, string name)
 		{
 			string path = Path.Combine(dir, $"{name}.png");
@@ -142,6 +183,9 @@ namespace PCBInspection.UI
 			return null;
 		}
 
+		/// <summary>
+		/// 初始化左側工具箱，將 VisionToolFactory 中定義的所有工具按類別分群顯示在 TreeView
+		/// </summary>
 		private void InitializeToolbox()
 		{
 			tvTools.Nodes.Clear();
@@ -163,6 +207,9 @@ namespace PCBInspection.UI
 			tvTools.ExpandAll();
 		}
 
+		/// <summary>
+		/// 集中處理所有 UI 事件的綁定（Click, Selected, ListChanged 等）
+		/// </summary>
 		private void WireEvents()
 		{
 			// Global Vision Logging
@@ -306,6 +353,9 @@ namespace PCBInspection.UI
 			};
 		}
 
+		/// <summary>
+		/// 更新左側歷史紀錄清單顯示
+		/// </summary>
 		private void UpdateHistoryList()
 		{
 			lstHistory.Items.Clear();
@@ -316,26 +366,32 @@ namespace PCBInspection.UI
 			}
 		}
 
+		/// <summary>
+		/// 切換比對視窗模式（顯示/隱藏左側的參考影像）
+		/// </summary>
 		private void ToggleSplitView()
 		{
 			bool isCollapsed = splitContainerImages.Panel1Collapsed;
 			splitContainerImages.Panel1Collapsed = !isCollapsed;
 
-			if(isCollapsed) // Was collapsed, now opening
+			if(isCollapsed) // 原本是摺疊狀態，現在開啟
 			{
 				if(imageViewerRef.Image == null && imageViewer.Image != null)
 				{
-					// For UX, copy current to ref if empty
+					// 為了 UX 體驗，若參考影像為空則複製當前檢測影像
 					imageViewerRef.Image = (Bitmap)imageViewer.Image.Clone();
 				}
-				// Sync view
+				// 同步兩個視窗的縮放與位置
 				imageViewerRef.SetView(imageViewer.ScaleFactor, imageViewer.OffsetX, imageViewer.OffsetY);
 			}
 		}
 
+		/// <summary>
+		/// 設定主視窗與參考視窗的雙向同步（縮放、位移）
+		/// </summary>
 		private void SetupViewerSync()
 		{
-			// Master -> Slave
+			// 主視窗連動參考視窗
 			imageViewer.ViewChanged += (s, e) =>
 			{
 				if(!splitContainerImages.Panel1Collapsed)
@@ -344,7 +400,7 @@ namespace PCBInspection.UI
 				}
 			};
 
-			// Slave -> Master
+			// 參考視窗連動主視窗
 			imageViewerRef.ViewChanged += (s, e) =>
 			{
 				if(!splitContainerImages.Panel1Collapsed)
@@ -354,12 +410,18 @@ namespace PCBInspection.UI
 			};
 		}
 
+		/// <summary>
+		/// 根據歷史狀態更新工具列復原/重做按鈕的啟用狀態
+		/// </summary>
 		private void UpdateUndoRedoButtons()
 		{
 			btnTsUndo.Enabled = _history.CanUndo;
 			btnTsRedo.Enabled = _history.CanRedo;
 		}
 
+		/// <summary>
+		/// 執行復原操作（Undo）
+		/// </summary>
 		private void PerformUndo()
 		{
 			(Bitmap img, List<RoiBase> rois) = _history.Undo(imageViewer.Image, imageViewer.Rois);
@@ -374,6 +436,9 @@ namespace PCBInspection.UI
 			UpdateUndoRedoButtons();
 		}
 
+		/// <summary>
+		/// 執行重做操作（Redo）
+		/// </summary>
 		private void PerformRedo()
 		{
 			(Bitmap img, List<RoiBase> rois) = _history.Redo(imageViewer.Image, imageViewer.Rois);
@@ -388,6 +453,9 @@ namespace PCBInspection.UI
 			UpdateUndoRedoButtons();
 		}
 
+		/// <summary>
+		/// 將選定的工具加入檢測流程步驟清單
+		/// </summary>
 		private void AddToolToSequence(TreeNode node)
 		{
 			if(node.Tag is VisionToolFactory.ToolDefinition toolDef)
@@ -396,18 +464,25 @@ namespace PCBInspection.UI
 				{
 					Name       = toolDef.Name,
 					Action     = toolDef.Action,
+					// 實例化該工具的預設參數物件
 					Parameters = Activator.CreateInstance(toolDef.DefaultParameters.GetType()),
 				};
 				CopyProperties(toolDef.DefaultParameters, item.Parameters);
+				
 				_sequence.Add(item);
+				// 在 DataGridView 中新增一行
 				int idx = dgvSequence.Rows.Add(item.Name, "", "Wait");
 				dgvSequence.Rows[idx].Tag = item;
 				dgvSequence.ClearSelection();
 				dgvSequence.Rows[idx].Selected = true;
+				
 				Log($"已加入步驟: {item.Name}", TraceLevel.Info);
 			}
 		}
 
+		/// <summary>
+		/// 輔助方法：使用反射複製物件的所有可讀寫屬性
+		/// </summary>
 		private void CopyProperties(object source, object dest)
 		{
 			foreach(PropertyInfo prop in source.GetType().GetProperties())
@@ -419,6 +494,9 @@ namespace PCBInspection.UI
 			}
 		}
 
+		/// <summary>
+		/// 移動步驟順序（上移或下移）
+		/// </summary>
 		private void MoveStep(int direction)
 		{
 			if(dgvSequence.SelectedRows.Count == 0)
@@ -430,9 +508,12 @@ namespace PCBInspection.UI
 
 			if(newIdx >= 0 && newIdx < dgvSequence.Rows.Count)
 			{
+				// 交換 _sequence 內容
 				InspectionItem item = _sequence[idx];
 				_sequence.RemoveAt(idx);
 				_sequence.Insert(newIdx, item);
+				
+				// 交換 DataGridViewRow
 				DataGridViewRow row = dgvSequence.Rows[idx];
 				dgvSequence.Rows.RemoveAt(idx);
 				dgvSequence.Rows.Insert(newIdx, row);
@@ -440,6 +521,9 @@ namespace PCBInspection.UI
 			}
 		}
 
+		/// <summary>
+		/// 移除當前選取的檢測步驟
+		/// </summary>
 		private void RemoveStep()
 		{
 			if(dgvSequence.SelectedRows.Count == 0)
@@ -451,6 +535,9 @@ namespace PCBInspection.UI
 			dgvSequence.Rows.RemoveAt(idx);
 		}
 
+		/// <summary>
+		/// 當步驟清單點選改變時，將該步驟的參數載入到屬性視窗 (PropertyGrid)，並顯示該步驟的最後結果圖
+		/// </summary>
 		private void DgvSequence_SelectionChanged(object sender, EventArgs e)
 		{
 			if(dgvSequence.SelectedRows.Count > 0)
@@ -459,8 +546,10 @@ namespace PCBInspection.UI
 
 				if(row.Tag is InspectionItem item)
 				{
+					// 指向該步驟的參數物件，允許使用者在下方調整
 					propertyGrid.SelectedObject = item.Parameters;
 
+					// 若該步驟已有執行過且有結果圖，則顯示之
 					if(item.LastResultImage != null)
 					{
 						imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
@@ -491,11 +580,18 @@ namespace PCBInspection.UI
 			}
 		}
 
+		/// <summary>
+		/// 開啟檔案按鈕事件
+		/// </summary>
 		private void BtnTsOpen_Click(object sender, EventArgs e)
 		{
             LoadImage();
 		}
 
+		/// <summary>
+		/// 顯示開啟檔案對話框，支援多選
+		/// 會讀取檔案並產生縮圖顯示在下方的縮圖列中
+		/// </summary>
 		private void LoadImage()
 		{
 			try
@@ -503,45 +599,45 @@ namespace PCBInspection.UI
 				using(OpenFileDialog dlg = new OpenFileDialog())
 				{
 					dlg.Multiselect = true;
-					dlg.Filter = "Image Files|*.bmp;*.jpg;*.jpeg;*.png;*.tif;*.tiff|All Files|*.*";
+					dlg.Filter = "影像檔案|*.bmp;*.jpg;*.jpeg;*.png;*.tif;*.tiff|所有檔案|*.*";
 
 					if(dlg.ShowDialog(this) == DialogResult.OK)
 					{
-					thumbnailBar.Clear();
-					string[] files = dlg.FileNames;
+						thumbnailBar.Clear();
+						string[] files = dlg.FileNames;
 
-					if(files.Length > 0)
-					{
-						foreach(string file in files)
+						if(files.Length > 0)
 						{
-							try
+							foreach(string file in files)
 							{
-								// 僅讀取縮圖
-								using(Mat mat = Cv2.ImRead(file))
+								try
 								{
-									if(!mat.Empty())
+									// 僅讀取縮圖用於顯示
+									using(Mat mat = Cv2.ImRead(file))
 									{
-										using(Bitmap bmp = mat.ToBitmap())
+										if(!mat.Empty())
 										{
-											thumbnailBar.AddThumbnail(Path.GetFileName(file), bmp, file);
+											using(Bitmap bmp = mat.ToBitmap())
+											{
+												thumbnailBar.AddThumbnail(Path.GetFileName(file), bmp, file);
+											}
 										}
 									}
 								}
+								catch
+								{
+									/* 忽略無效影像 */
+								}
 							}
-							catch
-							{
-								/* Ignore invalid images */
-							}
+
+							// 預設載入清單中的第一張影像進行檢測
+							LoadForInspection(files[0]);
+
+							// 自動選取縮圖列中的第一個項目
+							thumbnailBar.SelectItem(files[0]);
 						}
-
-						// 載入第一張
-						LoadForInspection(files[0]);
-
-						// 自動選取第一個縮圖
-						thumbnailBar.SelectItem(files[0]);
 					}
 				}
-			}
 			}
 			catch(Exception ex)
 			{
@@ -1463,6 +1559,21 @@ namespace PCBInspection.UI
 			try
 			{
 				Mat currentMat = _originalImage.ToMat();
+				Mat roiMask    = null;
+				
+				// [Fix] 建立 ROI 遮罩
+				if(imageViewer.Rois.Count > 0)
+				{
+					roiMask = new Mat(currentMat.Size(), MatType.CV_8UC1, Scalar.All(0));
+					foreach(RoiBase roi in imageViewer.Rois)
+					{
+						using(Mat subMask = roi.GetMask(currentMat.Size()))
+						{
+							Cv2.BitwiseOr(roiMask, subMask, roiMask);
+						}
+					}
+				}
+
 				var sw         = System.Diagnostics.Stopwatch.StartNew();
 				var accumulatedDefects = new List<Defect>(); // 累積所有步驟產生的缺陷上下文
 
@@ -1470,13 +1581,25 @@ namespace PCBInspection.UI
 				{
 					var item = _sequence[i];
 					var row  = dgvSequence.Rows[i];
+					
+					Application.DoEvents(); // [Fix] 保持 UI 回應
 
 					try
 					{
 						// 注入上下文缺陷
 						InjectContext(item.Parameters, accumulatedDefects);
 
-						var result = item.Action(currentMat, item.Parameters);
+						Mat inputToTool = currentMat;
+						Mat maskedInput = null;
+
+						if(roiMask != null)
+						{
+							maskedInput = new Mat();
+							currentMat.CopyTo(maskedInput, roiMask);
+							inputToTool = maskedInput;
+						}
+
+						var result = item.Action(inputToTool, item.Parameters);
 						sw.Stop();
 						row.Cells["colTime"].Value = $"{sw.ElapsedMilliseconds}ms";
 
@@ -1485,16 +1608,42 @@ namespace PCBInspection.UI
 							row.Cells["colStatus"].Value           = "OK";
 							row.Cells["colStatus"].Style.ForeColor = System.Drawing.Color.Green;
 
+							// 如果有 ROI，將結果合併回原始影像
+							Mat finalResult = result.ResultImage;
+
+							if(roiMask != null)
+							{
+								// 處理通道合併 (參考 RunSequence)
+								Mat resultToMerge = result.ResultImage;
+								int dstCh = currentMat.Channels();
+								int srcCh = result.ResultImage.Channels();
+
+								if(dstCh != srcCh)
+								{
+									resultToMerge = new Mat();
+									if(dstCh == 4 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
+									else if(dstCh == 4 && srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
+									else if(dstCh == 3 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+									else if(dstCh == 3 && srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
+								}
+
+								finalResult = currentMat.Clone();
+								resultToMerge.CopyTo(finalResult, roiMask);
+
+								if(resultToMerge != result.ResultImage) resultToMerge.Dispose();
+								result.ResultImage.Dispose();
+							}
+
 							item.LastResultImage?.Dispose();
-							item.LastResultImage = result.ResultImage.ToBitmap();
+							item.LastResultImage = finalResult.ToBitmap();
 							item.LastDefects     = result.Defects ?? new List<Defect>();
 							
-							// 累積缺陷到上下文列表中 (供後續步驟使用)
+							// 累積缺陷
 							accumulatedDefects.AddRange(item.LastDefects);
 
 							var oldMat = currentMat;
-							currentMat = result.ResultImage;
-							if (oldMat != result.ResultImage) oldMat.Dispose();
+							currentMat = finalResult;
+							if (oldMat != finalResult) oldMat.Dispose();
 						}
 						else
 						{
@@ -1502,6 +1651,8 @@ namespace PCBInspection.UI
 							row.Cells["colStatus"].Style.ForeColor = System.Drawing.Color.Red;
 							result.ResultImage?.Dispose();
 						}
+						
+						maskedInput?.Dispose();
 						sw.Restart();
 					}
 					catch (Exception ex)
@@ -1521,7 +1672,8 @@ namespace PCBInspection.UI
 				
 				RefreshInfoPanel(sw.ElapsedMilliseconds); // 更新右側面板
 
-				currentMat.Dispose();
+				currentMat?.Dispose();
+				roiMask?.Dispose();
 			}
 			catch (Exception ex)
 			{

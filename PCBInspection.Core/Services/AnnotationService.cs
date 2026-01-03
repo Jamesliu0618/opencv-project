@@ -13,7 +13,8 @@ namespace PCBInspection.Core.Services
 	public static class AnnotationService
 	{
 		/// <summary>
-		///     繪製完整標註影像
+		///     執行影像標註。
+		///     根據傳入的元件、缺陷與判定結果，在影像副本上繪製視覺化資訊並回傳。
 		/// </summary>
 		public static Mat Annotate(Mat image, List<Component> components, List<Defect> defects, InspectionDecision decision, AnnotationOptions options = null)
 		{
@@ -22,9 +23,9 @@ namespace PCBInspection.Core.Services
 				return image;
 			}
 			options = options ?? new AnnotationOptions();
-			var result = image.Clone();
+			var result = image.Clone(); // 複製影像以避免修改原始圖層
 
-			// 繪製元件邊框與尺寸
+			// 1. 繪製元件邊框與尺寸 (如: 黃色矩形框)
 			if(options.ShowComponents && components != null)
 			{
 				foreach(var comp in components)
@@ -33,7 +34,7 @@ namespace PCBInspection.Core.Services
 				}
 			}
 
-			// 繪製瑕疵標記
+			// 2. 繪製瑕疵標記 (依嚴重度決定顏色與粗細)
 			if(options.ShowDefects && defects != null)
 			{
 				foreach(var defect in defects)
@@ -42,13 +43,13 @@ namespace PCBInspection.Core.Services
 				}
 			}
 
-			// 繪製整體判定結果
+			// 3. 繪製整體判定結果 (左上角 OK/NG 看板)
 			if(options.ShowDecision)
 			{
 				DrawDecision(result, decision, options);
 			}
 
-			// 繪製時間戳
+			// 4. 繪製時間戳 (右下角系統時間)
 			if(options.ShowTimestamp)
 			{
 				DrawTimestamp(result, options);
@@ -87,21 +88,22 @@ namespace PCBInspection.Core.Services
 			{
 				return;
 			}
+			// 取得瑕疵座標 [X, Y, W, H]
 			Rect rect = new Rect(defect.BoundingBox[0], defect.BoundingBox[1], defect.BoundingBox[2], defect.BoundingBox[3]);
 
-			// 根據嚴重度選擇顏色
+			// 根據嚴重度選擇對應顏色 (1-輕微綠色 -> 5-致命深紅)
 			Scalar color = GetSeverityColor(defect.Severity);
 
-			// 繪製邊框（嚴重度越高線條越粗）
+			// 繪製邊框 (嚴重度越高則線條越粗，範圍 1~4 px)
 			int thickness = Math.Min(defect.Severity, 4);
 			Cv2.Rectangle(image, rect, color, thickness);
 
-			// 繪製瑕疵類型標籤
+			// 繪製瑕疵類型與嚴重度標籤 (如: "Scratch (S3)")
 			string label    = $"{defect.Type} (S{defect.Severity})";
 			Point  labelPos = new Point(rect.X, rect.Y - 8);
 			Cv2.PutText(image, label, labelPos, HersheyFonts.HersheySimplex, opts.FontScale * 0.8, color);
 
-			// 嚴重瑕疵加上警告圖示
+			// 若為嚴重瑕疵 (S4, S5)，額外在右側繪製驚嘆號警示
 			if(defect.Severity >= 4)
 			{
 				Point iconPos = new Point(rect.X + rect.Width + 5, rect.Y + rect.Height / 2);
@@ -154,7 +156,8 @@ namespace PCBInspection.Core.Services
 		}
 
 		/// <summary>
-		///     繪製檢測物件標籤（編號、面積、圓度等）
+		///     繪製一般檢測物件的視覺標籤。
+		///     包含序號、面積、圓度等統計資訊，並自動處理標籤避讓（避免超出影像頂部）。
 		/// </summary>
 		public static void DrawObjectLabels(Mat image, List<DetectedObject> objects, ObjectLabelStyle style = null)
 		{
@@ -168,13 +171,13 @@ namespace PCBInspection.Core.Services
 				var color = obj.IsOk ? style.OkColor : style.NgColor;
 				var rect  = new Rect(obj.BoundingBox.X, obj.BoundingBox.Y, obj.BoundingBox.Width, obj.BoundingBox.Height);
 
-				// 繪製邊界框
+				// 繪製邊界框 (矩形框)
 				if (style.ShowBoundingBox)
 				{
 					Cv2.Rectangle(image, rect, color, style.LineThickness);
 				}
 
-				// 建立標籤文字
+				// 組合要顯示的標籤內容
 				var labels = new List<string>();
 
 				if (style.ShowId)
@@ -194,28 +197,27 @@ namespace PCBInspection.Core.Services
 
 				string labelText = string.Join(" | ", labels);
 
-				// 計算文字大小
+				// 1. 計算文字所需的尺寸 (用於繪製背景底色塊)
 				int baseline;
 				var textSize = Cv2.GetTextSize(labelText, HersheyFonts.HersheySimplex, style.FontScale, 1, out baseline);
 
-				// 繪製標籤背景
+				// 2. 決定標籤放置位置 (預設頂端，若空間不足則移至底部)
 				var labelRect = new Rect(rect.X, rect.Y - textSize.Height - 6, textSize.Width + 8, textSize.Height + 6);
 				if (labelRect.Y < 0)
 				{
-					labelRect.Y = rect.Y + rect.Height + 2; // 移到下方
+					labelRect.Y = rect.Y + rect.Height + 2; 
 				}
 
+				// 3. 繪製半透明背景底色 (提高文字辨識度)
 				using (var overlay = image.Clone())
 				{
 					Cv2.Rectangle(overlay, labelRect, color, -1);
 					Cv2.AddWeighted(overlay, 0.6, image, 0.4, 0, image);
 				}
 
-				// 繪製文字
+				// 4. 繪製標籤文字與中心輔助點
 				var textPos = new Point(labelRect.X + 4, labelRect.Y + labelRect.Height - 4);
 				Cv2.PutText(image, labelText, textPos, HersheyFonts.HersheySimplex, style.FontScale, Scalar.White, 1);
-
-				// 繪製中心點
 				Cv2.Circle(image, new Point(obj.CenterX, obj.CenterY), 3, color, -1);
 			}
 		}

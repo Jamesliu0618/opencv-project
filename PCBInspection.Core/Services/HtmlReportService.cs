@@ -39,18 +39,18 @@ namespace PCBInspection.Core.Services
 			sb.AppendLine($"<h1>PCB 檢測報告: {batchName}</h1>");
 			sb.AppendLine($"<p>生成時間: {DateTime.Now:yyyy-MM-dd HH:mm:ss}</p>");
 
-			// Statistics
+			// 3. 輸出統計摘要卡片
 			int total = results.Count;
 			int ok = results.Count(r => r.Ok);
 			int ng = total - ok;
 			double yieldRate = total > 0 ? (double)ok / total * 100.0 : 0;
-
 			int totalDefects = results.Sum(r => r.Defects.Count);
 
 			sb.AppendLine("<div class='card'>");
 			sb.AppendLine("<h2>統計摘要</h2>");
 			sb.AppendLine("<div class='summary-box'>");
 			
+			// 顯示各項關鍵指標 (檢測數、合格數、不良數、良率、缺陷總數)
 			sb.AppendLine(CreateStatItem("檢測總數", total.ToString()));
 			sb.AppendLine(CreateStatItem("合格數量 (OK)", ok.ToString(), "green"));
 			sb.AppendLine(CreateStatItem("不良數量 (NG)", ng.ToString(), "red"));
@@ -60,7 +60,7 @@ namespace PCBInspection.Core.Services
 			sb.AppendLine("</div>");
 			sb.AppendLine("</div>");
 
-			// Detail Table
+			// 4. 輸出詳細檢測結果表格
 			sb.AppendLine("<div class='card'>");
 			sb.AppendLine("<h2>詳細檢測結果</h2>");
 			sb.AppendLine("<table>");
@@ -78,6 +78,7 @@ namespace PCBInspection.Core.Services
 			{
 				string statusClass = res.Ok ? "status-ok" : "status-ng";
 				string statusText = res.Ok ? "OK" : "NG";
+				// 計算相對路徑以便 HTML 離線瀏覽影像
 				string imgLink = string.IsNullOrEmpty(res.AnnotatedImagePath) ? "-" : $"<a href='{GetRelativePath(res.AnnotatedImagePath, filePath)}' target='_blank'>查看影像</a>";
 
 				sb.AppendLine("<tr>");

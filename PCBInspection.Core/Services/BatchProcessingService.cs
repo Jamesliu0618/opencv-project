@@ -50,7 +50,7 @@ namespace PCBInspection.Core.Services
 				return;
 			}
 
-			// 準備輸出資料夾
+			// 準備輸出目錄結構
 			string outputFolder = options.OutputFolder ?? Path.Combine(inputFolder, "Output");
 			string okFolder     = Path.Combine(outputFolder, "OK");
 			string ngFolder     = Path.Combine(outputFolder, "NG");
@@ -59,12 +59,14 @@ namespace PCBInspection.Core.Services
 			Directory.CreateDirectory(ngFolder);
 
 			var stopwatch     = Stopwatch.StartNew();
-			var results       = new ConcurrentBag<FileProcessResult>();
+			var results       = new ConcurrentBag<FileProcessResult>(); // 執行緒安全的結果收集箱
 			int processedCount = 0;
 			int totalCount     = imageFiles.Count;
 
+			// 配置多執行緒選項
 			var parallelOptions = new ParallelOptions
 			{
+				// 若未指定平行數，則使用 CPU 核心數 - 1 (保留一核給 UI)
 				MaxDegreeOfParallelism = options.MaxParallelism > 0
 					? options.MaxParallelism
 					: Math.Max(1, Environment.ProcessorCount - 1),
@@ -73,26 +75,31 @@ namespace PCBInspection.Core.Services
 
 			try
 			{
+				// 在背景執行緒啟動平行迴圈，避免阻塞 UI
 				await Task.Run(() =>
 				{
 					Parallel.ForEach(imageFiles, parallelOptions, (filePath, state) =>
 					{
+						// 檢查是否中途取消
 						if (_cts.Token.IsCancellationRequested)
 						{
 							state.Stop();
 							return;
 						}
 
+						// 處理單一影像檔案
 						var result = ProcessSingleFile(filePath, recipe, okFolder, ngFolder, options);
 						results.Add(result);
 
+						// 更新進度計數 (原子操作)
 						int current = Interlocked.Increment(ref processedCount);
 
-						// 計算預估剩餘時間
+						// 計算預估剩餘時間 (以當前平均速度推算)
 						double elapsedMs     = stopwatch.ElapsedMilliseconds;
 						double avgTimePerFile = elapsedMs / current;
 						double remainingMs    = avgTimePerFile * (totalCount - current);
 
+						// 觸發進度變更事件
 						ProgressChanged?.Invoke(new BatchProgress
 						{
 							Current            = current,
@@ -103,6 +110,7 @@ namespace PCBInspection.Core.Services
 							PercentComplete    = (double)current / totalCount * 100
 						});
 
+						// 觸發單檔完成事件
 						FileProcessed?.Invoke(result);
 					});
 				}, _cts.Token);
@@ -192,6 +200,7 @@ namespace PCBInspection.Core.Services
 						return result;
 					}
 
+					// 取得所有可用工具並套用配方 (依配方順序建立執行步驟)
 					var availableTools = VisionToolFactory.GetAllTools();
 					var sequence       = _recipeService.ApplyRecipeToSequence(recipe, availableTools);
 
@@ -199,16 +208,19 @@ namespace PCBInspection.Core.Services
 					bool isOk = true;
 					var defects = new List<Defect>();
 
+					// 依序執行各個檢測步驟
 					foreach (var step in sequence.Where(s => s.Enabled))
 					{
 						var (stepOk, resultMat, stepDefects) = step.Action(current, step.Parameters);
 
+						// 更新當前影像 (用於流程串接)
 						if (resultMat != null && resultMat != current)
 						{
 							current.Dispose();
 							current = resultMat;
 						}
 
+						// 只要有一個步驟 NG，整張影像即視為 NG
 						if (!stepOk) isOk = false;
 						if (stepDefects != null) defects.AddRange(stepDefects);
 					}
@@ -217,7 +229,7 @@ namespace PCBInspection.Core.Services
 					result.DefectCount = defects.Count;
 					result.Defects     = defects;
 
-					// 儲存結果影像
+					// 儲存結果影像 (依據 OK/NG 狀態存入不同目錄)
 					string destFolder = isOk ? okFolder : ngFolder;
 					string destPath   = Path.Combine(destFolder, Path.GetFileName(filePath));
 

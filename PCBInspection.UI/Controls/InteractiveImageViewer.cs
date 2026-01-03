@@ -9,16 +9,18 @@ namespace PCBInspection.UI.Controls
 {
 	public class InteractiveImageViewer : UserControl
 	{
-		// Interaction Mode
+		/// <summary>
+		/// 影像檢視器的互動模式
+		/// </summary>
 		public enum ViewerMode
 		{
 			None,
-			Pan,
-			DrawRect,
-			DrawCircle,
-			DrawPoly,
-			EditROI,
-			Labeling, // 標註模式
+			Pan,       // 平移模式 (滑鼠拖動)
+			DrawRect,  // 繪製矩形 ROI
+			DrawCircle, // 繪製圓形 ROI
+			DrawPoly,   // 繪製多邊形 ROI
+			EditROI,    // 編輯/移動現有 ROI
+			Labeling,   // 手動標註缺陷模式
 		}
 
 		// Image
@@ -39,23 +41,30 @@ namespace PCBInspection.UI.Controls
 			Cursor         = Cursors.Hand;
 		}
 
+		/// <summary>
+		/// 當前顯示的影像
+		/// </summary>
 		public Bitmap Image
 		{
 			get => _image;
 			set
 			{
 				_image = value;
-				FitToWindow();
+				FitToWindow(); // 自動縮放至視窗大小
 				Invalidate();
 			}
 		}
 
+		/// <summary>
+		/// 當前互動模式（平移、繪圖、編輯、標註）
+		/// </summary>
 		public ViewerMode Mode
 		{
 			get => _mode;
 			set
 			{
 				_mode  = value;
+				// 根據模式切換鼠標圖示
 				Cursor = _mode == ViewerMode.Pan ? Cursors.Hand : Cursors.Cross;
 
 				if(_mode == ViewerMode.EditROI)
@@ -98,6 +107,9 @@ namespace PCBInspection.UI.Controls
 
 		// --- Transformation Helpers ---
 
+		/// <summary>
+		/// 自動調整影像縮放比例與位置，使其完整顯示於視窗內
+		/// </summary>
 		public void FitToWindow()
 		{
 			if(_image == null)
@@ -106,9 +118,11 @@ namespace PCBInspection.UI.Controls
 			}
 			float scaleW = (float)Width  / _image.Width;
 			float scaleH = (float)Height / _image.Height;
+			
+			// 縮放比取寬高較小者，並留 10% 邊距
 			_scale = Math.Min(scaleW, scaleH) * 0.9f;
 
-			// Center
+			// 將影像置中
 			_offsetX = (Width  - _image.Width  * _scale) / 2;
 			_offsetY = (Height - _image.Height * _scale) / 2;
 			Invalidate();
@@ -144,30 +158,31 @@ namespace PCBInspection.UI.Controls
 			_offsetY = (Height - _image.Height * _scale) / 2;
 		}
 
+		/// <summary>
+		/// 執行縮放操作
+		/// </summary>
+		/// <param name="factor">縮放因子</param>
+		/// <param name="center">視窗上的縮放中心點（通常為滑鼠位置）</param>
 		private void ApplyZoom(float factor, Point center)
 		{
 			float oldScale = _scale;
 			_scale *= factor;
 
-			// Limit limits
-			if(_scale < 0.05f)
-			{
-				_scale = 0.05f;
-			}
+			// 限制縮放範圍 (5% ~ 2000%)
+			if(_scale < 0.05f) _scale = 0.05f;
+			if(_scale > 20.0f) _scale = 20.0f;
 
-			if(_scale > 20.0f)
-			{
-				_scale = 20.0f;
-			}
-
-			// Adjust offset to keep center point stable
-			// newOffset = mouse - (mouse - oldOffset) * (newScale / oldScale)
+			// 調整偏移量以確保縮放中心點保持相對靜止 (Zoom around mouse)
 			_offsetX = center.X - (center.X - _offsetX) * (_scale / oldScale);
 			_offsetY = center.Y - (center.Y - _offsetY) * (_scale / oldScale);
+			
 			Invalidate();
 			ViewChanged?.Invoke(this, EventArgs.Empty);
 		}
 
+		/// <summary>
+		/// 將視窗座標 (Screen/Control) 轉換為原始影像座標 (Pixel)
+		/// </summary>
 		private PointF ScreenToImage(Point p)
 		{
 			return new PointF((p.X - _offsetX) / _scale, (p.Y - _offsetY) / _scale);
@@ -182,33 +197,27 @@ namespace PCBInspection.UI.Controls
 
 		// --- Drawing ---
 
+		/// <summary>
+		/// 影像繪製邏輯
+		/// </summary>
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			base.OnPaint(e);
 			var g = e.Graphics;
+			// 使用 NearestNeighbor 放大時不模糊，保持像素邊界
 			g.InterpolationMode = InterpolationMode.NearestNeighbor;
 			g.PixelOffsetMode   = PixelOffsetMode.Half;
 
-			// Draw Debug String FIRST to ensure visibility
+			// 1. 繪製除錯狀態資訊 (縮放比、偏移、影像尺寸)
 			try
 			{
-				string debugText = $"[DEBUG] Ctl: {Width}x{Height}, Scale: {_scale:F2}, Offset: {_offsetX:F0},{_offsetY:F0}";
-
-				if(_image != null)
-				{
-					debugText += $" | Img: {_image.Width}x{_image.Height} | PixelFmt: {_image.PixelFormat}";
-				}
-				else
-				{
-					debugText += " | Img: NULL";
-				}
-				g.DrawString(debugText, SystemFonts.DefaultFont, Brushes.Red, 10, 10);
+				string debugText = $"[INFO] Scale: {_scale:F2}, Offset: {_offsetX:F0},{_offsetY:F0}";
+				if(_image != null) debugText += $" | Img: {_image.Width}x{_image.Height}";
+				g.DrawString(debugText, SystemFonts.DefaultFont, Brushes.LimeGreen, 10, 10);
 			}
-			catch
-			{
-				/* Ignore Font errors */
-			}
+			catch { }
 
+			// 2. 繪製主影像 (套用目前的縮放與平移)
 			if(_image != null)
 			{
 				try
@@ -217,17 +226,17 @@ namespace PCBInspection.UI.Controls
 				}
 				catch(Exception ex)
 				{
-					g.DrawString($"[DRAW ERROR] {ex.GetType().Name}: {ex.Message}", SystemFonts.DefaultFont, Brushes.Red, 10, 30);
+					g.DrawString($"影像顯示錯誤: {ex.Message}", SystemFonts.DefaultFont, Brushes.Red, 10, 30);
 				}
 			}
 
-			// Draw ROIs
+			// 3. 繪製所有 ROI 物件
 			foreach(var roi in Rois)
 			{
 				roi.Draw(g, _scale, _offsetX, _offsetY);
 			}
 
-			// Draw Temp ROI
+			// 4. 繪製目前正在拉取的臨時 ROI
 			_tempRoi?.Draw(g, _scale, _offsetX, _offsetY);
 		}
 
@@ -235,12 +244,16 @@ namespace PCBInspection.UI.Controls
 
 		private RoiHandle _activeHandle = RoiHandle.None;
 
+		/// <summary>
+		/// 滑鼠按下：開始平移、開始繪製或選取 ROI
+		/// </summary>
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
 			base.OnMouseDown(e);
 			_lastMousePos = e.Location;
 			Focus();
 
+			// 處理平移 (中鍵或平移模式下的左鍵)
 			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Mode == ViewerMode.Pan))
 			{
 				Cursor = Cursors.NoMove2D;
@@ -299,24 +312,28 @@ namespace PCBInspection.UI.Controls
 							SelectedRoi.IsSelected = true;
 							_activeHandle = SelectedRoi.GetHandle(e.Location, _scale, _offsetX, _offsetY);
 						}
+						// 請求重新繪製以更新選取狀態
 						Invalidate();
 					}
 				}
 			}
 		}
 
+		/// <summary>
+		/// 滑鼠移動：處理平移、繪製預覽或調整 ROI 大小
+		/// </summary>
 		protected override void OnMouseMove(MouseEventArgs e)
 		{
 			base.OnMouseMove(e);
 			var imgPt = ScreenToImage(e.Location);
 
-			// Report pixel pos
+			// 1. 回報當前滑鼠指向的像素座標 (觸發 MousePixelChanged 事件)
 			if(_image != null && imgPt.X >= 0 && imgPt.X < _image.Width && imgPt.Y >= 0 && imgPt.Y < _image.Height)
 			{
 				MousePixelChanged?.Invoke(this, new Point((int)imgPt.X, (int)imgPt.Y));
 			}
 
-			// Update cursor based on handle
+			// 2. 編輯模式下：根據滑鼠位置更新游標形狀 (例如呈現調整大小的箭頭)
 			if(Mode == ViewerMode.EditROI && SelectedRoi != null && e.Button == MouseButtons.None)
 			{
 				var handle = SelectedRoi.GetHandle(e.Location, _scale, _offsetX, _offsetY);
@@ -347,9 +364,9 @@ namespace PCBInspection.UI.Controls
 				}
 			}
 
+			// 3. 處理平移 (Pan)
 			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Cursor == Cursors.NoMove2D))
 			{
-				// Pan
 				_offsetX      += e.X - _lastMousePos.X;
 				_offsetY      += e.Y - _lastMousePos.Y;
 				_lastMousePos =  e.Location;
@@ -358,9 +375,9 @@ namespace PCBInspection.UI.Controls
 				return;
 			}
 
+			// 4. 處理 ROI 繪製預覽 (Dragging shape creation)
 			if(e.Button == MouseButtons.Left && _tempRoi != null)
 			{
-				// Dragging shape creation
 				if(_tempRoi is RectangleRoi rect)
 				{
 					float w = imgPt.X - rect.Rect.X;
@@ -369,7 +386,7 @@ namespace PCBInspection.UI.Controls
 				}
 				else if(_tempRoi is CircleRoi circ)
 				{
-					// Calculate bounding box from start corner to current mouse position
+					// 外接矩形繪法：計算起始點與當前點形成的內切圓
 					float x1     = circ.StartCorner.X;
 					float y1     = circ.StartCorner.Y;
 					float x2     = imgPt.X;
@@ -381,17 +398,17 @@ namespace PCBInspection.UI.Controls
 					float width  = maxX - minX;
 					float height = maxY - minY;
 
-					// Inscribed circle: center of bounding box, radius = half of smaller dimension
 					circ.Center = new PointF(minX + width / 2, minY + height / 2);
 					circ.Radius = Math.Min(width, height) / 2;
 				}
 				Invalidate();
 			}
+			// 5. 處理現有 ROI 的移動或大小調整
 			else if(e.Button == MouseButtons.Left && SelectedRoi != null && Mode == ViewerMode.EditROI)
 			{
 				if(_activeHandle == RoiHandle.Body)
 				{
-					// Move ROI
+					// 移動整體位置
 					int dx = (int)(imgPt.X - ScreenToImage(_lastMousePos).X);
 					int dy = (int)(imgPt.Y - ScreenToImage(_lastMousePos).Y);
 
@@ -404,63 +421,50 @@ namespace PCBInspection.UI.Controls
 				}
 				else if(_activeHandle != RoiHandle.None)
 				{
-					// Resize ROI
+					// 調整特定控制點 (邊界縮放)
 					SelectedRoi.Resize(_activeHandle, imgPt);
 					Invalidate();
 				}
 			}
 		}
 
+		/// <summary>
+		/// 滑鼠放開：完成繪製、平移或編輯
+		/// </summary>
 		protected override void OnMouseUp(MouseEventArgs e)
 		{
 			base.OnMouseUp(e);
-			_activeHandle = RoiHandle.None; // Reset active handle
+			_activeHandle = RoiHandle.None;
 
+			// 重置鼠標
 			if(Cursor == Cursors.NoMove2D)
 			{
 				Cursor = Mode == ViewerMode.Pan ? Cursors.Hand : Cursors.Cross;
-
-				if(Mode == ViewerMode.EditROI)
-				{
-					Cursor = Cursors.Default;
-				}
+				if(Mode == ViewerMode.EditROI) Cursor = Cursors.Default;
 			}
 
+			// 完成繪圖
 			if(_tempRoi != null && Mode != ViewerMode.DrawPoly)
 			{
-				// Finish shape
-				// Ensure Rect is normalized (width/height not negative)
+				// 確保矩形正交化 (處理反向拖取導致的寬高為負)
 				if(_tempRoi is RectangleRoi r)
 				{
-					float x = r.Rect.X;
-					float y = r.Rect.Y;
-					float w = r.Rect.Width;
-					float h = r.Rect.Height;
-
-					if(w < 0)
-					{
-						x += w;
-						w =  Math.Abs(w);
-					}
-
-					if(h < 0)
-					{
-						y += h;
-						h =  Math.Abs(h);
-					}
+					float x = r.Rect.X, y = r.Rect.Y, w = r.Rect.Width, h = r.Rect.Height;
+					if(w < 0) { x += w; w = Math.Abs(w); }
+					if(h < 0) { y += h; h = Math.Abs(h); }
 					r.Rect = new RectangleF(x, y, w, h);
 				}
 
 				if(Mode == ViewerMode.Labeling)
 				{
-					// 標註模式：觸發事件，暫不加入 Rois 清單 (由外部控制加入)
+					// 標註模式：觸發建立事件，不直接加入 Rois 清單
 					RoiCreated?.Invoke(_tempRoi);
 					_tempRoi = null;
 					Invalidate();
 				}
 				else
 				{
-					// 一般繪圖模式：直接加入清單並切換回編輯模
+					// 一般模式：加入清單並轉為編輯模式
 					Rois.Add(_tempRoi);
 					_tempRoi = null;
 					Mode     = ViewerMode.EditROI; 
@@ -477,11 +481,13 @@ namespace PCBInspection.UI.Controls
 			ApplyZoom(factor, e.Location);
 		}
 
+		/// <summary>
+		/// 滑鼠雙擊：用於結束多邊形繪製
+		/// </summary>
 		protected override void OnMouseDoubleClick(MouseEventArgs e)
 		{
 			if(Mode == ViewerMode.DrawPoly && _tempRoi != null)
 			{
-				// Finish Poly
 				Rois.Add(_tempRoi);
 				_tempRoi = null;
 				Mode     = ViewerMode.EditROI;

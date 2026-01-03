@@ -11,10 +11,11 @@ namespace PCBInspection.Core.Services
 	/// <summary>配方服務，提供配方的載入、儲存與管理功能</summary>
 	public class RecipeService
 	{
+		// JSON 序列化設定：支援多型、縮排美化與略過 Null 值
 		private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
 		{
 			Formatting            = Formatting.Indented,
-			TypeNameHandling      = TypeNameHandling.Auto,
+			TypeNameHandling      = TypeNameHandling.Auto, // 重要：保留參數類別的型別資訊以利反序列化
 			NullValueHandling     = NullValueHandling.Ignore,
 			DateFormatString      = "yyyy-MM-dd HH:mm:ss",
 			ReferenceLoopHandling = ReferenceLoopHandling.Ignore
@@ -72,18 +73,25 @@ namespace PCBInspection.Core.Services
 			return recipe;
 		}
 
-		/// <summary>將配方套用至工具序列</summary>
+		/// <summary>
+		/// 將配方 (Recipe) 套用至工具序列，並還原參數物件。
+		/// 此方法會根據配方中的 ToolName 與可用工具進行映射。
+		/// </summary>
 		public List<ToolSequenceItem> ApplyRecipeToSequence(Recipe recipe, List<VisionToolFactory.ToolDefinition> availableTools)
 		{
 			var result = new List<ToolSequenceItem>();
 
+			// 確保依 Order 順序處理步驟
 			foreach (var step in recipe.Steps.OrderBy(s => s.Order))
 			{
+				// 1. 查找對應的工具定義
 				var toolDef = availableTools.FirstOrDefault(t => t.Name == step.ToolName);
 				if (toolDef == null) continue;
 
+				// 2. 獲取預設參數
 				object parameters = toolDef.DefaultParameters;
 
+				// 3. 如果配方中有儲存參數 JSON，則嘗試反序列化為正確的參數型別
 				if (!string.IsNullOrEmpty(step.ParametersJson) && !string.IsNullOrEmpty(step.ParametersTypeName))
 				{
 					try
@@ -94,10 +102,11 @@ namespace PCBInspection.Core.Services
 					}
 					catch
 					{
-						// 使用預設參數
+						// 若反序列化失敗，則保留使用預設參數
 					}
 				}
 
+				// 4. 加入回傳序列，並綁定工具 Action
 				result.Add(new ToolSequenceItem
 				{
 					ToolName   = step.ToolName,
