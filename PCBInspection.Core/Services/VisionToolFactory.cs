@@ -372,8 +372,14 @@ namespace PCBInspection.Core.Services
                     // HoughCircles has built-in Canny
                     var circles = Cv2.HoughCircles(gray, HoughModes.Gradient, pp.Dp, pp.MinDist, pp.Param1, pp.Param2, pp.MinRadius, pp.MaxRadius);
 
-                    foreach (var c in circles)
+                    // 限制圓形數量
+                    int count = circles.Length;
+                    if (pp.MaxCircles > 0 && count > pp.MaxCircles)
+                        count = pp.MaxCircles;
+
+                    for (int i = 0; i < count; i++)
                     {
+                        var c = circles[i];
                         Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, (int)c.Radius, Scalar.Lime, 2);
                         Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, 2, Scalar.Red, 3); // center
                     }

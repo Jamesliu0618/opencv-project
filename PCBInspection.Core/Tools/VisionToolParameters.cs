@@ -199,7 +199,7 @@ namespace PCBInspection.Core.Tools
         public double Param1 { get; set; } = 100;
 
         [DisplayName("累加器閾值")]
-        [Description("圓心累加器閾值，越小越敏感")]
+        [Description("圓心累加器閾值，越小越敏感 (越大找越少圓)")]
         public double Param2 { get; set; } = 30;
 
         [DisplayName("最小半徑 (px)")]
@@ -207,6 +207,10 @@ namespace PCBInspection.Core.Tools
 
         [DisplayName("最大半徑 (px)")]
         public int MaxRadius { get; set; } = 0;
+
+        [DisplayName("最大圓形數量")]
+        [Description("限制輸出的圓形個數。設為 0 表示不限制。")]
+        public int MaxCircles { get; set; } = 10;
     }
 
     public class TemplateMatchParameters

@@ -372,12 +372,36 @@ namespace PCBInspection.UI
                         {
                             row.Cells[2].Value = "OK";
                             row.Cells[2].Style.ForeColor = Color.Green;
-                            
+
+                            // 如果有 ROI，將結果合併回原始影像 (保留 ROI 外區域)
+                            Mat finalResult = result.ResultImage;
+                            if (roiMask != null)
+                            {
+                                // 確保結果影像與原圖通道數一致
+                                Mat resultToMerge = result.ResultImage;
+                                if (currentMat.Channels() != result.ResultImage.Channels())
+                                {
+                                    resultToMerge = new Mat();
+                                    if (result.ResultImage.Channels() == 1)
+                                        Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+                                    else
+                                        Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2GRAY);
+                                }
+
+                                // 將結果的 ROI 區域複製到原圖上
+                                finalResult = currentMat.Clone();
+                                resultToMerge.CopyTo(finalResult, roiMask);
+
+                                if (resultToMerge != result.ResultImage)
+                                    resultToMerge.Dispose();
+                                result.ResultImage.Dispose();
+                            }
+
                             item.LastResultImage?.Dispose();
-                            item.LastResultImage = BitmapConverter.ToBitmap(result.ResultImage);
+                            item.LastResultImage = BitmapConverter.ToBitmap(finalResult);
 
                             currentMat.Dispose();
-                            currentMat = result.ResultImage; 
+                            currentMat = finalResult; 
                         }
                         else
                         {
@@ -564,13 +588,35 @@ namespace PCBInspection.UI
                     row.Cells[2].Value = "OK";
                     row.Cells[2].Style.ForeColor = Color.Green;
 
-                    item.LastResultImage?.Dispose();
-                    item.LastResultImage = BitmapConverter.ToBitmap(result.ResultImage);
+                    // 如果有 ROI，將結果合併回原始影像 (保留 ROI 外區域)
+                    Mat finalResult = result.ResultImage;
+                    if (roiMask != null)
+                    {
+                        Mat resultToMerge = result.ResultImage;
+                        if (inputMat.Channels() != result.ResultImage.Channels())
+                        {
+                            resultToMerge = new Mat();
+                            if (result.ResultImage.Channels() == 1)
+                                Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+                            else
+                                Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2GRAY);
+                        }
 
-                    // 在原始影像上疊加結果繪製
+                        finalResult = inputMat.Clone();
+                        resultToMerge.CopyTo(finalResult, roiMask);
+
+                        if (resultToMerge != result.ResultImage)
+                            resultToMerge.Dispose();
+                        result.ResultImage.Dispose();
+                    }
+
+                    item.LastResultImage?.Dispose();
+                    item.LastResultImage = BitmapConverter.ToBitmap(finalResult);
+
                     imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
 
-                    result.ResultImage?.Dispose();
+                    if (finalResult != result.ResultImage)
+                        finalResult.Dispose();
                 }
                 else
                 {
