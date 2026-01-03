@@ -182,6 +182,15 @@ namespace PCBInspection.UI
 
         private void WireEvents()
         {
+            // Global Vision Logging
+            VisionToolFactory.OnLog += (msg, isError) => 
+            {
+                if (this.InvokeRequired)
+                    this.Invoke(new Action(() => Log(msg, isError ? TraceLevel.Error : TraceLevel.Info)));
+                else
+                    Log(msg, isError ? TraceLevel.Error : TraceLevel.Info);
+            };
+
             // Toolbar - File & Run
             btnTsOpen.Click += (s, e) => LoadImage();
             btnTsRunOnce.Click += (s, e) => RunSequence();

@@ -192,7 +192,7 @@ namespace PCBInspection.Core.Tools
 
         [DisplayName("最小圓心距離 (px)")]
         [Description("偵測到的圓心之間的最小距離")]
-        public double MinDist { get; set; } = 20;
+        public double MinDist { get; set; } = 40;
 
         [DisplayName("Canny 高閾值")]
         [Description("內部 Canny 邊緣偵測的高閾值")]
@@ -206,11 +206,17 @@ namespace PCBInspection.Core.Tools
         public int MinRadius { get; set; } = 0;
 
         [DisplayName("最大半徑 (px)")]
-        public int MaxRadius { get; set; } = 0;
+        public int MaxRadius { get; set; } = 150;
 
         [DisplayName("最大圓形數量")]
         [Description("限制輸出的圓形個數。設為 0 表示不限制。")]
         public int MaxCircles { get; set; } = 10;
+
+        public enum SortType { Confidence, SmallestRadius, LargestRadius, XPosition }
+
+        [DisplayName("排序依據")]
+        [Description("選擇輸出的優先順序")]
+        public SortType SortBy { get; set; } = SortType.Confidence;
     }
 
     public class TemplateMatchParameters

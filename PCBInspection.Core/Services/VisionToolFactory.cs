@@ -12,6 +12,9 @@ namespace PCBInspection.Core.Services
         // 定義工具執行的委派簽名
         public delegate (bool IsOk, Mat ResultImage, List<Defect> Defects) VisionAction(Mat input, object param);
 
+        // Logging event: Message, IsError
+        public static event Action<string, bool> OnLog;
+
         public class ToolDefinition
         {
             public string Name { get; set; }
@@ -38,6 +41,8 @@ namespace PCBInspection.Core.Services
                     var result = new Mat();
                     if (img.Channels() == 3)
                         Cv2.CvtColor(img, result, ColorConversionCodes.BGR2GRAY);
+                    else if (img.Channels() == 4)
+                        Cv2.CvtColor(img, result, ColorConversionCodes.BGRA2GRAY);
                     else
                         img.CopyTo(result);
                     return (true, result, new List<Defect>());
@@ -70,12 +75,20 @@ namespace PCBInspection.Core.Services
                         case BlurParameters.BlurType.Bilateral:
                             // d=9 is common, sigmaColor/sigmaSpace set to pp.Sigma or default
                             double sig = pp.Sigma > 0 ? pp.Sigma : 75;
-                            // Note: Bilateral is slow
-                             // Ensure 8-bit or 32-bit float
-                            var tmp = new Mat();
-                            if(img.Channels()==3) Cv2.CvtColor(img, tmp, ColorConversionCodes.BGR2RGB); // Ensure compatibility? Actually BGR works.
-                            Cv2.BilateralFilter(img, result, 9, sig, sig);
-                            tmp.Dispose();
+                            
+                            // Bilateral supports 1 or 3 channels only
+                            if (img.Channels() == 4)
+                            {
+                                using(var bgr = new Mat())
+                                {
+                                    Cv2.CvtColor(img, bgr, ColorConversionCodes.BGRA2BGR);
+                                    Cv2.BilateralFilter(bgr, result, 9, sig, sig);
+                                }
+                            }
+                            else
+                            {
+                                 Cv2.BilateralFilter(img, result, 9, sig, sig);
+                            }
                             break;
                     }
                     return (true, result, new List<Defect>());
@@ -94,6 +107,7 @@ namespace PCBInspection.Core.Services
                     var gray = new Mat();
                     
                     if (img.Channels() == 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+                    else if (img.Channels() == 4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
                     else img.CopyTo(gray);
 
                     if (pp.Method == ThresholdParameters.ThreshMethod.Adaptive)
@@ -240,6 +254,7 @@ namespace PCBInspection.Core.Services
                     var result = new Mat();
                     var gray = new Mat();
                     if (img.Channels() == 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+                    else if (img.Channels() == 4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
                     else img.CopyTo(gray);
 
                     if (pp.Method == EdgeDetectionParameters.EdgeMethod.Canny)
@@ -276,6 +291,7 @@ namespace PCBInspection.Core.Services
                     // Need binary image for FindContours
                     var gray = new Mat();
                     if (img.Channels() == 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+                    else if (img.Channels() == 4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
                     else img.CopyTo(gray);
                     
                     // Simple threshold if not binary? Or assume input is binary.
@@ -327,6 +343,7 @@ namespace PCBInspection.Core.Services
 
                     var gray = new Mat();
                     if (img.Channels() == 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+                    else if (img.Channels() == 4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
                     else img.CopyTo(gray);
 
                     // Usually needs edge detection first. User responsibility? 
@@ -373,16 +390,38 @@ namespace PCBInspection.Core.Services
                     // HoughCircles has built-in Canny
                     var circles = Cv2.HoughCircles(gray, HoughModes.Gradient, pp.Dp, pp.MinDist, pp.Param1, pp.Param2, pp.MinRadius, pp.MaxRadius);
 
+                    // 排序
+                    IEnumerable<CircleSegment> sortedCircles = circles;
+                    switch (pp.SortBy)
+                    {
+                        case HoughCirclesParameters.SortType.SmallestRadius:
+                            sortedCircles = circles.OrderBy(c => c.Radius);
+                            break;
+                        case HoughCirclesParameters.SortType.LargestRadius:
+                            sortedCircles = circles.OrderByDescending(c => c.Radius);
+                            break;
+                        case HoughCirclesParameters.SortType.XPosition:
+                            sortedCircles = circles.OrderBy(c => c.Center.X);
+                            break;
+                        case HoughCirclesParameters.SortType.Confidence:
+                        default:
+                            // OpenCV 預設通常是依 confidence (Accumulator value) 排序，但 API 無法直接保證
+                            // 若要嚴格 confidence 排序需要修改 OpenCV 參數或無法取得。
+                            // 但通常前幾個就是分數最高的。
+                            break;
+                    }
+                    var finalCircles = sortedCircles.ToArray();
+
                     // 限制圓形數量
-                    int count = circles.Length;
+                    int count = finalCircles.Length;
                     if (pp.MaxCircles > 0 && count > pp.MaxCircles)
                         count = pp.MaxCircles;
 
                     var defects = new List<Defect>();
                     for (int i = 0; i < count; i++)
                     {
-                        var c = circles[i];
-                        Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, (int)c.Radius, Scalar.Lime, 2);
+                        var c = finalCircles[i];
+                        Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, (int)c.Radius, Scalar.Cyan, 2);
                         Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, 2, Scalar.Red, 3); // center
 
                         // 將圓形資訊加入 Defect 列表
@@ -423,9 +462,14 @@ namespace PCBInspection.Core.Services
                                 // Convert both to gray? Or Color?
                                 // Usually gray is safe
                                 var imgGray = new Mat(); 
-                                if(img.Channels()==3) Cv2.CvtColor(img, imgGray, ColorConversionCodes.BGR2GRAY); else img.CopyTo(imgGray);
+                                if(img.Channels()==3) Cv2.CvtColor(img, imgGray, ColorConversionCodes.BGR2GRAY);
+                                else if(img.Channels()==4) Cv2.CvtColor(img, imgGray, ColorConversionCodes.BGRA2GRAY);
+                                else img.CopyTo(imgGray);
+
                                 var tmplGray = new Mat();
-                                if(tmpl.Channels()==3) Cv2.CvtColor(tmpl, tmplGray, ColorConversionCodes.BGR2GRAY); else tmpl.CopyTo(tmplGray);
+                                if(tmpl.Channels()==3) Cv2.CvtColor(tmpl, tmplGray, ColorConversionCodes.BGR2GRAY);
+                                else if(tmpl.Channels()==4) Cv2.CvtColor(tmpl, tmplGray, ColorConversionCodes.BGRA2GRAY);
+                                else tmpl.CopyTo(tmplGray);
 
                                 var resMap = new Mat();
                                 TemplateMatchModes mode = TemplateMatchModes.CCoeffNormed; // simplify
@@ -620,6 +664,7 @@ namespace PCBInspection.Core.Services
                     var result = img.Clone();
                     var gray = new Mat();
                     if(img.Channels()==3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+                    else if(img.Channels()==4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
                     else img.CopyTo(gray);
 
                     KeyPoint[] keypoints = null;
@@ -665,7 +710,29 @@ namespace PCBInspection.Core.Services
                 }
             });
 
-            return tools;
+            // Wrap calls with logging
+            var wrappedTools = new List<ToolDefinition>();
+            foreach (var tool in tools)
+            {
+                var originalAction = tool.Action;
+                tool.Action = (img, p) =>
+                {
+                    try
+                    {
+                        var res = originalAction(img, p);
+                        OnLog?.Invoke($"[Vision] {tool.Name} OK.", false);
+                        return res;
+                    }
+                    catch (Exception ex)
+                    {
+                        OnLog?.Invoke($"[Vision] {tool.Name} ERROR: {ex.Message}", true);
+                        throw;
+                    }
+                };
+                wrappedTools.Add(tool);
+            }
+
+            return wrappedTools;
         }
 
         private static Scalar ParseColor(string colorStr)
