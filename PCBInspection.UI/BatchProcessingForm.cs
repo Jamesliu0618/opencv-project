@@ -61,14 +61,15 @@ namespace PCBInspection.UI
 			txtOutputFolder = new TextBox { Location = new System.Drawing.Point(90, 22), Size = new System.Drawing.Size(380, 23) };
 			btnBrowseOutput = new Button { Text = "...", Location = new System.Drawing.Point(480, 21), Size = new System.Drawing.Size(60, 25) };
 
-			chkGenerateCsv     = new CheckBox { Text = "生成 CSV 報表", Location = new System.Drawing.Point(10, 55), AutoSize = true, Checked = true };
-			chkSaveImages      = new CheckBox { Text = "儲存處理後影像", Location = new System.Drawing.Point(140, 55), AutoSize = true, Checked = true };
-			chkSearchSubfolder = new CheckBox { Text = "搜尋子資料夾", Location = new System.Drawing.Point(280, 55), AutoSize = true };
+			chkGenerateCsv     = new CheckBox { Text = "生成 CSV", Location = new System.Drawing.Point(10, 55), AutoSize = true, Checked = true };
+			chkGenerateHtml    = new CheckBox { Text = "生成 HTML", Location = new System.Drawing.Point(100, 55), AutoSize = true, Checked = true };
+			chkSaveImages      = new CheckBox { Text = "儲存影像", Location = new System.Drawing.Point(200, 55), AutoSize = true, Checked = true };
+			chkSearchSubfolder = new CheckBox { Text = "搜尋子資料夾", Location = new System.Drawing.Point(300, 55), AutoSize = true };
 
 			var lblThreads = new Label { Text = "執行緒數:", Location = new System.Drawing.Point(10, 78), AutoSize = true };
 			numThreads = new NumericUpDown { Location = new System.Drawing.Point(90, 75), Size = new System.Drawing.Size(60, 23), Minimum = 1, Maximum = 32, Value = Environment.ProcessorCount - 1 };
 
-			grpOutput.Controls.AddRange(new Control[] { lblOutputFolder, txtOutputFolder, btnBrowseOutput, chkGenerateCsv, chkSaveImages, chkSearchSubfolder, lblThreads, numThreads });
+			grpOutput.Controls.AddRange(new Control[] { lblOutputFolder, txtOutputFolder, btnBrowseOutput, chkGenerateCsv, chkGenerateHtml, chkSaveImages, chkSearchSubfolder, lblThreads, numThreads });
 
 			// 進度群組
 			var grpProgress = new GroupBox
@@ -201,6 +202,7 @@ namespace PCBInspection.UI
 			{
 				OutputFolder        = string.IsNullOrWhiteSpace(txtOutputFolder.Text) ? null : txtOutputFolder.Text,
 				GenerateCsvReport   = chkGenerateCsv.Checked,
+				GenerateHtmlReport  = chkGenerateHtml.Checked,
 				SaveProcessedImages = chkSaveImages.Checked,
 				SearchSubfolders    = chkSearchSubfolder.Checked,
 				MaxParallelism      = (int)numThreads.Value
@@ -304,6 +306,7 @@ namespace PCBInspection.UI
 		private ComboBox       cboRecipe;
 		private Button         btnLoadRecipe;
 		private CheckBox       chkGenerateCsv;
+		private CheckBox       chkGenerateHtml;
 		private CheckBox       chkSaveImages;
 		private CheckBox       chkSearchSubfolder;
 		private NumericUpDown  numThreads;

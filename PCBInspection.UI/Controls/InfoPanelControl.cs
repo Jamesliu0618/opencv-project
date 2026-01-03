@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 using Size = System.Drawing.Size;
 
 // For BitmapConverter
@@ -24,8 +25,13 @@ namespace PCBInspection.UI.Controls
 		private Button               btnClearRoi;
 		private DataGridView         dgvResults;
 
-		// 直方圖區
-		private GroupBox grpHistogram;
+		// 圖表控制項
+		private Chart chartSizeDist;
+		private Chart chartShapeDist;
+		private TabControl tcCharts; // 內層 TabControl
+		
+		// 舊的直方圖容器與控制項 (保留 pbHistogram，但移除 grpHistogram)
+		private PictureBox pbHistogram;
 
 		// 檢測結果區
 		private GroupBox grpResults;
@@ -47,7 +53,6 @@ namespace PCBInspection.UI.Controls
 		// ROI Tab Controls
 		private Label      lblRoiPosValue, lblRoiSizeValue, lblRoiAreaValue, lblRoiMeanValue;
 		private Label      lblStdDev,      lblStdDevValue;
-		private PictureBox pbHistogram;
 
 		// Navigation Tab Controls
 		private PictureBox pbNav;
@@ -84,7 +89,7 @@ namespace PCBInspection.UI.Controls
 			CreateStatisticsGroup();
 
 			// 2. 直方圖區 (Bottom 1)
-			CreateHistogramGroup();
+			CreateChartsTabControl();
 
 			// 3. 擴充資訊區 (Bottom 2, below Histogram? Or TabControl replaces Histogram area? 
 			// Design says: Bottom SplitContainer -> Panel1: Histogram, Panel2: TabControl)
@@ -112,7 +117,7 @@ namespace PCBInspection.UI.Controls
 			// 4. Results (Dock Fill)
 			Controls.Add(grpResults);
 			Controls.Add(grpStatistics);
-			Controls.Add(grpHistogram);
+			Controls.Add(tcCharts);
 			Controls.Add(tcExtras);
 			ResumeLayout(false);
 		}
@@ -209,24 +214,59 @@ namespace PCBInspection.UI.Controls
 			grpResults.Controls.Add(resultsPanel);
 		}
 
-		private void CreateHistogramGroup()
+		private void CreateChartsTabControl()
 		{
-			grpHistogram = new GroupBox
+			tcCharts = new TabControl
 			{
-				Text    = "直方圖",
-				Dock    = DockStyle.Bottom,
-				Height  = 120,
-				Font    = new Font("Microsoft JhengHei", 10f, FontStyle.Bold),
-				Padding = new Padding(5),
+				Dock   = DockStyle.Bottom,
+				Height = 180,
+				Font   = new Font("Microsoft JhengHei", 9f),
 			};
 
+			// 1. 直方圖 Page
+			var tpHist = new TabPage("灰度直方圖");
 			pbHistogram = new PictureBox
 			{
 				Dock      = DockStyle.Fill,
 				BackColor = Color.FromArgb(45, 45, 48),
 				SizeMode  = PictureBoxSizeMode.Zoom,
 			};
-			grpHistogram.Controls.Add(pbHistogram);
+			tpHist.Controls.Add(pbHistogram);
+			tcCharts.TabPages.Add(tpHist);
+
+			// 2. 尺寸分佈 Page
+			var tpSize = new TabPage("尺寸分佈");
+			chartSizeDist = new Chart { Dock = DockStyle.Fill };
+			SetupChart(chartSizeDist, "Series1", SeriesChartType.Column, "尺寸 (px)", "數量");
+			tpSize.Controls.Add(chartSizeDist);
+			tcCharts.TabPages.Add(tpSize);
+
+			// 3. 形狀分佈 Page
+			var tpShape = new TabPage("形狀分佈");
+			chartShapeDist = new Chart { Dock = DockStyle.Fill };
+			SetupChart(chartShapeDist, "Series1", SeriesChartType.Point, "圓度", "矩形度");
+			tpShape.Controls.Add(chartShapeDist);
+			tcCharts.TabPages.Add(tpShape);
+		}
+
+		private void SetupChart(Chart chart, string seriesName, SeriesChartType type, string xTitle, string yTitle)
+		{
+			var area = new ChartArea("Area1");
+			area.AxisX.Title = xTitle;
+			area.AxisY.Title = yTitle;
+			area.AxisX.MajorGrid.LineColor = Color.LightGray;
+			area.AxisY.MajorGrid.LineColor = Color.LightGray;
+			chart.ChartAreas.Add(area);
+
+			var series = new Series(seriesName);
+			series.ChartType = type;
+			if(type == SeriesChartType.Point)
+			{
+				series.MarkerStyle = MarkerStyle.Circle;
+				series.MarkerSize = 8;
+				series.Color      = Color.DodgerBlue;
+			}
+			chart.Series.Add(series);
 		}
 
 		private void CreateExtrasTabControl()
@@ -428,6 +468,62 @@ namespace PCBInspection.UI.Controls
 				}
 			}
 			lblResultStatus.Text = $"共 {_currentObjects.Count} 項";
+			UpdateCharts(_currentObjects);
+		}
+
+		private void UpdateCharts(List<DetectedObject> objects)
+		{
+			if(objects == null) return;
+			
+			// Update Size Distribution
+			chartSizeDist.Series[0].Points.Clear();
+			// Histogram (binning) logic
+			var sizes = objects.Select(o => o.Type.Contains("圓") ? o.Radius * 2 : Math.Max(o.Width, o.Height)).ToList();
+			if(sizes.Count > 0)
+			{
+				double min = sizes.Min();
+				double max = sizes.Max();
+
+				if (Math.Abs(max - min) < 1.0)
+				{
+					// All values are almost the same
+					chartSizeDist.Series[0].Points.AddXY($"{min:F0}", sizes.Count);
+				}
+				else
+				{
+					// Create 10 bins
+					int bins = 10;
+					double step = (max - min) / bins;
+					if (step <= 0) step = 1;
+					
+					int[] counts = new int[bins + 1];
+					foreach(var s in sizes)
+					{
+						int idx = (int)((s - min) / step);
+						if(idx >= bins) idx = bins - 1;
+						if (idx < 0) idx = 0;
+						counts[idx]++;
+					}
+					
+					for(int i=0; i < bins; i++)
+					{
+						string label = $"{min + i*step:F0}-{min + (i+1)*step:F0}";
+						chartSizeDist.Series[0].Points.AddXY(label, counts[i]);
+					}
+				}
+			}
+			
+			// Update Shape Distribution
+			chartShapeDist.Series[0].Points.Clear();
+			foreach(var obj in objects)
+			{
+			    // Circularity vs Rectangularity
+			    // 如果 Circularity 或 Rectangularity 為 0，可能是直線或其他
+			    if (obj.Circularity > 0 || obj.Rectangularity > 0)
+				{
+					chartShapeDist.Series[0].Points.AddXY(obj.Circularity, obj.Rectangularity);
+				}
+			}
 		}
 
 		/// <summary>更新直方圖</summary>

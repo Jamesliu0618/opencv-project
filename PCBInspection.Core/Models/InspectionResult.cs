@@ -16,6 +16,13 @@ namespace PCBInspection.Core.Models
 		public double Confidence  { get; set; }
 		/// <summary>邊界框 [x, y, width, height]</summary>
 		public int[]  BoundingBox { get; set; } // [x, y, width, height]
+		
+		/// <summary>圓度 (0-1)</summary>
+		public double Circularity { get; set; }
+		/// <summary>矩形度 (0-1)</summary>
+		public double Rectangularity { get; set; }
+		/// <summary>角度 (度)</summary>
+		public double Angle { get; set; }
 	}
 
 	/// <summary>完整檢測結果報告</summary>

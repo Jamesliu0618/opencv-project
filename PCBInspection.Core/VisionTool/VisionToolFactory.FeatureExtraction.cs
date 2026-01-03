@@ -223,6 +223,7 @@ namespace PCBInspection.Core.Services
 								Type        = "直線",
 								Confidence  = length,
 								BoundingBox = new[] { minX, minY, width, height },
+								Angle       = Math.Atan2(line.P2.Y - line.P1.Y, line.P2.X - line.P1.X) * 180.0 / Math.PI,
 							});
 						}
 					}
@@ -255,6 +256,7 @@ namespace PCBInspection.Core.Services
 								Type        = "直線",
 								Confidence  = rho,
 								BoundingBox = new[] { (int)x0 - 50, (int)y0 - 50, 100, 100 },
+								Angle       = theta * 180.0 / Math.PI,
 							});
 						}
 					}
@@ -372,6 +374,8 @@ namespace PCBInspection.Core.Services
 							Type        = "圓形",
 							Confidence  = c.Radius, // 使用 Confidence 存儲半徑
 							BoundingBox = new[] { (int)(c.Center.X - c.Radius), (int)(c.Center.Y - c.Radius), (int)(c.Radius * 2), (int)(c.Radius * 2) },
+							Circularity = 1.0,
+							Rectangularity = Math.PI / 4.0,
 						});
 					}
 					gray.Dispose();

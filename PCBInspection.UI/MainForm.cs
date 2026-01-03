@@ -838,10 +838,13 @@ namespace PCBInspection.UI
 				                                Width   = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] : 0,
 				                                Height  = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[3] : 0,
 				                                Radius  = d.Confidence,
-				                                Area    = d.Type == "圓形" ? Math.PI * d.Confidence * d.Confidence : d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] * d.BoundingBox[3] : 0,
-				                                Status  = "OK",
-			                                })
-			                                .ToList();
+	                                    Area    = d.Type == "圓形" ? Math.PI * d.Confidence * d.Confidence : d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] * d.BoundingBox[3] : 0,
+	                                    Status  = "OK",
+	                                    Angle   = d.Angle,
+	                                    Circularity = d.Circularity,
+	                                    Rectangularity = d.Rectangularity,
+	                                })
+                                    .ToList();
 
 			if(imageViewer.Image != null)
 			{

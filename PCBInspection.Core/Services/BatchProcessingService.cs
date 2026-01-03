@@ -123,6 +123,34 @@ namespace PCBInspection.Core.Services
 				reportPath = GenerateBatchReport(resultList, outputFolder);
 			}
 
+			if (options.GenerateHtmlReport)
+			{
+				try
+				{
+					var inspectionResults = resultList.Select(r => new InspectionResult
+					{
+						Id               = Path.GetFileNameWithoutExtension(r.FileName),
+						PcbId            = r.FileName,
+						Ok               = r.IsOk,
+						Defects          = r.Defects ?? new List<Defect>(),
+						AnnotatedImagePath = r.OutputPath,
+						ProcessingTimeMs = r.ProcessingTimeMs,
+						CreatedAt        = r.EndTime
+					}).ToList();
+
+					var htmlService = new HtmlReportService();
+					string htmlPath = Path.Combine(outputFolder, $"BatchReport_{DateTime.Now:yyyyMMdd_HHmmss}.html");
+					htmlService.GenerateReport(htmlPath, inspectionResults, $"Batch Process {DateTime.Now:yyyy-MM-dd HH:mm}");
+					
+					if (reportPath == null) reportPath = htmlPath;
+				}
+				catch (Exception ex)
+				{
+					// Log error?
+					Console.WriteLine($"Error generating HTML report: {ex.Message}");
+				}
+			}
+
 			Completed?.Invoke(new BatchResult
 			{
 				TotalProcessed   = resultList.Count,
@@ -187,6 +215,7 @@ namespace PCBInspection.Core.Services
 
 					result.IsOk        = isOk;
 					result.DefectCount = defects.Count;
+					result.Defects     = defects;
 
 					// 儲存結果影像
 					string destFolder = isOk ? okFolder : ngFolder;
@@ -323,6 +352,9 @@ namespace PCBInspection.Core.Services
 
 		/// <summary>儲存處理後的影像</summary>
 		public bool SaveProcessedImages { get; set; } = true;
+
+		/// <summary>生成 HTML 報表</summary>
+		public bool GenerateHtmlReport { get; set; } = false;
 	}
 
 	/// <summary>單一檔案處理結果</summary>
@@ -339,6 +371,9 @@ namespace PCBInspection.Core.Services
 
 		/// <summary>缺陷數量</summary>
 		public int DefectCount { get; set; }
+
+		/// <summary>缺陷列表</summary>
+		public List<Defect> Defects { get; set; }
 
 		/// <summary>是否有錯誤</summary>
 		public bool HasError { get; set; }
