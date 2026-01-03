@@ -316,7 +316,8 @@ namespace PCBInspection.Core.Services
                          var validContours = new List<Point[]>();
                          foreach(var c in contours)
                          {
-                             if (Cv2.ContourArea(c) >= pp.MinArea)
+                             double area = Cv2.ContourArea(c);
+                             if (area >= pp.MinArea && (pp.MaxArea <= 0 || area <= pp.MaxArea))
                                 validContours.Add(c);
                          }
 
@@ -390,8 +391,21 @@ namespace PCBInspection.Core.Services
                     // HoughCircles has built-in Canny
                     var circles = Cv2.HoughCircles(gray, HoughModes.Gradient, pp.Dp, pp.MinDist, pp.Param1, pp.Param2, pp.MinRadius, pp.MaxRadius);
 
+                    // 依半徑範圍過濾
+                    IEnumerable<CircleSegment> filteredCircles = circles;
+                    if (pp.FilterMinRadius > 0)
+                        filteredCircles = filteredCircles.Where(c => c.Radius >= pp.FilterMinRadius);
+                    if (pp.FilterMaxRadius > 0)
+                        filteredCircles = filteredCircles.Where(c => c.Radius <= pp.FilterMaxRadius);
+
+                    // 依面積範圍過濾 (面積 = π × r²)
+                    if (pp.FilterMinArea > 0)
+                        filteredCircles = filteredCircles.Where(c => Math.PI * c.Radius * c.Radius >= pp.FilterMinArea);
+                    if (pp.FilterMaxArea > 0)
+                        filteredCircles = filteredCircles.Where(c => Math.PI * c.Radius * c.Radius <= pp.FilterMaxArea);
+
                     // 排序
-                    IEnumerable<CircleSegment> sortedCircles = circles;
+                    IEnumerable<CircleSegment> sortedCircles = filteredCircles;
                     switch (pp.SortBy)
                     {
                         case HoughCirclesParameters.SortType.SmallestRadius:
@@ -699,6 +713,15 @@ namespace PCBInspection.Core.Services
                     }
                     // SIFT might not be available in standard build or needs xfeatures2d
                     // Omitting SIFT for compatibility 
+
+                    // 依大小過濾
+                    if (keypoints != null)
+                    {
+                        if (pp.MinSize > 0)
+                            keypoints = keypoints.Where(k => k.Size >= pp.MinSize).ToArray();
+                        if (pp.MaxSize > 0)
+                            keypoints = keypoints.Where(k => k.Size <= pp.MaxSize).ToArray();
+                    }
 
                     if (pp.DrawKeypoints && keypoints != null)
                     {

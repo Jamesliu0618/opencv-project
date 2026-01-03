@@ -149,8 +149,12 @@ namespace PCBInspection.Core.Tools
         public ContourApproxType ApproxMethod { get; set; } = ContourApproxType.Simple;
 
         [DisplayName("最小面積")]
-        [Description("過濾小於此面積的輪廓")]
+        [Description("過濾小於此面積的輪廓 (像素數)")]
         public double MinArea { get; set; } = 100;
+
+        [DisplayName("最大面積")]
+        [Description("過濾大於此面積的輪廓 (像素數)。設為 0 表示不限制。")]
+        public double MaxArea { get; set; } = 0;
 
         [DisplayName("繪製輪廓")]
         [Description("是否在輸出影像上繪製輪廓")]
@@ -217,6 +221,22 @@ namespace PCBInspection.Core.Tools
         [DisplayName("排序依據")]
         [Description("選擇輸出的優先順序")]
         public SortType SortBy { get; set; } = SortType.Confidence;
+
+        [DisplayName("輸出過濾: 最小半徑 (px)")]
+        [Description("結果過濾：只輸出半徑 >= 此值的圓形。設為 0 表示不限制。")]
+        public int FilterMinRadius { get; set; } = 0;
+
+        [DisplayName("輸出過濾: 最大半徑 (px)")]
+        [Description("結果過濾：只輸出半徑 <= 此值的圓形。設為 0 表示不限制。")]
+        public int FilterMaxRadius { get; set; } = 0;
+
+        [DisplayName("輸出過濾: 最小面積 (px²)")]
+        [Description("結果過濾：只輸出面積 >= 此值的圓形。設為 0 表示不限制。(面積 = π × 半徑²)")]
+        public int FilterMinArea { get; set; } = 0;
+
+        [DisplayName("輸出過濾: 最大面積 (px²)")]
+        [Description("結果過濾：只輸出面積 <= 此值的圓形。設為 0 表示不限制。(面積 = π × 半徑²)")]
+        public int FilterMaxArea { get; set; } = 0;
     }
 
     public class TemplateMatchParameters
@@ -345,6 +365,14 @@ namespace PCBInspection.Core.Tools
         [DisplayName("最大特徵點數")]
         [Description("保留的最大特徵點數量")]
         public int MaxFeatures { get; set; } = 500;
+
+        [DisplayName("最小特徵大小")]
+        [Description("過濾小於此大小的特徵點。設為 0 表示不限制。")]
+        public float MinSize { get; set; } = 0;
+
+        [DisplayName("最大特徵大小")]
+        [Description("過濾大於此大小的特徵點。設為 0 表示不限制。")]
+        public float MaxSize { get; set; } = 0;
 
         [DisplayName("繪製特徵點")]
         [Description("是否在輸出影像上繪製特徵點")]
