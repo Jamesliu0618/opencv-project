@@ -63,8 +63,7 @@ venv/
 
 # AI Tooling & Project Specific
 .specify/
-specs/001-pcb-visual-inspection/checklists/
-specs/001-pcb-visual-inspection/docs/
+specs/
 
 # Misc
 *.db
