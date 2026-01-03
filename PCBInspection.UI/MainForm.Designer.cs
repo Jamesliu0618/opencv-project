@@ -61,6 +61,8 @@ namespace PCBInspection.UI
             this.tabToolbox = new System.Windows.Forms.TabControl();
             this.tabPageTools = new System.Windows.Forms.TabPage();
             this.tabPageHistory = new System.Windows.Forms.TabPage(); // New TabPage
+            this.tabPageLabeling = new System.Windows.Forms.TabPage(); // [Fix] Initialize here
+            this.defectLabelingControl1 = new PCBInspection.UI.Controls.DefectLabelingControl();
             this.lstHistory = new System.Windows.Forms.ListBox(); // New ListBox
             this.tvTools = new System.Windows.Forms.TreeView();
             this.dgvSequence = new System.Windows.Forms.DataGridView();
@@ -326,8 +328,9 @@ namespace PCBInspection.UI
             // 
             // tabPageLabeling
             // 
-            this.tabPageLabeling = new System.Windows.Forms.TabPage();
-            this.defectLabelingControl1 = new PCBInspection.UI.Controls.DefectLabelingControl();
+            // 
+            // tabPageLabeling
+            // 
             this.tabPageLabeling.BackColor = System.Drawing.Color.White;
             this.tabPageLabeling.Controls.Add(this.defectLabelingControl1);
             this.tabPageLabeling.Location = new System.Drawing.Point(4, 25);
