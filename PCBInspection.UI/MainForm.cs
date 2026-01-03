@@ -31,6 +31,7 @@ namespace PCBInspection.UI
             public object Parameters { get; set; }
             public VisionToolFactory.VisionAction Action { get; set; }
             public Bitmap LastResultImage { get; set; }
+            public List<Defect> LastDefects { get; set; } = new List<Defect>();
         }
 
         public MainForm()
@@ -171,6 +172,10 @@ namespace PCBInspection.UI
                 _history.PushState(imageViewer.Image, imageViewer.Rois);
                 UpdateUndoRedoButtons();
             };
+
+            // InfoPanel 事件
+            infoPanel.ObjectHighlightRequested += InfoPanel_ObjectHighlightRequested;
+            infoPanel.ZoomToPointRequested += InfoPanel_ZoomToPointRequested;
         }
 
         private void UpdateUndoRedoButtons()
@@ -410,6 +415,7 @@ namespace PCBInspection.UI
 
                             item.LastResultImage?.Dispose();
                             item.LastResultImage = BitmapConverter.ToBitmap(finalResult);
+                            item.LastDefects = result.Defects ?? new List<Defect>();
 
                             currentMat.Dispose();
                             currentMat = finalResult; 
@@ -449,6 +455,36 @@ namespace PCBInspection.UI
                     if (lastItem.LastResultImage != null)
                     {
                         imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+                        
+                        // 更新右側資訊面板
+                        // 轉換 Defect 為 DetectedObject
+                        _lastDetectedObjects = _sequence
+                            .SelectMany(s => s.LastDefects ?? new List<Defect>())
+                            .Select((d, idx) => new DetectedObject
+                            {
+                                Id = idx + 1,
+                                Type = d.Type ?? "未知",
+                                CenterX = d.BoundingBox != null && d.BoundingBox.Length >= 4 
+                                    ? d.BoundingBox[0] + d.BoundingBox[2] / 2.0 : 0,
+                                CenterY = d.BoundingBox != null && d.BoundingBox.Length >= 4 
+                                    ? d.BoundingBox[1] + d.BoundingBox[3] / 2.0 : 0,
+                                Width = d.BoundingBox != null && d.BoundingBox.Length >= 4 
+                                    ? d.BoundingBox[2] : 0,
+                                Height = d.BoundingBox != null && d.BoundingBox.Length >= 4 
+                                    ? d.BoundingBox[3] : 0,
+                                Radius = d.Confidence, // 半徑存儲在 Confidence 中
+                                Area = d.Type == "圓形" 
+                                    ? Math.PI * d.Confidence * d.Confidence 
+                                    : (d.BoundingBox != null && d.BoundingBox.Length >= 4 
+                                        ? d.BoundingBox[2] * d.BoundingBox[3] : 0),
+                                Status = "OK"
+                            })
+                            .ToList();
+
+                        using (var resultMat = BitmapConverter.ToMat(lastItem.LastResultImage))
+                        {
+                            UpdateInfoPanel(resultMat, swTotal.ElapsedMilliseconds);
+                        }
                     }
                 }
                 
@@ -488,6 +524,57 @@ namespace PCBInspection.UI
                 e.Graphics.DrawString(item.Message, e.Font, brush, e.Bounds);
             }
             e.DrawFocusRectangle();
+        }
+
+        private List<DetectedObject> _lastDetectedObjects = new List<DetectedObject>();
+
+        /// <summary>InfoPanel 物件高亮請求處理</summary>
+        private void InfoPanel_ObjectHighlightRequested(object sender, int objectId)
+        {
+            var obj = _lastDetectedObjects.FirstOrDefault(o => o.Id == objectId);
+            if (obj == null || imageViewer.Image == null) return;
+
+            // 複製並繪製高亮
+            using (var g = Graphics.FromImage(imageViewer.Image))
+            {
+                using (var pen = new Pen(Color.Yellow, 3))
+                {
+                    if (obj.Type == "圓形")
+                    {
+                        g.DrawEllipse(pen, 
+                            (float)(obj.CenterX - obj.Radius), 
+                            (float)(obj.CenterY - obj.Radius),
+                            (float)(obj.Radius * 2), 
+                            (float)(obj.Radius * 2));
+                    }
+                    else
+                    {
+                        g.DrawRectangle(pen, 
+                            (float)(obj.CenterX - obj.Width / 2), 
+                            (float)(obj.CenterY - obj.Height / 2),
+                            (float)obj.Width, 
+                            (float)obj.Height);
+                    }
+                }
+            }
+            imageViewer.Invalidate();
+        }
+
+        /// <summary>InfoPanel 縮放至點請求處理</summary>
+        private void InfoPanel_ZoomToPointRequested(object sender, (double X, double Y) point)
+        {
+            // 可實作縮放並移動到指定座標
+            Log($"縮放到座標: ({point.X:F1}, {point.Y:F1})", TraceLevel.Info);
+        }
+
+        /// <summary>更新 InfoPanel 顯示</summary>
+        private void UpdateInfoPanel(Mat resultImage, double processTimeMs)
+        {
+            if (resultImage == null) return;
+
+            infoPanel.UpdateStatistics(resultImage, _lastDetectedObjects, processTimeMs);
+            infoPanel.BindDetectionResults(_lastDetectedObjects);
+            infoPanel.UpdateHistogram(resultImage);
         }
 
         /// <summary>設置序列表格的右鍵選單</summary>

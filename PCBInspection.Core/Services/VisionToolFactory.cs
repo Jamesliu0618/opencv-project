@@ -377,15 +377,25 @@ namespace PCBInspection.Core.Services
                     if (pp.MaxCircles > 0 && count > pp.MaxCircles)
                         count = pp.MaxCircles;
 
+                    var defects = new List<Defect>();
                     for (int i = 0; i < count; i++)
                     {
                         var c = circles[i];
                         Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, (int)c.Radius, Scalar.Lime, 2);
                         Cv2.Circle(result, (int)c.Center.X, (int)c.Center.Y, 2, Scalar.Red, 3); // center
+
+                        // 將圓形資訊加入 Defect 列表
+                        defects.Add(new Defect
+                        {
+                            Id = (i + 1).ToString(),
+                            Type = "圓形",
+                            Confidence = c.Radius,  // 使用 Confidence 存儲半徑
+                            BoundingBox = new[] { (int)(c.Center.X - c.Radius), (int)(c.Center.Y - c.Radius), (int)(c.Radius * 2), (int)(c.Radius * 2) }
+                        });
                     }
 
                     gray.Dispose();
-                    return (true, result, new List<Defect>());
+                    return (true, result, defects);
                 }
             });
             

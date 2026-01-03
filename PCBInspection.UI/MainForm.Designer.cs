@@ -51,6 +51,7 @@ namespace PCBInspection.UI
             
             this.splitContainerMain = new System.Windows.Forms.SplitContainer();
             this.splitContainerLeft = new System.Windows.Forms.SplitContainer();
+            this.splitContainerCenterRight = new System.Windows.Forms.SplitContainer();
             this.tabToolbox = new System.Windows.Forms.TabControl();
             this.tabPageTools = new System.Windows.Forms.TabPage();
             this.tvTools = new System.Windows.Forms.TreeView();
@@ -72,11 +73,16 @@ namespace PCBInspection.UI
             this.panelLog = new System.Windows.Forms.Panel();
             this.lblLogTitle = new System.Windows.Forms.Label();
             this.lstLog = new System.Windows.Forms.ListBox();
+            this.infoPanel = new PCBInspection.UI.Controls.InfoPanelControl();
 
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).BeginInit();
             this.splitContainerMain.Panel1.SuspendLayout();
             this.splitContainerMain.Panel2.SuspendLayout();
             this.splitContainerMain.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerCenterRight)).BeginInit();
+            this.splitContainerCenterRight.Panel1.SuspendLayout();
+            this.splitContainerCenterRight.Panel2.SuspendLayout();
+            this.splitContainerCenterRight.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerLeft)).BeginInit();
             this.splitContainerLeft.Panel1.SuspendLayout();
             this.splitContainerLeft.Panel2.SuspendLayout();
@@ -194,10 +200,21 @@ namespace PCBInspection.UI
             this.splitContainerMain.Location = new System.Drawing.Point(0, 35);
             this.splitContainerMain.Name = "splitContainerMain";
             this.splitContainerMain.Panel1.Controls.Add(this.splitContainerLeft);
-            this.splitContainerMain.Panel2.Controls.Add(this.panelCenter);
+            this.splitContainerMain.Panel2.Controls.Add(this.splitContainerCenterRight);
             this.splitContainerMain.Size = new System.Drawing.Size(1264, 754);
             this.splitContainerMain.SplitterDistance = 350;
             this.splitContainerMain.TabIndex = 2;
+
+            // 
+            // splitContainerCenterRight
+            // 
+            this.splitContainerCenterRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainerCenterRight.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerCenterRight.Name = "splitContainerCenterRight";
+            this.splitContainerCenterRight.Panel1.Controls.Add(this.panelCenter);
+            this.splitContainerCenterRight.Panel2.Controls.Add(this.infoPanel);
+            this.splitContainerCenterRight.SplitterDistance = 580;
+            this.splitContainerCenterRight.Panel2MinSize = 280;
 
             // 
             // splitContainerLeft
@@ -340,6 +357,10 @@ namespace PCBInspection.UI
             this.splitContainerMain.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).EndInit();
             this.splitContainerMain.ResumeLayout(false);
+            this.splitContainerCenterRight.Panel1.ResumeLayout(false);
+            this.splitContainerCenterRight.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerCenterRight)).EndInit();
+            this.splitContainerCenterRight.ResumeLayout(false);
             this.splitContainerLeft.Panel1.ResumeLayout(false);
             this.splitContainerLeft.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerLeft)).EndInit();
@@ -412,5 +433,7 @@ namespace PCBInspection.UI
         private System.Windows.Forms.Panel panelLog;
         private System.Windows.Forms.Label lblLogTitle;
         private System.Windows.Forms.ListBox lstLog;
+        private System.Windows.Forms.SplitContainer splitContainerCenterRight;
+        private PCBInspection.UI.Controls.InfoPanelControl infoPanel;
     }
 }
