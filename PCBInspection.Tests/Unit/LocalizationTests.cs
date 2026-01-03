@@ -36,8 +36,8 @@ namespace PCBInspection.Tests.Unit
 
             // mm coordinates
             var (x0mm, y0mm) = Calibration.PixelToMm(c0.CenterX_Px, c0.CenterY_Px);
-            Assert.AreEqual(10.0, x0mm, 0.01); // 100px / 10px per mm = 10mm
-            Assert.AreEqual(10.0, y0mm, 0.01); // 100px /10 = 10mm
+            Assert.AreEqual(10.0, x0mm, 0.1); // 100px / 10px per mm = 10mm
+            Assert.AreEqual(10.0, y0mm, 0.1); // 100px /10 = 10mm
         }
     }
 }

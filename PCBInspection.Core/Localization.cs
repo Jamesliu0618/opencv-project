@@ -20,12 +20,32 @@ namespace PCBInspection.Core
 
     public class LocalizationOptions
     {
+        [System.ComponentModel.DisplayName("最小面積 (px)")]
+        [System.ComponentModel.Description("過濾小於此面積的輪廓。\n單位: 像素 (Pixel)")]
         public int MinArea { get; set; } = 50;
+
+        [System.ComponentModel.DisplayName("高斯模糊核 (px)")]
+        [System.ComponentModel.Description("預處理的模糊半徑，必須為奇數。\n單位: 像素 (Pixel)")]
         public int BlurKernel { get; set; } = 5; // must be odd
+
+        [System.ComponentModel.DisplayName("自適應區塊大小 (px)")]
+        [System.ComponentModel.Description("自適應閾值的區塊大小，必須為奇數。\n單位: 像素 (Pixel)")]
         public int AdaptiveBlockSize { get; set; } = 15; // must be odd
+
+        [System.ComponentModel.DisplayName("自適應常數 C")]
+        [System.ComponentModel.Description("自適應閾值的常數，值越大閾值越低 (越不易被選中)。")]
         public int AdaptiveC { get; set; } = 7;
+
+        [System.ComponentModel.DisplayName("形態學核大小 (px)")]
+        [System.ComponentModel.Description("形態學操作的結構元素大小。\n單位: 像素 (Pixel)")]
         public int MorphKernel { get; set; } = 3;
+
+        [System.ComponentModel.DisplayName("使用閉運算")]
+        [System.ComponentModel.Description("是否使用形態學閉運算來連接斷裂的輪廓。\nTrue: 啟用, False: 停用")]
         public bool UseMorphClose { get; set; } = true;
+
+        [System.ComponentModel.DisplayName("使用矩計算中心")]
+        [System.ComponentModel.Description("使用影像矩 (Moments) 計算更精確的質心。\nTrue: 使用矩, False: 使用邊界框中心")]
         public bool UseMomentsForCentroid { get; set; } = true;
     }
 

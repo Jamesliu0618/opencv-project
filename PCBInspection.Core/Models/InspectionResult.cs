@@ -9,6 +9,7 @@ namespace PCBInspection.Core.Models
         public string Type { get; set; }
         public int Severity { get; set; }
         public double Confidence { get; set; }
+        public int[] BoundingBox { get; set; } // [x, y, width, height]
     }
 
     public class InspectionResult

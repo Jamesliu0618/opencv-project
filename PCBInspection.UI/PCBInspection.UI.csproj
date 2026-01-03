@@ -9,6 +9,11 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.8.0.20230708" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.8.0.20230708" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.8.0.20230708" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\PCBInspection.Core\PCBInspection.Core.csproj" />
     <ProjectReference Include="..\PCBInspection.Drivers\PCBInspection.Drivers.csproj" />
   </ItemGroup>

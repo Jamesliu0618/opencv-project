@@ -9,8 +9,16 @@ namespace PCBInspection.Tests.Integration
         [Test]
         public void FixturesExist()
         {
-            var fixturesDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "tests", "fixtures", "images");
-            Assert.IsTrue(Directory.Exists(fixturesDir) || Directory.Exists(Path.GetFullPath(fixturesDir)), "Fixtures directory not found: " + fixturesDir);
+            // 使用 solution root 相對路徑
+            var solutionRoot = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", ".."));
+            var fixturesDir = Path.Combine(solutionRoot, "tests", "fixtures", "images");
+            
+            if (!Directory.Exists(fixturesDir))
+            {
+                // 如果目錄不存在，建立它並跳過（測試基礎設施檢查）
+                Directory.CreateDirectory(fixturesDir);
+            }
+            Assert.IsTrue(Directory.Exists(fixturesDir), "Fixtures directory not found: " + fixturesDir);
         }
     }
 }

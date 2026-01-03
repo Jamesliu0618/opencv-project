@@ -85,3 +85,8 @@ node_modules/
 **/bin/Release/
 
 # End of file
+obj
+.vscode
+.vs
+.idea
+*.iml

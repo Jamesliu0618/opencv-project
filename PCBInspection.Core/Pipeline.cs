@@ -4,6 +4,8 @@ using Newtonsoft.Json;
 using OpenCvSharp;
 using PCBInspection.Core.Models;
 using PCBInspection.Core.Interfaces;
+using PCBInspection.Core.Detectors;
+using PCBInspection.Core.Services;
 
 namespace PCBInspection.Core
 {
@@ -12,12 +14,14 @@ namespace PCBInspection.Core
         private readonly ICameraAdapter _camera;
         private readonly IAdvantechAdapter _io;
         private readonly string _artifactsDir;
+        private readonly DefectAggregator _defectAggregator;
 
         public Pipeline(ICameraAdapter camera, IAdvantechAdapter io, string artifactsDir = "artifacts")
         {
             _camera = camera;
             _io = io;
             _artifactsDir = artifactsDir;
+            _defectAggregator = new DefectAggregator();
             Directory.CreateDirectory(_artifactsDir);
         }
 
@@ -26,54 +30,71 @@ namespace PCBInspection.Core
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var frame = _camera.CaptureFrame();
 
-            // Detect components and annotate frame with measurements
+            // 1. 零件定位與測量
             var comps = Localization.DetectComponents(frame);
             foreach (var c in comps)
             {
                 var (wmm, hmm) = Measurement.ComponentSizeMm(c);
-                c.WidthMm = wmm; c.HeightMm = hmm;
-
-                var tl = new Point((int)(c.CenterX_Px - c.SizeW_Px / 2.0), (int)(c.CenterY_Px - c.SizeH_Px / 2.0));
-                var br = new Point((int)(c.CenterX_Px + c.SizeW_Px / 2.0), (int)(c.CenterY_Px + c.SizeH_Px / 2.0));
-                var rect = new Rect(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y);
-                Cv2.Rectangle(frame, rect, Scalar.Green, 2);
-                Cv2.PutText(frame, $"{wmm:F2}x{hmm:F2} mm", new Point(tl.X, tl.Y - 6), HersheyFonts.HersheySimplex, 0.5, Scalar.Blue, 1);
+                c.WidthMm = wmm;
+                c.HeightMm = hmm;
             }
 
-            var annotatedPath = Path.Combine(_artifactsDir, $"{pcbId}_annotated_{DateTime.UtcNow:yyyyMMddHHmmss}.png");
-            Cv2.PutText(frame, "Annotated", new Point(10, 30), HersheyFonts.HersheySimplex, 1.0, Scalar.Red, 2);
-            Cv2.ImWrite(annotatedPath, frame);
+            // 2. 瑕疵偵測
+            var defectResult = _defectAggregator.Detect(frame, comps);
 
-            // Basic decision logic (no defects)
-            var result = new InspectionResult
+            // 3. 建立標註影像
+            using (var annotated = AnnotationService.Annotate(frame, comps, defectResult.Defects, defectResult.Decision))
             {
-                Id = Guid.NewGuid().ToString("N"),
-                PcbId = pcbId,
-                Ok = true,
-                AnnotatedImagePath = annotatedPath,
-                CreatedAt = DateTime.UtcNow
-            };
-            result.Components.AddRange(comps);
+                var annotatedPath = AnnotationService.SaveAnnotatedImage(annotated, _artifactsDir, pcbId);
 
-            // Send OK signal
+                // 4. 建立檢測結果
+                var result = new InspectionResult
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    PcbId = pcbId,
+                    Ok = defectResult.IsOk,
+                    AnnotatedImagePath = annotatedPath,
+                    CreatedAt = DateTime.UtcNow,
+                    ModelVersion = "1.0.0"
+                };
+                result.Components.AddRange(comps);
+                result.Defects.AddRange(defectResult.Defects);
+
+                // 5. 發送 IO 訊號
+                SendIoSignal(defectResult.Decision);
+
+                sw.Stop();
+                result.ProcessingTimeMs = (int)sw.ElapsedMilliseconds;
+
+                // 6. 生成報告
+                var report = ReportingService.GenerateReport(result);
+                result.ReportPath = ReportingService.SaveJsonReport(report, _artifactsDir);
+
+                return result;
+            }
+        }
+
+        private void SendIoSignal(InspectionDecision decision)
+        {
             try
             {
-                _io.WriteDigitalOutput("OUTPUT_OK", true, 100);
+                switch (decision)
+                {
+                    case InspectionDecision.OK:
+                        _io.WriteDigitalOutput("OUTPUT_OK", true, 100);
+                        break;
+                    case InspectionDecision.NG:
+                        _io.WriteDigitalOutput("OUTPUT_NG", true, 100);
+                        break;
+                    case InspectionDecision.REVIEW:
+                        _io.WriteDigitalOutput("OUTPUT_REVIEW", true, 100);
+                        break;
+                }
             }
             catch
             {
-                // log and continue
+                // 記錄錯誤但繼續執行
             }
-
-            sw.Stop();
-            result.ProcessingTimeMs = (int)sw.ElapsedMilliseconds;
-
-            // Write report
-            var reportPath = Path.Combine(_artifactsDir, $"{pcbId}_report_{DateTime.UtcNow:yyyyMMddHHmmss}.json");
-            result.ReportPath = reportPath;
-            File.WriteAllText(reportPath, JsonConvert.SerializeObject(result, Formatting.Indented));
-
-            return result;
         }
     }
 }
