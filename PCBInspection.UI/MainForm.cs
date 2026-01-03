@@ -41,7 +41,6 @@ namespace PCBInspection.UI
 			InitializeToolbox();
 			LoadToolbarIcons();
 			WireEvents();
-
 		}
 
 		private void DumpLayoutInfo()
@@ -174,12 +173,22 @@ namespace PCBInspection.UI
 			};
 
 			// Toolbar - File & Run
-			btnTsOpen.Click    += (s, e) => LoadImage();
+			if(btnTsOpen != null)
+			{
+				btnTsOpen.Click -= BtnTsOpen_Click; // Clear existing
+				btnTsOpen.Click += BtnTsOpen_Click;
+			}
+			else
+			{
+				MessageBox.Show("[DEBUG] btnTsOpen is NULL in WireEvents!");
+			}
+			
 			btnTsRunOnce.Click += (s, e) => RunSequence();
+			btnTsRunLoop.Click += (s, e) => StartLoopExecution(_sequence.Count - 1);
+			btnTsStop.Click    += (s, e) => StopLoopExecution();
 
 			// Toolbar - Zoom
 			btnTsZoomIn.Click  += (s, e) => imageViewer.ZoomIn();
-			btnTsZoomOut.Click += (s, e) => imageViewer.ZoomOut();
 			btnTsZoomOut.Click += (s, e) => imageViewer.ZoomOut();
 			btnTsFit.Click     += (s, e) => imageViewer.FitToWindow();
 
@@ -476,14 +485,22 @@ namespace PCBInspection.UI
 			}
 		}
 
+		private void BtnTsOpen_Click(object sender, EventArgs e)
+		{
+            LoadImage();
+		}
+
 		private void LoadImage()
 		{
-			using(OpenFileDialog dlg = new OpenFileDialog())
+			try
 			{
-				dlg.Multiselect = true;
-
-				if(dlg.ShowDialog() == DialogResult.OK)
+				using(OpenFileDialog dlg = new OpenFileDialog())
 				{
+					dlg.Multiselect = true;
+					dlg.Filter = "Image Files|*.bmp;*.jpg;*.jpeg;*.png;*.tif;*.tiff|All Files|*.*";
+
+					if(dlg.ShowDialog(this) == DialogResult.OK)
+					{
 					thumbnailBar.Clear();
 					string[] files = dlg.FileNames;
 
@@ -518,6 +535,12 @@ namespace PCBInspection.UI
 						thumbnailBar.SelectItem(files[0]);
 					}
 				}
+			}
+			}
+			catch(Exception ex)
+			{
+				MessageBox.Show($"開啟檔案發生錯誤:\n{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Log($"開啟檔案失敗: {ex.Message}", TraceLevel.Error);
 			}
 		}
 
@@ -562,6 +585,7 @@ namespace PCBInspection.UI
 			catch(Exception ex)
 			{
 				Log($"載入失敗: {ex.Message} \nStack: {ex.StackTrace}", TraceLevel.Error);
+				MessageBox.Show($"載入影像失敗:\n{path}\n{ex.Message}", "載入錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		}
 

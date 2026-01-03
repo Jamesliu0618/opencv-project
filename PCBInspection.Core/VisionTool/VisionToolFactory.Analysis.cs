@@ -54,12 +54,12 @@ namespace PCBInspection.Core.Services
 
 					if(pp.DrawOnImage)
 					{
-						Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Cyan, 2);
+						Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Green, 2);
 						Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, Scalar.Green, -1);
-						Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, Scalar.Red,   -1);
+						Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, Scalar.Green,   -1);
 						int midX = (pp.StartX + pp.EndX) / 2;
 						int midY = (pp.StartY + pp.EndY) / 2;
-						Cv2.PutText(result, text, new Point(midX + 5, midY - 5), HersheyFonts.HersheySimplex, 0.6, Scalar.Yellow, 2);
+						Cv2.PutText(result, text, new Point(midX + 5, midY - 5), HersheyFonts.HersheySimplex, 0.6, Scalar.Green, 2);
 					}
 					OnLog?.Invoke($"[測量] 距離: {text} (像素: {distPx:F2})", false);
 					return (true, result, new List<Defect>());
@@ -122,24 +122,24 @@ namespace PCBInspection.Core.Services
 						if(pp.ComputeMinAreaRect)
 						{
 							Point[] pts = Cv2.BoxPoints(minRect).Select(pt => new Point((int)pt.X, (int)pt.Y)).ToArray();
-							Cv2.Polylines(result, new[] { pts }, true, Scalar.Cyan);
+							Cv2.Polylines(result, new[] { pts }, true, Scalar.Green);
 						}
 
 						if(pp.ComputeMinEnclosingCircle)
 						{
 							Cv2.MinEnclosingCircle(contour, out Point2f center, out float radius);
-							Cv2.Circle(result, (int)center.X, (int)center.Y, (int)radius, Scalar.Magenta);
+							Cv2.Circle(result, (int)center.X, (int)center.Y, (int)radius, Scalar.Green);
 						}
 
 						if(pp.ComputeConvexHull)
 						{
 							Point[] hull = Cv2.ConvexHull(contour);
-							Cv2.Polylines(result, new[] { hull }, true, Scalar.Yellow);
+							Cv2.Polylines(result, new[] { hull }, true, Scalar.Green);
 						}
 
 						if(pp.LabelObjectIndex)
 						{
-							Cv2.PutText(result, $"#{idx + 1}", new Point(rect.X, rect.Y - 5), HersheyFonts.HersheySimplex, 0.4, Scalar.White);
+							Cv2.PutText(result, $"#{idx + 1}", new Point(rect.X, rect.Y - 5), HersheyFonts.HersheySimplex, 0.4, Scalar.Green);
 						}
 
 						defects.Add(new Defect
@@ -262,9 +262,9 @@ namespace PCBInspection.Core.Services
 					}
 
 					// 繪製剖面線標示
-					Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Cyan, 2);
+					Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Green, 2);
 					Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, Scalar.Green, -1);
-					Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, Scalar.Red,   -1);
+					Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, Scalar.Green,   -1);
 
 					// 繪製小型剖面圖在影像右下角
 					int graphW  = Math.Min(256, length);
