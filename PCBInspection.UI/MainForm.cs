@@ -21,6 +21,9 @@ namespace PCBInspection.UI
         private string _currImagePath;
         private List<InspectionItem> _sequence = new List<InspectionItem>();
         private HistoryManager _history = new HistoryManager();
+        private Bitmap _originalImage;
+
+        private ContextMenuStrip _sequenceContextMenu;
 
         private class InspectionItem
         {
@@ -145,6 +148,9 @@ namespace PCBInspection.UI
 
             // Toolbox
             tvTools.NodeMouseDoubleClick += (s, e) => AddToolToSequence(e.Node);
+
+            // Setup context menu for sequence grid
+            SetupSequenceContextMenu();
 
             // Flow Control
             btnMoveUp.Click += (s, e) => MoveStep(-1);
@@ -288,6 +294,10 @@ namespace PCBInspection.UI
                     {
                         var bmp = BitmapConverter.ToBitmap(mat);
                         imageViewer.Image = bmp;
+
+                        // 保存原始圖片副本
+                        _originalImage?.Dispose();
+                        _originalImage = (Bitmap)bmp.Clone();
                     }
                     Log($"載入影像: {Path.GetFileName(_currImagePath)}", TraceLevel.Info);
                     
@@ -443,6 +453,268 @@ namespace PCBInspection.UI
                 e.Graphics.DrawString(item.Message, e.Font, brush, e.Bounds);
             }
             e.DrawFocusRectangle();
+        }
+
+        /// <summary>設置序列表格的右鍵選單</summary>
+        private void SetupSequenceContextMenu()
+        {
+            _sequenceContextMenu = new ContextMenuStrip();
+
+            var menuRunThis = new ToolStripMenuItem("執行此步驟");
+            menuRunThis.Click += (s, e) =>
+            {
+                if (dgvSequence.SelectedRows.Count > 0)
+                    RunSingleStep(dgvSequence.SelectedRows[0].Index);
+            };
+
+            var menuRunFrom = new ToolStripMenuItem("從此步驟開始執行");
+            menuRunFrom.Click += (s, e) =>
+            {
+                if (dgvSequence.SelectedRows.Count > 0)
+                    RunFromStep(dgvSequence.SelectedRows[0].Index);
+            };
+
+            _sequenceContextMenu.Items.Add(menuRunThis);
+            _sequenceContextMenu.Items.Add(menuRunFrom);
+            _sequenceContextMenu.Items.Add(new ToolStripSeparator());
+
+            var menuResetImage = new ToolStripMenuItem("重設為原始影像");
+            menuResetImage.Click += (s, e) => ResetToOriginalImage();
+            _sequenceContextMenu.Items.Add(menuResetImage);
+
+            dgvSequence.ContextMenuStrip = _sequenceContextMenu;
+        }
+
+        /// <summary>重設為原始影像</summary>
+        private void ResetToOriginalImage()
+        {
+            if (_originalImage == null)
+            {
+                Log("沒有原始影像可以重設", TraceLevel.Warning);
+                return;
+            }
+
+            imageViewer.Image = (Bitmap)_originalImage.Clone();
+            Log("已重設為原始影像", TraceLevel.Info);
+
+            // 清除所有步驟的執行結果
+            foreach (DataGridViewRow r in dgvSequence.Rows)
+            {
+                r.Cells[1].Value = "";
+                r.Cells[2].Value = "Wait";
+                r.DefaultCellStyle.BackColor = Color.White;
+            }
+        }
+
+        /// <summary>執行單一步驟並將結果繪製在影像上</summary>
+        private void RunSingleStep(int stepIndex)
+        {
+            if (_originalImage == null)
+            {
+                Log("請先載入影像", TraceLevel.Error);
+                return;
+            }
+
+            if (stepIndex < 0 || stepIndex >= _sequence.Count)
+                return;
+
+            var item = _sequence[stepIndex];
+            var row = dgvSequence.Rows[stepIndex];
+
+            // 使用原始影像來執行此步驟
+            Mat inputMat = BitmapConverter.ToMat(_originalImage);
+            Mat roiMask = null;
+
+            try
+            {
+                if (imageViewer.Rois.Count > 0)
+                {
+                    roiMask = new Mat(inputMat.Size(), MatType.CV_8UC1, Scalar.All(0));
+                    foreach (var roi in imageViewer.Rois)
+                    {
+                        using (var subMask = roi.GetMask(inputMat.Size()))
+                        {
+                            Cv2.BitwiseOr(roiMask, subMask, roiMask);
+                        }
+                    }
+                }
+
+                row.Cells[2].Value = "Running...";
+                Application.DoEvents();
+
+                var swStep = System.Diagnostics.Stopwatch.StartNew();
+
+                Mat toolInput = inputMat;
+                Mat maskedInput = null;
+
+                if (roiMask != null)
+                {
+                    maskedInput = new Mat();
+                    inputMat.CopyTo(maskedInput, roiMask);
+                    toolInput = maskedInput;
+                }
+
+                var result = item.Action(toolInput, item.Parameters);
+
+                swStep.Stop();
+                row.Cells[1].Value = $"{swStep.ElapsedMilliseconds}ms";
+
+                if (result.IsOk)
+                {
+                    row.Cells[2].Value = "OK";
+                    row.Cells[2].Style.ForeColor = Color.Green;
+
+                    item.LastResultImage?.Dispose();
+                    item.LastResultImage = BitmapConverter.ToBitmap(result.ResultImage);
+
+                    // 在原始影像上疊加結果繪製
+                    imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
+
+                    result.ResultImage?.Dispose();
+                }
+                else
+                {
+                    row.Cells[2].Value = "NG";
+                    row.Cells[2].Style.ForeColor = Color.Red;
+                    result.ResultImage?.Dispose();
+                }
+
+                maskedInput?.Dispose();
+                Log($"執行步驟: {item.Name} - {row.Cells[2].Value}", TraceLevel.Info);
+            }
+            catch (Exception ex)
+            {
+                row.Cells[2].Value = "ERR";
+                row.Cells[2].Style.ForeColor = Color.Red;
+                Log($"步驟 {item.Name} 發生錯誤: {ex.Message}", TraceLevel.Error);
+            }
+            finally
+            {
+                inputMat?.Dispose();
+                roiMask?.Dispose();
+            }
+        }
+
+        /// <summary>從指定步驟開始執行到結束</summary>
+        private void RunFromStep(int startIndex)
+        {
+            if (_originalImage == null)
+            {
+                Log("請先載入影像", TraceLevel.Error);
+                return;
+            }
+
+            if (startIndex < 0 || startIndex >= _sequence.Count)
+                return;
+
+            // 重設從 startIndex 開始的狀態
+            for (int i = startIndex; i < dgvSequence.Rows.Count; i++)
+            {
+                var r = dgvSequence.Rows[i];
+                r.Cells[1].Value = "";
+                r.Cells[2].Value = "Wait";
+                r.DefaultCellStyle.BackColor = Color.White;
+            }
+
+            Mat currentMat = BitmapConverter.ToMat(_originalImage);
+            Mat roiMask = null;
+
+            if (imageViewer.Rois.Count > 0)
+            {
+                roiMask = new Mat(currentMat.Size(), MatType.CV_8UC1, Scalar.All(0));
+                foreach (var roi in imageViewer.Rois)
+                {
+                    using (var subMask = roi.GetMask(currentMat.Size()))
+                    {
+                        Cv2.BitwiseOr(roiMask, subMask, roiMask);
+                    }
+                }
+            }
+
+            Log($"從步驟 {startIndex + 1} 開始執行...", TraceLevel.Info);
+            var swTotal = System.Diagnostics.Stopwatch.StartNew();
+
+            try
+            {
+                for (int i = startIndex; i < _sequence.Count; i++)
+                {
+                    var item = _sequence[i];
+                    var row = dgvSequence.Rows[i];
+
+                    row.Cells[2].Value = "Running...";
+                    Application.DoEvents();
+
+                    var swStep = System.Diagnostics.Stopwatch.StartNew();
+
+                    try
+                    {
+                        Mat inputToTool = currentMat;
+                        Mat maskedInput = null;
+
+                        if (roiMask != null)
+                        {
+                            maskedInput = new Mat();
+                            currentMat.CopyTo(maskedInput, roiMask);
+                            inputToTool = maskedInput;
+                        }
+
+                        var result = item.Action(inputToTool, item.Parameters);
+
+                        swStep.Stop();
+                        row.Cells[1].Value = $"{swStep.ElapsedMilliseconds}ms";
+
+                        if (result.IsOk)
+                        {
+                            row.Cells[2].Value = "OK";
+                            row.Cells[2].Style.ForeColor = Color.Green;
+
+                            item.LastResultImage?.Dispose();
+                            item.LastResultImage = BitmapConverter.ToBitmap(result.ResultImage);
+
+                            currentMat.Dispose();
+                            currentMat = result.ResultImage;
+                        }
+                        else
+                        {
+                            row.Cells[2].Value = "NG";
+                            row.Cells[2].Style.ForeColor = Color.Red;
+                            result.ResultImage?.Dispose();
+                            item.LastResultImage = null;
+                        }
+
+                        if (row.Selected)
+                        {
+                            imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
+                        }
+
+                        maskedInput?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        row.Cells[2].Value = "ERR";
+                        row.Cells[2].Style.ForeColor = Color.Red;
+                        Log($"步驟 {item.Name} 發生錯誤: {ex.Message}", TraceLevel.Error);
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                swTotal.Stop();
+                lblStatusTime.Text = $"總耗時: {swTotal.ElapsedMilliseconds}ms";
+
+                if (_sequence.Count > startIndex)
+                {
+                    var lastItem = _sequence.Last();
+                    if (lastItem.LastResultImage != null)
+                    {
+                        imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+                    }
+                }
+
+                currentMat?.Dispose();
+                roiMask?.Dispose();
+            }
         }
     }
 }

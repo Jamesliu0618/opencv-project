@@ -206,9 +206,9 @@ namespace PCBInspection.UI
             this.splitContainerLeft.Name = "splitContainerLeft";
             this.splitContainerLeft.Orientation = System.Windows.Forms.Orientation.Horizontal;
             this.splitContainerLeft.Panel1.Controls.Add(this.tabToolbox);
-            this.splitContainerLeft.Panel2.Controls.Add(this.dgvSequence);
-            this.splitContainerLeft.Panel2.Controls.Add(this.pnlFlowControl);
             this.splitContainerLeft.Panel2.Controls.Add(this.grpProperties);
+            this.splitContainerLeft.Panel2.Controls.Add(this.pnlFlowControl);
+            this.splitContainerLeft.Panel2.Controls.Add(this.dgvSequence);
             this.splitContainerLeft.Size = new System.Drawing.Size(350, 754);
             this.splitContainerLeft.SplitterDistance = 300;
             this.splitContainerLeft.TabIndex = 0;
