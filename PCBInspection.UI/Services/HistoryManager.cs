@@ -18,7 +18,13 @@ namespace PCBInspection.UI.Services
 
 		public event EventHandler StateChanged;
 
-		public void PushState(Bitmap image, List<RoiBase> rois)
+		public IEnumerable<string> GetHistoryItems()
+		{
+			// Return descriptions, most recent first
+			return _undoStack.Select(s => $"[{s.Timestamp:HH:mm:ss}] {s.ActionName}");
+		}
+
+		public void PushState(Bitmap image, List<RoiBase> rois, string actionName = "Edit")
 		{
 			// Deep copy ROIs is tricky conceptually, but for now we clone the list reference?
 			// Ideally we need deep clone of ROI objects to prevent modification of history.
@@ -27,6 +33,7 @@ namespace PCBInspection.UI.Services
 
 			var snapshot = new Snapshot
 			{
+				ActionName = actionName,
 				Image = (Bitmap)image?.Clone(),
 
 				// Shallow copy of list logic is flawed if items are mutable.
@@ -57,7 +64,7 @@ namespace PCBInspection.UI.Services
 			}
 
 			// Push current to redo
-			_redoStack.Push(new Snapshot { Image = (Bitmap)currentImg?.Clone(), Rois = new List<RoiBase>(currentRois) });
+			_redoStack.Push(new Snapshot { ActionName = "Before Undo", Image = (Bitmap)currentImg?.Clone(), Rois = new List<RoiBase>(currentRois) });
 			var snap = _undoStack.Pop();
 			StateChanged?.Invoke(this, EventArgs.Empty);
 			return (snap.Image, snap.Rois);
@@ -71,7 +78,7 @@ namespace PCBInspection.UI.Services
 			}
 
 			// Push current to undo
-			_undoStack.Push(new Snapshot { Image = (Bitmap)currentImg?.Clone(), Rois = new List<RoiBase>(currentRois) });
+			_undoStack.Push(new Snapshot { ActionName = "Before Redo", Image = (Bitmap)currentImg?.Clone(), Rois = new List<RoiBase>(currentRois) });
 			var snap = _redoStack.Pop();
 			StateChanged?.Invoke(this, EventArgs.Empty);
 			return (snap.Image, snap.Rois);
@@ -91,8 +98,10 @@ namespace PCBInspection.UI.Services
 
 		private class Snapshot
 		{
-			public Bitmap        Image { get; set; }
-			public List<RoiBase> Rois  { get; set; }
+			public string        ActionName { get; set; } = "Unknown";
+			public DateTime      Timestamp  { get; set; } = DateTime.Now;
+			public Bitmap        Image      { get; set; }
+			public List<RoiBase> Rois       { get; set; }
 		}
 	}
 }

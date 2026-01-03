@@ -202,7 +202,13 @@ namespace PCBInspection.UI
 			// Toolbar - Zoom
 			btnTsZoomIn.Click  += (s, e) => imageViewer.ZoomIn();
 			btnTsZoomOut.Click += (s, e) => imageViewer.ZoomOut();
+			btnTsZoomOut.Click += (s, e) => imageViewer.ZoomOut();
 			btnTsFit.Click     += (s, e) => imageViewer.FitToWindow();
+
+			// Toolbar - Split View
+			btnTsSplit.Click += (s, e) => ToggleSplitView();
+
+			SetupViewerSync();
 
 			// Toolbar - ROI Modes
 			btnTsPointer.Click   += (s, e) => imageViewer.Mode = InteractiveImageViewer.ViewerMode.EditROI;
@@ -241,8 +247,8 @@ namespace PCBInspection.UI
 
 			imageViewer.RoiListChanged += (s, args) =>
 			{
-				_history.PushState(imageViewer.Image, imageViewer.Rois);
-				UpdateUndoRedoButtons();
+				_history.PushState(imageViewer.Image, imageViewer.Rois, "編輯 ROI");
+				// UpdateUndoRedoButtons(); // Handled by StateChanged
 
 				// 更新 InfoPanel ROI 資訊
 				if(imageViewer.Image != null)
@@ -285,6 +291,72 @@ namespace PCBInspection.UI
 				{
 					LoadForInspection(path);
 					RunSequence();
+				}
+			};
+
+
+			// History Events
+			_history.StateChanged += (s, args) =>
+			{
+				if(InvokeRequired)
+				{
+					Invoke(new Action(() => {
+                        UpdateUndoRedoButtons();
+                        UpdateHistoryList();
+                    }));
+				}
+				else
+				{
+					UpdateUndoRedoButtons();
+					UpdateHistoryList();
+				}
+			};
+		}
+
+		private void UpdateHistoryList()
+		{
+			lstHistory.Items.Clear();
+			var items = _history.GetHistoryItems();
+			foreach(var item in items)
+			{
+				lstHistory.Items.Add(item);
+			}
+		}
+
+		private void ToggleSplitView()
+		{
+			bool isCollapsed = splitContainerImages.Panel1Collapsed;
+			splitContainerImages.Panel1Collapsed = !isCollapsed;
+
+			if(isCollapsed) // Was collapsed, now opening
+			{
+				if(imageViewerRef.Image == null && imageViewer.Image != null)
+				{
+					// For UX, copy current to ref if empty
+					imageViewerRef.Image = (Bitmap)imageViewer.Image.Clone();
+				}
+				// Sync view
+				imageViewerRef.SetView(imageViewer.ScaleFactor, imageViewer.OffsetX, imageViewer.OffsetY);
+			}
+		}
+
+		private void SetupViewerSync()
+		{
+			// Master -> Slave
+			imageViewer.ViewChanged += (s, e) =>
+			{
+				if(!splitContainerImages.Panel1Collapsed)
+				{
+					imageViewerRef.SetView(imageViewer.ScaleFactor, imageViewer.OffsetX, imageViewer.OffsetY);
+				}
+			};
+
+			// Slave -> Master
+			imageViewerRef.ViewChanged += (s, e) =>
+			{
+				if(!splitContainerImages.Panel1Collapsed)
+				{
+					imageViewer.SetView(imageViewerRef.ScaleFactor, imageViewerRef.OffsetX, imageViewerRef.OffsetY);
 				}
 			};
 		}
@@ -505,8 +577,8 @@ namespace PCBInspection.UI
 
 				// 清除歷史與狀態
 				_history.Clear();
-				_history.PushState(imageViewer.Image, imageViewer.Rois);
-				UpdateUndoRedoButtons();
+				_history.PushState(imageViewer.Image, imageViewer.Rois, "載入影像");
+				// UpdateUndoRedoButtons(); // Handled by StateChanged
 				Log($"載入影像: {Path.GetFileName(path)}", TraceLevel.Info);
 			}
 			catch(Exception ex)

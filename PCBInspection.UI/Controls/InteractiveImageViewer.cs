@@ -72,6 +72,21 @@ namespace PCBInspection.UI.Controls
 		// Events
 		public event EventHandler<Point> MousePixelChanged;
 		public event EventHandler        ViewChanged;
+		
+		public float ScaleFactor => _scale;
+		public float OffsetX => _offsetX;
+		public float OffsetY => _offsetY;
+
+		public void SetView(float scale, float ox, float oy)
+		{
+			if(Math.Abs(_scale - scale) < 0.0001f && Math.Abs(_offsetX - ox) < 0.1f && Math.Abs(_offsetY - oy) < 0.1f) return;
+			
+			_scale = scale;
+			_offsetX = ox;
+			_offsetY = oy;
+			Invalidate();
+			ViewChanged?.Invoke(this, EventArgs.Empty);
+		}
 
 		public string GetDebugInfo()
 		{

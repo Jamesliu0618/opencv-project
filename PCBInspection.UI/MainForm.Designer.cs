@@ -36,6 +36,7 @@ namespace PCBInspection.UI
             this.btnTsZoomIn = new System.Windows.Forms.ToolStripButton();
             this.btnTsZoomOut = new System.Windows.Forms.ToolStripButton();
             this.btnTsFit = new System.Windows.Forms.ToolStripButton();
+            this.btnTsSplit = new System.Windows.Forms.ToolStripButton(); // New Button
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.btnTsPointer = new System.Windows.Forms.ToolStripButton();
             this.btnTsRoiRect = new System.Windows.Forms.ToolStripButton();
@@ -55,8 +56,12 @@ namespace PCBInspection.UI
             this.splitContainerMain = new System.Windows.Forms.SplitContainer();
             this.splitContainerLeft = new System.Windows.Forms.SplitContainer();
             this.splitContainerCenterRight = new System.Windows.Forms.SplitContainer();
+            this.splitContainerImages = new System.Windows.Forms.SplitContainer(); // New SplitContainer
+            this.imageViewerRef = new PCBInspection.UI.Controls.InteractiveImageViewer(); // New Viewer
             this.tabToolbox = new System.Windows.Forms.TabControl();
             this.tabPageTools = new System.Windows.Forms.TabPage();
+            this.tabPageHistory = new System.Windows.Forms.TabPage(); // New TabPage
+            this.lstHistory = new System.Windows.Forms.ListBox(); // New ListBox
             this.tvTools = new System.Windows.Forms.TreeView();
             this.dgvSequence = new System.Windows.Forms.DataGridView();
             this.colStepName = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -123,6 +128,7 @@ namespace PCBInspection.UI
             this.btnTsZoomIn,
             this.btnTsZoomOut,
             this.btnTsFit,
+            this.btnTsSplit,
             this.toolStripSeparator4,
             this.btnTsPointer,
             this.btnTsRoiRect,
@@ -148,6 +154,10 @@ namespace PCBInspection.UI
             this.btnTsZoomOut.ForeColor = System.Drawing.Color.Black;
             this.btnTsFit.Text = "[ ]";
             this.btnTsFit.ForeColor = System.Drawing.Color.Black;
+            
+            this.btnTsSplit.Text = "◫";
+            this.btnTsSplit.ToolTipText = "切換比對模式";
+            this.btnTsSplit.ForeColor = System.Drawing.Color.Black;
             
             this.btnTsPointer.Text = "指標";
             this.btnTsPointer.ForeColor = System.Drawing.Color.Black;
@@ -226,11 +236,45 @@ namespace PCBInspection.UI
             this.splitContainerCenterRight.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerCenterRight.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
             this.splitContainerCenterRight.Name = "splitContainerCenterRight";
-            this.splitContainerCenterRight.Panel1.Controls.Add(this.imageViewer);
+            this.splitContainerCenterRight.Panel1.Controls.Add(this.splitContainerImages);
             this.splitContainerCenterRight.Panel1.Controls.Add(this.thumbnailBar);
             this.thumbnailBar.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.imageViewer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.thumbnailBar.BringToFront();
+
+            // 
+            // splitContainerImages
+            // 
+            this.splitContainerImages.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainerImages.Location = new System.Drawing.Point(0, 0);
+            this.splitContainerImages.Name = "splitContainerImages";
+            // 
+            // splitContainerImages.Panel1
+            // 
+            this.splitContainerImages.Panel1.Controls.Add(this.imageViewerRef);
+            this.splitContainerImages.Panel1Collapsed = true;
+            // 
+            // splitContainerImages.Panel2
+            // 
+            this.splitContainerImages.Panel2.Controls.Add(this.imageViewer);
+            this.splitContainerImages.Size = new System.Drawing.Size(580, 754); // Based on SplitterDistance
+            this.splitContainerImages.SplitterDistance = 290;
+            this.splitContainerImages.TabIndex = 0;
+
+            // 
+            // imageViewerRef
+            // 
+            this.imageViewerRef.BackColor = System.Drawing.Color.Black;
+            this.imageViewerRef.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.imageViewerRef.Location = new System.Drawing.Point(0, 0);
+            this.imageViewerRef.Name = "imageViewerRef";
+            this.imageViewerRef.Size = new System.Drawing.Size(290, 754);
+            this.imageViewerRef.TabIndex = 0;
+            
+            // 
+            // imageViewer
+            // 
+            this.imageViewer.Dock = System.Windows.Forms.DockStyle.Fill;
+            // ...
 
             this.splitContainerCenterRight.Panel2.Controls.Add(this.infoPanel);
             this.splitContainerCenterRight.Size = new System.Drawing.Size(910, 754);
@@ -256,6 +300,7 @@ namespace PCBInspection.UI
             // tabToolbox
             // 
             this.tabToolbox.Controls.Add(this.tabPageTools);
+            this.tabToolbox.Controls.Add(this.tabPageHistory);
             this.tabToolbox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabToolbox.Location = new System.Drawing.Point(0, 0);
             this.tabToolbox.Name = "tabToolbox";
@@ -264,6 +309,29 @@ namespace PCBInspection.UI
             this.tabPageTools.BackColor = System.Drawing.Color.White;
             this.tabPageTools.Controls.Add(this.tvTools);
             this.tabPageTools.Text = "工具箱";
+
+            // 
+            // tabPageHistory
+            // 
+            this.tabPageHistory.Controls.Add(this.lstHistory);
+            this.tabPageHistory.Location = new System.Drawing.Point(4, 25); // Just default
+            this.tabPageHistory.Name = "tabPageHistory";
+            this.tabPageHistory.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageHistory.Size = new System.Drawing.Size(342, 271);
+            this.tabPageHistory.TabIndex = 1;
+            this.tabPageHistory.Text = "歷史紀錄";
+            this.tabPageHistory.UseVisualStyleBackColor = true;
+
+            // 
+            // lstHistory
+            // 
+            this.lstHistory.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lstHistory.FormattingEnabled = true;
+            this.lstHistory.ItemHeight = 16;
+            this.lstHistory.Location = new System.Drawing.Point(3, 3);
+            this.lstHistory.Name = "lstHistory";
+            this.lstHistory.Size = new System.Drawing.Size(336, 265);
+            this.lstHistory.TabIndex = 0;
 
             this.tvTools.BackColor = System.Drawing.Color.White;
             this.tvTools.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -385,6 +453,10 @@ namespace PCBInspection.UI
             this.splitContainerCenterRight.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerCenterRight)).EndInit();
             this.splitContainerCenterRight.ResumeLayout(false);
+            this.splitContainerImages.Panel1.ResumeLayout(false);
+            this.splitContainerImages.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerImages)).EndInit();
+            this.splitContainerImages.ResumeLayout(false);
             this.splitContainerLeft.Panel1.ResumeLayout(false);
             this.splitContainerLeft.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerLeft)).EndInit();
@@ -464,5 +536,10 @@ namespace PCBInspection.UI
         private System.Windows.Forms.SplitContainer splitContainerCenterRight;
         private PCBInspection.UI.Controls.InfoPanelControl infoPanel;
         private PCBInspection.UI.Controls.ThumbnailBarControl thumbnailBar;
+        private System.Windows.Forms.ToolStripButton btnTsSplit;
+        private System.Windows.Forms.SplitContainer splitContainerImages;
+        private PCBInspection.UI.Controls.InteractiveImageViewer imageViewerRef;
+        private System.Windows.Forms.TabPage tabPageHistory;
+        private System.Windows.Forms.ListBox lstHistory;
     }
 }
