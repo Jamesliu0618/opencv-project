@@ -262,8 +262,8 @@ namespace PCBInspection.UI.Controls
 			_lastMousePos = e.Location;
 			Focus();
 
-			// 處理平移 (中鍵或平移模式下的左鍵)
-			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Mode == ViewerMode.Pan))
+			// 處理平移 (中鍵、右鍵、或平移模式下的左鍵)
+			if(e.Button == MouseButtons.Middle || e.Button == MouseButtons.Right || (e.Button == MouseButtons.Left && Mode == ViewerMode.Pan))
 			{
 				Cursor = Cursors.NoMove2D;
 				return;
@@ -373,8 +373,8 @@ namespace PCBInspection.UI.Controls
 				}
 			}
 
-			// 3. 處理平移 (Pan)
-			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Cursor == Cursors.NoMove2D))
+			// 3. 處理平移 (Pan) - 支援中鍵、右鍵或平移模式下的左鍵
+			if(e.Button == MouseButtons.Middle || e.Button == MouseButtons.Right || (e.Button == MouseButtons.Left && Cursor == Cursors.NoMove2D))
 			{
 				_offsetX      += e.X - _lastMousePos.X;
 				_offsetY      += e.Y - _lastMousePos.Y;
