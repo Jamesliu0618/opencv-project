@@ -9,7 +9,11 @@ namespace PCBInspection.Core.Services
 {
 	public static partial class VisionToolFactory
 	{
-		/// <summary>註冊背景處理與缺陷檢測類別工具</summary>
+		/// <summary>
+		/// 註冊背景處理與缺陷檢測類別工具。
+		/// 包含：背景建模分割與通用型缺陷偵測演算法。
+		/// </summary>
+		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddBackgroundDefectTools(List<ToolDefinition> tools)
 		{
 			// =========================================================
