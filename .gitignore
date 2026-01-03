@@ -1,92 +1,77 @@
-# .gitignore - 忽略自動產生與大型檔案，避免上傳到 AI 導致佔用過多上下文
+# Global Git ignore for this repository
 
-# Build output
-**/bin/
-**/obj/
-
-# Visual Studio
+# Visual Studio / .NET
 .vs/
 *.user
 *.suo
-*.userprefs
+*.userosscache
+*.sln.DotSettings.user
+*.DotSettings.user
+*.VC.db
+*.VC.VC.opendb
+*.sln.docstates
+x64/
+x86/
+ipch/
+*.opensdf
+*.sdf
+
+# Build folders
+**/bin/
+**/obj/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Build results and test output
+Debug/
+Release/
+TestResults/
+*.trx
 
 # NuGet
-*.nupkg
 packages/
+*.nupkg
 project.lock.json
 project.fragment.lock.json
 
-# Test results
-TestResults/
-**/TestResults/
-*.trx
-
-# VS Code
+# Visual Studio Code
 .vscode/
 
-# Logs, temp, caches
+# ReSharper
+_ReSharper*/
+*.DotSettings
+
+# User-specific files
+*.userprefs
+
+# Logs
 *.log
-*.tmp
-*.cache
-*.bak
-*.swp
+debug.log
 
-# OS files
-.DS_Store
+# Windows
 Thumbs.db
+Desktop.ini
 
-# Binary / build artifacts
-*.exe
-*.dll
-*.pdb
-*.ilk
-*.obj
+# Python
+__pycache__/
+*.py[cod]
+env/
+venv/
+.venv/
 
-# Rider / JetBrains
-.idea/
-*.iml
+# AI Tooling & Project Specific
+.specify/
+specs/001-pcb-visual-inspection/checklists/
+specs/001-pcb-visual-inspection/docs/
 
-# Generated assembly info / intermediate files
-**/obj/**
-**/bin/**
-**/*AssemblyInfo.*
+# Misc
+*.db
+*.sqlite
 
-# Coverage / profiler
-*.coverage
-*.coveragexml
+# Ignore artifacts from editors / OS
+*.DS_Store
 
-# Specification/tooling caches
-.specify/output/
-.specify/cache/
+# End of .gitignore
 
-# Large data / models / images (自訂：若需要版本控制請移除或改為 LFS)
-data/
-datasets/
-images/
-raw_images/
-captures/
-*.onnx
-*.tfrecord
-*.pth
-*.pt
-*.h5
-
-# Node
-node_modules/
-
-# Archives
-*.zip
-*.7z
-*.tar
-*.gz
-
-# Temporary test artifacts
-**/bin/Debug/
-**/bin/Release/
-
-# End of file
-obj
-.vscode
-.vs
-.idea
-*.iml

@@ -937,10 +937,14 @@ namespace PCBInspection.Core.Services
 				Action = (img, p) =>
 				{
 					var pp = (CameraCalibrationParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 
 					if(string.IsNullOrEmpty(pp.CalibrationImagesFolder) || !Directory.Exists(pp.CalibrationImagesFolder))
 					{
-						throw new InvalidOperationException("校正影像資料夾不存在或未指定。");
+						Cv2.PutText(result, "Please set CalibrationImagesFolder", new Point(10, 30), HersheyFonts.HersheySimplex, 0.6, Scalar.Yellow, 2);
+						Cv2.PutText(result, "with chessboard images folder path", new Point(10, 55), HersheyFonts.HersheySimplex, 0.5, Scalar.Yellow, 1);
+						return (true, result, new List<Defect>());
 					}
 
 					var imageFiles = Directory.GetFiles(pp.CalibrationImagesFolder, "*.jpg")
@@ -1032,9 +1036,7 @@ namespace PCBInspection.Core.Services
 						OnLog?.Invoke($"[校正] 重投影誤差 RMS: {rms:F4} ({validCount} 張影像)", false);
 					}
 
-					var result = img.Clone();
-					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
-					Cv2.PutText(result, $"Calibration RMS: {rms:F4}", new Point(10, 30), HersheyFonts.HersheySimplex, 0.8, Scalar.Green, 2);
+					Cv2.PutText(result, $"Calibration RMS: {rms:F4}", new Point(10, 80), HersheyFonts.HersheySimplex, 0.8, Scalar.Green, 2);
 					return (true, result, new List<Defect>());
 				},
 			});
@@ -1047,11 +1049,15 @@ namespace PCBInspection.Core.Services
 				Action = (img, p) =>
 				{
 					var pp = (UndistortParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 
-					if(!File.Exists(pp.CameraMatrixPath))
-						throw new InvalidOperationException($"相機矩陣檔案不存在: {pp.CameraMatrixPath}");
-					if(!File.Exists(pp.DistCoeffsPath))
-						throw new InvalidOperationException($"畸變係數檔案不存在: {pp.DistCoeffsPath}");
+					if(!File.Exists(pp.CameraMatrixPath) || !File.Exists(pp.DistCoeffsPath))
+					{
+						Cv2.PutText(result, "Camera matrix or dist coeffs file not found", new Point(10, 30), HersheyFonts.HersheySimplex, 0.5, Scalar.Yellow, 1);
+						Cv2.PutText(result, "Please run Camera Calibration first", new Point(10, 55), HersheyFonts.HersheySimplex, 0.5, Scalar.Yellow, 1);
+						return (true, result, new List<Defect>());
+					}
 
 					Mat cameraMatrix, distCoeffs;
 					using(var fs = new FileStorage(pp.CameraMatrixPath, FileStorage.Modes.Read))
@@ -1063,7 +1069,8 @@ namespace PCBInspection.Core.Services
 						distCoeffs = fs["dist_coeffs"].ReadMat();
 					}
 
-					var result = new Mat();
+					result.Dispose();
+					result = new Mat();
 					if(pp.AutoCropBlackBorder)
 					{
 						var newCameraMatrix = Cv2.GetOptimalNewCameraMatrix(cameraMatrix, distCoeffs, img.Size(), 0, img.Size(), out Rect roi);
@@ -1375,10 +1382,14 @@ namespace PCBInspection.Core.Services
 				Action = (img, p) =>
 				{
 					var pp = (QualityAssessmentParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 
 					if(string.IsNullOrEmpty(pp.ReferenceImagePath) || !File.Exists(pp.ReferenceImagePath))
 					{
-						throw new InvalidOperationException($"參考影像不存在: {pp.ReferenceImagePath}");
+						Cv2.PutText(result, "Please set ReferenceImagePath", new Point(10, 30), HersheyFonts.HersheySimplex, 0.6, Scalar.Yellow, 2);
+						Cv2.PutText(result, "to compare image quality", new Point(10, 55), HersheyFonts.HersheySimplex, 0.5, Scalar.Yellow, 1);
+						return (true, result, new List<Defect>());
 					}
 
 					using(var refImg = Cv2.ImRead(pp.ReferenceImagePath))
@@ -1399,7 +1410,8 @@ namespace PCBInspection.Core.Services
 						double score = 0;
 						string metricName = "";
 
-						var result = imgResized.Clone();
+						result.Dispose();
+						result = imgResized.Clone();
 						if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 
 						switch(pp.Metric)
@@ -1615,43 +1627,55 @@ namespace PCBInspection.Core.Services
 					Mat diffMask = new Mat();
 
 					if(pp.Mode == DefectDetectionParameters.DetectionMode.TemplateDiff)
+				{
+					if(string.IsNullOrEmpty(pp.ReferenceSamplePath) || !File.Exists(pp.ReferenceSamplePath))
 					{
-						if(string.IsNullOrEmpty(pp.ReferenceSamplePath) || !File.Exists(pp.ReferenceSamplePath))
+						// 若未設定參考影像，改用 EdgeBased 模式
+						Cv2.PutText(result, "No reference image, using EdgeBased mode", new Point(10, 30), HersheyFonts.HersheySimplex, 0.4, Scalar.Yellow, 1);
+						var gray = new Mat();
+						if(img.Channels() >= 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+						else img.CopyTo(gray);
+						Cv2.Canny(gray, diffMask, 50, 150);
+						using(var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(3, 3)))
 						{
-							throw new InvalidOperationException($"參考樣本影像不存在: {pp.ReferenceSamplePath}");
+							Cv2.Dilate(diffMask, diffMask, kernel);
 						}
-
+						gray.Dispose();
+					}
+					else
+					{
 						using(var refImg = Cv2.ImRead(pp.ReferenceSamplePath))
 						{
-							if(refImg.Empty())
-								throw new InvalidOperationException("無法載入參考樣本影像。");
-
-							Mat imgResized = img;
-							bool needDispose = false;
-							if(img.Width != refImg.Width || img.Height != refImg.Height)
+							if(!refImg.Empty())
 							{
-								imgResized = new Mat();
-								Cv2.Resize(img, imgResized, refImg.Size());
-								needDispose = true;
-								Cv2.Resize(result, result, refImg.Size());
+								Mat imgResized = img;
+								bool needDispose = false;
+								if(img.Width != refImg.Width || img.Height != refImg.Height)
+								{
+									imgResized = new Mat();
+									Cv2.Resize(img, imgResized, refImg.Size());
+									needDispose = true;
+									Cv2.Resize(result, result, refImg.Size());
+								}
+
+								using(var gray1 = new Mat())
+								using(var gray2 = new Mat())
+								using(var diff = new Mat())
+								{
+									if(imgResized.Channels() >= 3) Cv2.CvtColor(imgResized, gray1, ColorConversionCodes.BGR2GRAY);
+									else imgResized.CopyTo(gray1);
+									if(refImg.Channels() >= 3) Cv2.CvtColor(refImg, gray2, ColorConversionCodes.BGR2GRAY);
+									else refImg.CopyTo(gray2);
+
+									Cv2.Absdiff(gray1, gray2, diff);
+									Cv2.Threshold(diff, diffMask, pp.DifferenceThreshold, 255, ThresholdTypes.Binary);
+								}
+
+								if(needDispose) imgResized.Dispose();
 							}
-
-							using(var gray1 = new Mat())
-							using(var gray2 = new Mat())
-							using(var diff = new Mat())
-							{
-								if(imgResized.Channels() >= 3) Cv2.CvtColor(imgResized, gray1, ColorConversionCodes.BGR2GRAY);
-								else imgResized.CopyTo(gray1);
-								if(refImg.Channels() >= 3) Cv2.CvtColor(refImg, gray2, ColorConversionCodes.BGR2GRAY);
-								else refImg.CopyTo(gray2);
-
-								Cv2.Absdiff(gray1, gray2, diff);
-								Cv2.Threshold(diff, diffMask, pp.DifferenceThreshold, 255, ThresholdTypes.Binary);
-							}
-
-							if(needDispose) imgResized.Dispose();
 						}
 					}
+				}
 					else if(pp.Mode == DefectDetectionParameters.DetectionMode.EdgeBased)
 					{
 						var gray = new Mat();
