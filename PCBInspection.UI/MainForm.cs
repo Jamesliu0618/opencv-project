@@ -41,29 +41,7 @@ namespace PCBInspection.UI
 			InitializeToolbox();
 			LoadToolbarIcons();
 			WireEvents();
-			Load += (s, e) => ForceLayoutFix();
-		}
 
-		private void ForceLayoutFix()
-		{
-			// 強制修正 Layout 問題
-			if(imageViewer != null && splitContainerCenterRight != null)
-			{
-				// 1. 強制重設父容器 (解決被 orphaned panel 搶走的問題)
-				if(imageViewer.Parent != splitContainerCenterRight.Panel1)
-				{
-					Log($"[LayoutFix] Reparenting ImageViewer from {imageViewer.Parent?.Name ?? "null"} to SplitContainer.Panel1", TraceLevel.Warning);
-					splitContainerCenterRight.Panel1.Controls.Add(imageViewer);
-				}
-
-				// 2. 設定 Dock 與 Z-Order
-				imageViewer.Dock  = DockStyle.Fill;
-				thumbnailBar.Dock = DockStyle.Bottom;
-
-				// 確保順序: ThumbnailBar (Bottom) 優先，ImageViewer (Fill) 其次
-				thumbnailBar.BringToFront();
-				Log("[LayoutFix] Forced Dock=Fill for ImageViewer and Dock=Bottom for ThumbnailBar", TraceLevel.Info);
-			}
 		}
 
 		private void DumpLayoutInfo()
