@@ -159,6 +159,7 @@ namespace PCBInspection.UI
 
             // Grid
             dgvSequence.SelectionChanged += DgvSequence_SelectionChanged;
+            dgvSequence.CellContentClick += DgvSequence_CellContentClick;
 
             // Log rendering
             lstLog.DrawItem += LstLog_DrawItem;
@@ -280,6 +281,16 @@ namespace PCBInspection.UI
             else
             {
                 propertyGrid.SelectedObject = null;
+            }
+        }
+
+        /// <summary>處理步驟列表的按鈕點擊事件</summary>
+        private void DgvSequence_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            // 檢查是否點擊「▶」按鈕欄位 (colRun 是第 4 欄，索引為 3)
+            if (e.RowIndex >= 0 && e.ColumnIndex == dgvSequence.Columns["colRun"].Index)
+            {
+                RunSingleStep(e.RowIndex);
             }
         }
 
