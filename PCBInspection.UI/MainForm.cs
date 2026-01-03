@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using PCBInspection.Core;
-using PCBInspection.Core.Tools; // Add Namespace
+using PCBInspection.Core.Tools;
 using PCBInspection.Core.Models;
 using PCBInspection.Core.Services;
 using PCBInspection.Core.ROI;
@@ -35,12 +35,70 @@ namespace PCBInspection.UI
             InitializeComponent();
             SetupTheme();
             InitializeToolbox();
+            LoadToolbarIcons();
             WireEvents();
         }
 
         private void SetupTheme()
         {
-            this.BackColor = Color.FromArgb(28, 28, 28);
+            this.BackColor = SystemColors.Control;
+            toolStripMain.ImageScalingSize = new System.Drawing.Size(32, 32);
+            toolStripMain.Height = 50; 
+        }
+
+        private void LoadToolbarIcons()
+        {
+            try
+            {
+                string iconDir = @"d:\Repo\opencv\Resources\Icons";
+                if (!Directory.Exists(iconDir)) return;
+
+                btnTsNew.Image = LoadIcon(iconDir, "New");
+                btnTsOpen.Image = LoadIcon(iconDir, "Open");
+                btnTsSave.Image = LoadIcon(iconDir, "Save");
+                
+                btnTsRunOnce.Image = LoadIcon(iconDir, "RunOnce");
+                btnTsRunLoop.Image = LoadIcon(iconDir, "RunLoop");
+                btnTsStop.Image = LoadIcon(iconDir, "Stop");
+                btnTsSettings.Image = LoadIcon(iconDir, "Settings");
+                
+                btnTsZoomIn.Image = LoadIcon(iconDir, "ZoomIn");
+                btnTsZoomOut.Image = LoadIcon(iconDir, "ZoomOut");
+                btnTsFit.Image = LoadIcon(iconDir, "Fit");
+                
+                btnTsPointer.Image = LoadIcon(iconDir, "Pointer");
+                btnTsRoiRect.Image = LoadIcon(iconDir, "RoiRect");
+                btnTsRoiCircle.Image = LoadIcon(iconDir, "RoiCircle");
+                btnTsRoiPoly.Image = LoadIcon(iconDir, "RoiPoly");
+                
+                btnTsUndo.Image = LoadIcon(iconDir, "Undo");
+                btnTsRedo.Image = LoadIcon(iconDir, "Redo");
+
+                // Set styles
+                foreach (ToolStripItem item in toolStripMain.Items)
+                {
+                    if (item is ToolStripButton btn)
+                    {
+                        btn.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
+                        btn.TextImageRelation = TextImageRelation.ImageBeforeText;
+                        btn.Padding = new Padding(5, 0, 5, 0);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"載入圖標失敗: {ex.Message}", TraceLevel.Warning);
+            }
+        }
+
+        private Image LoadIcon(string dir, string name)
+        {
+            string path = Path.Combine(dir, $"{name}.png");
+            if (File.Exists(path))
+            {
+                return Image.FromFile(path);
+            }
+            return null;
         }
 
         private void InitializeToolbox()
@@ -103,8 +161,6 @@ namespace PCBInspection.UI
             imageViewer.MousePixelChanged += (s, p) => lblStatusMain.Text = $"X: {p.X}, Y: {p.Y}";
             imageViewer.RoiListChanged += (s, args) => 
             {
-                // Push history when ROI changes (Add/Finish draw)
-                // Note: This might be spammy for drags if not careful, strictly wiring to 'Added' or 'Finished'
                 _history.PushState(imageViewer.Image, imageViewer.Rois);
                 UpdateUndoRedoButtons();
             };
@@ -121,8 +177,6 @@ namespace PCBInspection.UI
             var (img, rois) = _history.Undo(imageViewer.Image, imageViewer.Rois);
             if (img != null)
             {
-                // To avoid triggering new push
-                // Just set properties
                 imageViewer.Image = img; 
                 imageViewer.Rois.Clear();
                 imageViewer.Rois.AddRange(rois);
@@ -143,8 +197,6 @@ namespace PCBInspection.UI
             }
             UpdateUndoRedoButtons();
         }
-
-        #region Toolbox & Sequence Management
 
         private void AddToolToSequence(TreeNode node)
         {
@@ -225,10 +277,6 @@ namespace PCBInspection.UI
             }
         }
 
-        #endregion
-
-        #region Execution Logic
-
         private void LoadImage()
         {
             using (OpenFileDialog dlg = new OpenFileDialog())
@@ -243,8 +291,7 @@ namespace PCBInspection.UI
                     }
                     Log($"載入影像: {Path.GetFileName(_currImagePath)}", TraceLevel.Info);
                     
-                    // Initial State push
-                    _history.PushState(imageViewer.Image, imageViewer.Rois); // Initial
+                    _history.PushState(imageViewer.Image, imageViewer.Rois);
                     UpdateUndoRedoButtons();
                 }
             }
@@ -262,13 +309,10 @@ namespace PCBInspection.UI
             {
                 r.Cells[1].Value = "";
                 r.Cells[2].Value = "Wait";
-                r.DefaultCellStyle.BackColor = Color.FromArgb(45, 45, 48);
+                r.DefaultCellStyle.BackColor = Color.White;
             }
 
-            // Convert current viewer image to Mat
             Mat currentMat = BitmapConverter.ToMat(imageViewer.Image);
-            
-            // Generating ROI Mask
             Mat roiMask = null;
             if (imageViewer.Rois.Count > 0)
             {
@@ -280,7 +324,6 @@ namespace PCBInspection.UI
                          Cv2.BitwiseOr(roiMask, subMask, roiMask);
                     }
                 }
-                // Mask logic validation: 0=Ignore, 255=Process
             }
 
             Log("開始執行流程...", TraceLevel.Info);
@@ -300,25 +343,11 @@ namespace PCBInspection.UI
                     
                     try
                     {
-                        // Apply Mask if supported?
-                        // VisionToolFactory actions signature currently is (Mat, object)
-                        // It doesn't support mask yet explicitly. 
-                        // Implementation strategy: 
-                        // 1. Pass mask to action? (Need refactor factory)
-                        // 2. OR Apply mask externally: Run tool on ROI, copy result back.
-                        
-                        // Let's do Strategy 2 for generic support without changing all factory signatures too much.
-                        // But some tools (FindContours) are global. Masking input is better.
-                        
                         Mat inputToTool = currentMat;
                         Mat maskedInput = null;
 
                         if (roiMask != null)
                         {
-                            // If mask exists, we copy with mask? 
-                            // No, typically you run tool on whole image but ignore result outside mask?
-                            // OR you set outside pixels to 0?
-                            // Let's set pixels outside ROI to 0 for simplicity for now.
                             maskedInput = new Mat();
                             currentMat.CopyTo(maskedInput, roiMask);
                             inputToTool = maskedInput;
@@ -332,22 +361,13 @@ namespace PCBInspection.UI
                         if (result.IsOk)
                         {
                             row.Cells[2].Value = "OK";
-                            row.Cells[2].Style.ForeColor = Color.LightGreen;
-                            
-                            // Merge result back if masked? 
-                            // If we processed masked input, result is masked.
-                            // If tool is transformative (Filter), we might want to paste filtered ROI back to original?
-                            // For simplicity in this US, we accept the result as is (masked).
-                            // A more advanced system would blend.
+                            row.Cells[2].Style.ForeColor = Color.Green;
                             
                             item.LastResultImage?.Dispose();
                             item.LastResultImage = BitmapConverter.ToBitmap(result.ResultImage);
 
                             currentMat.Dispose();
                             currentMat = result.ResultImage; 
-
-                            // Push history? Maybe only at end?
-                            // Or not pushing intermediate steps to history stack in viewer to avoid overwriting "Editor" history.
                         }
                         else
                         {
@@ -392,10 +412,6 @@ namespace PCBInspection.UI
             }
         }
 
-        #endregion
-
-        #region Logging
-
         private enum TraceLevel { Info, Warning, Error }
 
         private void Log(string msg, TraceLevel level)
@@ -418,9 +434,9 @@ namespace PCBInspection.UI
             e.DrawBackground();
 
             var item = (LogItem)lstLog.Items[e.Index];
-            Color color = Color.LightGray;
-            if (item.Level == TraceLevel.Error) color = Color.Red;
-            if (item.Level == TraceLevel.Info) color = Color.LightGreen;
+            Color color = Color.Black;
+            if (item.Level == TraceLevel.Error) color = Color.DarkRed;
+            if (item.Level == TraceLevel.Info) color = Color.Green;
 
             using (var brush = new SolidBrush(color))
             {
@@ -428,7 +444,5 @@ namespace PCBInspection.UI
             }
             e.DrawFocusRectangle();
         }
-
-        #endregion
     }
 }

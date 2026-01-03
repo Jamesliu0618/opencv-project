@@ -54,7 +54,7 @@ namespace PCBInspection.UI.Controls
         public InteractiveImageViewer()
         {
             this.DoubleBuffered = true;
-            this.BackColor = Color.FromArgb(30, 30, 30);
+            this.BackColor = Color.Silver;
             this.Cursor = Cursors.Hand;
         }
 

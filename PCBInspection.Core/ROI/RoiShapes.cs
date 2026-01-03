@@ -156,7 +156,7 @@ namespace PCBInspection.Core.ROI
             // Draw vertices
             foreach (var sp in screenPoints)
             {
-                g.FillRectangle(Brushes.White, sp.X - 3, sp.Y - 3, 6, 6);
+                g.FillRectangle(Brushes.Blue, sp.X - 3, sp.Y - 3, 6, 6);
             }
         }
 
