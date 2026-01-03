@@ -300,6 +300,7 @@ namespace PCBInspection.UI
             // tabToolbox
             // 
             this.tabToolbox.Controls.Add(this.tabPageTools);
+            this.tabToolbox.Controls.Add(this.tabPageLabeling); // 新增標註分頁
             this.tabToolbox.Controls.Add(this.tabPageHistory);
             this.tabToolbox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabToolbox.Location = new System.Drawing.Point(0, 0);
@@ -321,6 +322,30 @@ namespace PCBInspection.UI
             this.tabPageHistory.TabIndex = 1;
             this.tabPageHistory.Text = "歷史紀錄";
             this.tabPageHistory.UseVisualStyleBackColor = true;
+
+            // 
+            // tabPageLabeling
+            // 
+            this.tabPageLabeling = new System.Windows.Forms.TabPage();
+            this.defectLabelingControl1 = new PCBInspection.UI.Controls.DefectLabelingControl();
+            this.tabPageLabeling.BackColor = System.Drawing.Color.White;
+            this.tabPageLabeling.Controls.Add(this.defectLabelingControl1);
+            this.tabPageLabeling.Location = new System.Drawing.Point(4, 25);
+            this.tabPageLabeling.Name = "tabPageLabeling";
+            this.tabPageLabeling.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageLabeling.Size = new System.Drawing.Size(342, 271);
+            this.tabPageLabeling.TabIndex = 2;
+            this.tabPageLabeling.Text = "手動標註";
+            this.tabPageLabeling.UseVisualStyleBackColor = true;
+
+            // 
+            // defectLabelingControl1
+            // 
+            this.defectLabelingControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.defectLabelingControl1.Location = new System.Drawing.Point(3, 3);
+            this.defectLabelingControl1.Name = "defectLabelingControl1";
+            this.defectLabelingControl1.Size = new System.Drawing.Size(336, 265);
+            this.defectLabelingControl1.TabIndex = 0;
 
             // 
             // lstHistory
@@ -541,5 +566,7 @@ namespace PCBInspection.UI
         private PCBInspection.UI.Controls.InteractiveImageViewer imageViewerRef;
         private System.Windows.Forms.TabPage tabPageHistory;
         private System.Windows.Forms.ListBox lstHistory;
+        private System.Windows.Forms.TabPage tabPageLabeling;
+        private PCBInspection.UI.Controls.DefectLabelingControl defectLabelingControl1;
     }
 }

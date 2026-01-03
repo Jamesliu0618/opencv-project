@@ -41,6 +41,12 @@ namespace PCBInspection.UI
 			InitializeToolbox();
 			LoadToolbarIcons();
 			WireEvents();
+			
+			// [新增] 初始化標註控制項
+			if(defectLabelingControl1 != null)
+			{
+				defectLabelingControl1.Setup(imageViewer);
+			}
 		}
 
 		private void DumpLayoutInfo()
@@ -580,7 +586,14 @@ namespace PCBInspection.UI
 				_history.Clear();
 				_history.PushState(imageViewer.Image, imageViewer.Rois, "載入影像");
 				// UpdateUndoRedoButtons(); // Handled by StateChanged
+				// UpdateUndoRedoButtons(); // Handled by StateChanged
 				Log($"載入影像: {Path.GetFileName(path)}", TraceLevel.Info);
+
+				// [新增] 載入標註資料
+				if(defectLabelingControl1 != null)
+				{
+					defectLabelingControl1.LoadImageLabels(path);
+				}
 			}
 			catch(Exception ex)
 			{
@@ -1014,6 +1027,18 @@ namespace PCBInspection.UI
 
 			try
 			{
+				// [新增] 收集先前步驟的缺陷資料，用於 Context 注入 (例如測量工具參考物件 ID)
+				var accumulatedDefects = new List<Defect>();
+				for(int i = 0; i < stepIndex; i++)
+				{
+					if(_sequence[i].LastDefects != null)
+					{
+						accumulatedDefects.AddRange(_sequence[i].LastDefects);
+					}
+				}
+				// [新增] 將收集到的缺陷注入到當前工具參數中
+				InjectContext(item.Parameters, accumulatedDefects);
+
 				if(imageViewer.Rois.Count > 0)
 				{
 					roiMask = new Mat(inputMat.Size(), MatType.CV_8UC1, Scalar.All(0));
@@ -1166,6 +1191,16 @@ namespace PCBInspection.UI
 			Log($"從步驟 {startIndex + 1} 開始執行...", TraceLevel.Info);
 			Stopwatch swTotal = Stopwatch.StartNew();
 
+			// 收集先前步驟的缺陷上下文
+			var accumulatedDefects = new List<Defect>();
+			for(int i = 0; i < startIndex; i++)
+			{
+				if(_sequence[i].LastDefects != null)
+				{
+					accumulatedDefects.AddRange(_sequence[i].LastDefects);
+				}
+			}
+
 			try
 			{
 				for(int i = startIndex; i < _sequence.Count; i++)
@@ -1175,6 +1210,9 @@ namespace PCBInspection.UI
 					row.Cells[2].Value = "Running...";
 					Application.DoEvents();
 					Stopwatch swStep = Stopwatch.StartNew();
+					
+					// 注入
+					InjectContext(item.Parameters, accumulatedDefects);
 
 					try
 					{
@@ -1198,6 +1236,8 @@ namespace PCBInspection.UI
 							item.LastResultImage?.Dispose();
 							item.LastResultImage = result.ResultImage.ToBitmap();
 							item.LastDefects     = result.Defects ?? new List<Defect>();
+
+							accumulatedDefects.AddRange(item.LastDefects);
 							currentMat.Dispose();
 							currentMat = result.ResultImage;
 						}

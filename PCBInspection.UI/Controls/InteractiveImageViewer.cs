@@ -18,6 +18,7 @@ namespace PCBInspection.UI.Controls
 			DrawCircle,
 			DrawPoly,
 			EditROI,
+			Labeling, // 標註模式
 		}
 
 		// Image
@@ -70,8 +71,10 @@ namespace PCBInspection.UI.Controls
 		public event EventHandler RoiListChanged;
 
 		// Events
+		// Events
 		public event EventHandler<Point> MousePixelChanged;
 		public event EventHandler        ViewChanged;
+		public event Action<RoiBase>     RoiCreated; // 標註建立事件
 		
 		public float ScaleFactor => _scale;
 		public float OffsetX => _offsetX;
@@ -247,7 +250,7 @@ namespace PCBInspection.UI.Controls
 
 			if(e.Button == MouseButtons.Left)
 			{
-				if(Mode == ViewerMode.DrawRect)
+				if(Mode == ViewerMode.DrawRect || Mode == ViewerMode.Labeling) // Labeling 也使用矩形
 				{
 					_tempRoi = new RectangleRoi(imgPt.X, imgPt.Y, 0, 0);
 				}
@@ -447,11 +450,23 @@ namespace PCBInspection.UI.Controls
 					}
 					r.Rect = new RectangleF(x, y, w, h);
 				}
-				Rois.Add(_tempRoi);
-				_tempRoi = null;
-				Mode     = ViewerMode.EditROI; // Auto switch to edit after draw
-				RoiListChanged?.Invoke(this, EventArgs.Empty);
-				Invalidate();
+
+				if(Mode == ViewerMode.Labeling)
+				{
+					// 標註模式：觸發事件，暫不加入 Rois 清單 (由外部控制加入)
+					RoiCreated?.Invoke(_tempRoi);
+					_tempRoi = null;
+					Invalidate();
+				}
+				else
+				{
+					// 一般繪圖模式：直接加入清單並切換回編輯模
+					Rois.Add(_tempRoi);
+					_tempRoi = null;
+					Mode     = ViewerMode.EditROI; 
+					RoiListChanged?.Invoke(this, EventArgs.Empty);
+					Invalidate();
+				}
 			}
 		}
 
