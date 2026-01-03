@@ -63,6 +63,7 @@ namespace PCBInspection.UI
             this.colTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colStatus = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colRun = new System.Windows.Forms.DataGridViewButtonColumn();
+            this.colLoop = new System.Windows.Forms.DataGridViewButtonColumn();
             this.pnlFlowControl = new System.Windows.Forms.Panel();
             this.btnRemoveTool = new System.Windows.Forms.Button();
             this.btnMoveUp = new System.Windows.Forms.Button();
@@ -278,7 +279,8 @@ namespace PCBInspection.UI
             this.colStepName,
             this.colTime,
             this.colStatus,
-            this.colRun});
+            this.colRun,
+            this.colLoop});
             this.dgvSequence.Dock = System.Windows.Forms.DockStyle.Top;
             this.dgvSequence.Height = 194;
             this.dgvSequence.RowHeadersVisible = false;
@@ -298,6 +300,14 @@ namespace PCBInspection.UI
             this.colRun.UseColumnTextForButtonValue = true;
             this.colRun.Width = 35;
             this.colRun.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+
+            this.colLoop.Name = "colLoop";
+            this.colLoop.HeaderText = "";
+            this.colLoop.Text = "↻";
+            this.colLoop.ToolTipText = "循環執行 (動態調參)";
+            this.colLoop.UseColumnTextForButtonValue = true;
+            this.colLoop.Width = 35;
+            this.colLoop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
 
             // 
             // pnlFlowControl
@@ -437,6 +447,7 @@ namespace PCBInspection.UI
         private System.Windows.Forms.DataGridViewTextBoxColumn colTime;
         private System.Windows.Forms.DataGridViewTextBoxColumn colStatus;
         private System.Windows.Forms.DataGridViewButtonColumn colRun;
+        private System.Windows.Forms.DataGridViewButtonColumn colLoop;
         private System.Windows.Forms.Panel pnlFlowControl;
         private System.Windows.Forms.Button btnRemoveTool;
         private System.Windows.Forms.Button btnMoveUp;

@@ -215,6 +215,8 @@ namespace PCBInspection.UI.Controls
 
 		// --- Interaction ---
 
+		private RoiHandle _activeHandle = RoiHandle.None;
+
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
 			base.OnMouseDown(e);
@@ -251,24 +253,36 @@ namespace PCBInspection.UI.Controls
 				}
 				else if(Mode == ViewerMode.EditROI)
 				{
-					// Hit Test
-					SelectedRoi = null;
+					_activeHandle = RoiHandle.None;
 
-					foreach(var roi in Rois)
-					{
-						roi.IsSelected = false;
-
-						if(roi.HitTest(e.Location, _scale, _offsetX, _offsetY))
-						{
-							SelectedRoi = roi;
-						}
-					}
-
+					// 先檢查是否點擊了目前選取 ROI 的控制點
 					if(SelectedRoi != null)
 					{
-						SelectedRoi.IsSelected = true;
+						_activeHandle = SelectedRoi.GetHandle(e.Location, _scale, _offsetX, _offsetY);
 					}
-					Invalidate();
+
+					if(_activeHandle == RoiHandle.None)
+					{
+						// Hit Test 新選取
+						SelectedRoi = null;
+
+						foreach(var roi in Rois)
+						{
+							roi.IsSelected = false;
+
+							if(roi.HitTest(e.Location, _scale, _offsetX, _offsetY))
+							{
+								SelectedRoi = roi;
+							}
+						}
+
+						if(SelectedRoi != null)
+						{
+							SelectedRoi.IsSelected = true;
+							_activeHandle = SelectedRoi.GetHandle(e.Location, _scale, _offsetX, _offsetY);
+						}
+						Invalidate();
+					}
 				}
 			}
 		}
@@ -282,6 +296,37 @@ namespace PCBInspection.UI.Controls
 			if(_image != null && imgPt.X >= 0 && imgPt.X < _image.Width && imgPt.Y >= 0 && imgPt.Y < _image.Height)
 			{
 				MousePixelChanged?.Invoke(this, new Point((int)imgPt.X, (int)imgPt.Y));
+			}
+
+			// Update cursor based on handle
+			if(Mode == ViewerMode.EditROI && SelectedRoi != null && e.Button == MouseButtons.None)
+			{
+				var handle = SelectedRoi.GetHandle(e.Location, _scale, _offsetX, _offsetY);
+				switch(handle)
+				{
+					case RoiHandle.TopLeft:
+					case RoiHandle.BottomRight:
+						Cursor = Cursors.SizeNWSE;
+						break;
+					case RoiHandle.TopRight:
+					case RoiHandle.BottomLeft:
+						Cursor = Cursors.SizeNESW;
+						break;
+					case RoiHandle.Right:
+					case RoiHandle.Left:
+						Cursor = Cursors.SizeWE;
+						break;
+					case RoiHandle.Top:
+					case RoiHandle.Bottom:
+						Cursor = Cursors.SizeNS;
+						break;
+					case RoiHandle.Body:
+						Cursor = Cursors.SizeAll;
+						break;
+					default:
+						Cursor = Cursors.Default;
+						break;
+				}
 			}
 
 			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Cursor == Cursors.NoMove2D))
@@ -326,14 +371,23 @@ namespace PCBInspection.UI.Controls
 			}
 			else if(e.Button == MouseButtons.Left && SelectedRoi != null && Mode == ViewerMode.EditROI)
 			{
-				// Move ROI
-				int dx = (int)(imgPt.X - ScreenToImage(_lastMousePos).X);
-				int dy = (int)(imgPt.Y - ScreenToImage(_lastMousePos).Y);
-
-				if(dx != 0 || dy != 0)
+				if(_activeHandle == RoiHandle.Body)
 				{
-					SelectedRoi.Move(dx, dy);
-					_lastMousePos = e.Location;
+					// Move ROI
+					int dx = (int)(imgPt.X - ScreenToImage(_lastMousePos).X);
+					int dy = (int)(imgPt.Y - ScreenToImage(_lastMousePos).Y);
+
+					if(dx != 0 || dy != 0)
+					{
+						SelectedRoi.Move(dx, dy);
+						_lastMousePos = e.Location;
+						Invalidate();
+					}
+				}
+				else if(_activeHandle != RoiHandle.None)
+				{
+					// Resize ROI
+					SelectedRoi.Resize(_activeHandle, imgPt);
 					Invalidate();
 				}
 			}
@@ -342,6 +396,7 @@ namespace PCBInspection.UI.Controls
 		protected override void OnMouseUp(MouseEventArgs e)
 		{
 			base.OnMouseUp(e);
+			_activeHandle = RoiHandle.None; // Reset active handle
 
 			if(Cursor == Cursors.NoMove2D)
 			{

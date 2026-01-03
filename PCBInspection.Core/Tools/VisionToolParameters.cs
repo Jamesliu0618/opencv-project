@@ -305,7 +305,7 @@ namespace PCBInspection.Core.Tools
 
 		/// <summary>繪製線條顏色</summary>
 		[DisplayName("線條顏色 (BGR)")] [Description("繪製直線的顏色 (格式: B,G,R)")]
-		public string LineColorBGR { get; set; } = "0,255,0";
+		public string LineColorBGR { get; set; } = "255,255,0";
 
 		/// <summary>線條粗細</summary>
 		[DisplayName("線條粗細 (px)")] [Description("繪製直線的粗細")]

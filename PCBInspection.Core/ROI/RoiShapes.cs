@@ -8,6 +8,21 @@ using Size = OpenCvSharp.Size;
 
 namespace PCBInspection.Core.ROI
 {
+	public enum RoiHandle
+	{
+		None,
+		Body,
+		TopLeft,
+		Top,
+		TopRight,
+		Right,
+		BottomRight,
+		Bottom,
+		BottomLeft,
+		Left,
+		Edge // For circle
+	}
+
 	public abstract class RoiBase
 	{
 		public Guid   Id         { get; } = Guid.NewGuid();
@@ -20,6 +35,14 @@ namespace PCBInspection.Core.ROI
 		public abstract void Move(int      dx,      int   dy);
 		public abstract Mat  GetMask(Size  imageSize); // Returns 8-bit single channel mask (255=ROI, 0=Background)
 
+		// Handle Support
+		public virtual RoiHandle GetHandle(Point mousePt, float scale, float offsetX, float offsetY)
+		{
+			return HitTest(mousePt, scale, offsetX, offsetY) ? RoiHandle.Body : RoiHandle.None;
+		}
+
+		public virtual void Resize(RoiHandle handle, PointF newImgPt) { }
+
 		protected PointF ScreenToImage(Point screenPt, float scale, float offsetX, float offsetY)
 		{
 			return new PointF((screenPt.X - offsetX) / scale, (screenPt.Y - offsetY) / scale);
@@ -28,6 +51,18 @@ namespace PCBInspection.Core.ROI
 		protected Point ImageToScreen(PointF imagePt, float scale, float offsetX, float offsetY)
 		{
 			return new Point((int)(imagePt.X * scale + offsetX), (int)(imagePt.Y * scale + offsetY));
+		}
+
+		protected void DrawHandle(Graphics g, Point screenPt)
+		{
+			int s = 6;
+			g.FillRectangle(Brushes.White, screenPt.X - s / 2, screenPt.Y - s / 2, s, s);
+			g.DrawRectangle(Pens.Black, screenPt.X - s / 2, screenPt.Y - s / 2, s, s);
+		}
+
+		protected bool IsPointNear(Point pt1, Point pt2, int dist = 8)
+		{
+			return Math.Abs(pt1.X - pt2.X) <= dist && Math.Abs(pt1.Y - pt2.Y) <= dist;
 		}
 	}
 
@@ -50,12 +85,59 @@ namespace PCBInspection.Core.ROI
 				pen.DashStyle = IsSelected ? DashStyle.Dash : DashStyle.Solid;
 				g.DrawRectangle(pen, screenRect.X, screenRect.Y, screenRect.Width, screenRect.Height);
 			}
+
+			if(IsSelected)
+			{
+				DrawHandle(g, ImageToScreen(new PointF(Rect.Left, Rect.Top), scale, offsetX, offsetY));     // TL
+				DrawHandle(g, ImageToScreen(new PointF(Rect.Right, Rect.Top), scale, offsetX, offsetY));    // TR
+				DrawHandle(g, ImageToScreen(new PointF(Rect.Right, Rect.Bottom), scale, offsetX, offsetY)); // BR
+				DrawHandle(g, ImageToScreen(new PointF(Rect.Left, Rect.Bottom), scale, offsetX, offsetY));  // BL
+			}
 		}
 
 		public override bool HitTest(Point mousePt, float scale, float offsetX, float offsetY)
 		{
 			var imgPt = ScreenToImage(mousePt, scale, offsetX, offsetY);
 			return Rect.Contains(imgPt);
+		}
+
+		public override RoiHandle GetHandle(Point mousePt, float scale, float offsetX, float offsetY)
+		{
+			if(!IsSelected) return base.GetHandle(mousePt, scale, offsetX, offsetY);
+
+			var tl = ImageToScreen(new PointF(Rect.Left, Rect.Top), scale, offsetX, offsetY);
+			var tr = ImageToScreen(new PointF(Rect.Right, Rect.Top), scale, offsetX, offsetY);
+			var br = ImageToScreen(new PointF(Rect.Right, Rect.Bottom), scale, offsetX, offsetY);
+			var bl = ImageToScreen(new PointF(Rect.Left, Rect.Bottom), scale, offsetX, offsetY);
+
+			if(IsPointNear(mousePt, tl)) return RoiHandle.TopLeft;
+			if(IsPointNear(mousePt, tr)) return RoiHandle.TopRight;
+			if(IsPointNear(mousePt, br)) return RoiHandle.BottomRight;
+			if(IsPointNear(mousePt, bl)) return RoiHandle.BottomLeft;
+
+			return HitTest(mousePt, scale, offsetX, offsetY) ? RoiHandle.Body : RoiHandle.None;
+		}
+
+		public override void Resize(RoiHandle handle, PointF newImgPt)
+		{
+			float l = Rect.Left;
+			float t = Rect.Top;
+			float r = Rect.Right;
+			float b = Rect.Bottom;
+
+			switch(handle)
+			{
+				case RoiHandle.TopLeft:
+					l = newImgPt.X; t = newImgPt.Y; break;
+				case RoiHandle.TopRight:
+					r = newImgPt.X; t = newImgPt.Y; break;
+				case RoiHandle.BottomRight:
+					r = newImgPt.X; b = newImgPt.Y; break;
+				case RoiHandle.BottomLeft:
+					l = newImgPt.X; b = newImgPt.Y; break;
+			}
+
+			Rect = RectangleF.FromLTRB(Math.Min(l, r), Math.Min(t, b), Math.Max(l, r), Math.Max(t, b));
 		}
 
 		public override void Move(int dx, int dy)
@@ -102,13 +184,40 @@ namespace PCBInspection.Core.ROI
 				pen.DashStyle = IsSelected ? DashStyle.Dash : DashStyle.Solid;
 				g.DrawEllipse(pen, screenCenter.X - screenRadius, screenCenter.Y - screenRadius, screenRadius * 2, screenRadius * 2);
 			}
+
+			if(IsSelected)
+			{
+				// Draw handle at Right edge
+				DrawHandle(g, ImageToScreen(new PointF(Center.X + Radius, Center.Y), scale, offsetX, offsetY));
+			}
 		}
 
 		public override bool HitTest(Point mousePt, float scale, float offsetX, float offsetY)
 		{
-			var    imgPt = ScreenToImage(mousePt, scale, offsetX, offsetY);
-			double dist  = Math.Sqrt(Math.Pow(imgPt.X - Center.X, 2) + Math.Pow(imgPt.Y - Center.Y, 2));
-			return dist <= Radius;
+			var imgPt = ScreenToImage(mousePt, scale, offsetX, offsetY);
+			float dx = imgPt.X - Center.X;
+			float dy = imgPt.Y - Center.Y;
+			return (dx * dx + dy * dy) <= (Radius * Radius);
+		}
+
+		public override RoiHandle GetHandle(Point mousePt, float scale, float offsetX, float offsetY)
+		{
+			if(!IsSelected) return base.GetHandle(mousePt, scale, offsetX, offsetY);
+
+			var rightEdge = ImageToScreen(new PointF(Center.X + Radius, Center.Y), scale, offsetX, offsetY);
+			if(IsPointNear(mousePt, rightEdge)) return RoiHandle.Right;
+
+			return HitTest(mousePt, scale, offsetX, offsetY) ? RoiHandle.Body : RoiHandle.None;
+		}
+
+		public override void Resize(RoiHandle handle, PointF newImgPt)
+		{
+			if(handle == RoiHandle.Right)
+			{
+				float dx = newImgPt.X - Center.X;
+				float dy = newImgPt.Y - Center.Y;
+				Radius = (float)Math.Sqrt(dx * dx + dy * dy);
+			}
 		}
 
 		public override void Move(int dx, int dy)
@@ -119,7 +228,10 @@ namespace PCBInspection.Core.ROI
 		public override Mat GetMask(Size imageSize)
 		{
 			var mask = new Mat(imageSize, MatType.CV_8UC1, Scalar.All(0));
-			Cv2.Circle(mask, (int)Center.X, (int)Center.Y, (int)Radius, Scalar.All(255), -1);
+			if(Radius > 0)
+			{
+				Cv2.Circle(mask, (int)Center.X, (int)Center.Y, (int)Radius, Scalar.All(255), -1);
+			}
 			return mask;
 		}
 	}
@@ -161,31 +273,29 @@ namespace PCBInspection.Core.ROI
 				}
 			}
 
-			// Draw vertices
-			foreach(var sp in screenPoints)
+			if(IsSelected)
 			{
-				g.FillRectangle(Brushes.Blue, sp.X - 3, sp.Y - 3, 6, 6);
+				foreach(var sp in screenPoints)
+				{
+					DrawHandle(g, new Point((int)sp.X, (int)sp.Y));
+				}
 			}
 		}
 
 		public override bool HitTest(Point mousePt, float scale, float offsetX, float offsetY)
 		{
-			// Simple bounding box check then polygon test? Or just Ray Casting?
-			// For simplicity, just check if close to any vertex or inside
-			// Ray casting for "Inside" is complex to implement from scratch efficiently without GDI+ GraphicsPath
-			// Use GraphicsPath for HitTest
-
-			if(Points.Count < 3)
-			{
-				return false;
-			}
 			var imgPt = ScreenToImage(mousePt, scale, offsetX, offsetY);
-
-			using(var path = new GraphicsPath())
+			// 簡單判定是否在多邊形內 (Ray Casting)
+			bool inside = false;
+			for(int i = 0, j = Points.Count - 1; i < Points.Count; j = i++)
 			{
-				path.AddPolygon(Points.ToArray());
-				return path.IsVisible(imgPt);
+				if(((Points[i].Y > imgPt.Y) != (Points[j].Y > imgPt.Y)) &&
+				   (imgPt.X < (Points[j].X - Points[i].X) * (imgPt.Y - Points[i].Y) / (Points[j].Y - Points[i].Y) + Points[i].X))
+				{
+					inside = !inside;
+				}
 			}
+			return inside;
 		}
 
 		public override void Move(int dx, int dy)

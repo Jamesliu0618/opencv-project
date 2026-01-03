@@ -211,16 +211,18 @@ namespace PCBInspection.Core.Services
 							lineCount++;
 
 							// 計算線段長度與角度
-							double length = Math.Sqrt(Math.Pow(line.P2.X - line.P1.X, 2) + Math.Pow(line.P2.Y - line.P1.Y, 2));
-							double angle  = Math.Atan2(line.P2.Y - line.P1.Y, line.P2.X - line.P1.X) * 180 / Math.PI;
+							double length  = Math.Sqrt(Math.Pow(line.P2.X - line.P1.X, 2) + Math.Pow(line.P2.Y - line.P1.Y, 2));
+							int    minX    = Math.Min(line.P1.X, line.P2.X);
+							int    minY    = Math.Min(line.P1.Y, line.P2.Y);
+							int    width   = Math.Max(Math.Abs(line.P2.X - line.P1.X), 20);
+							int    height  = Math.Max(Math.Abs(line.P2.Y - line.P1.Y), 20);
 
 							defects.Add(new Defect
 							{
 								Id          = lineCount.ToString(),
 								Type        = "直線",
 								Confidence  = length,
-								BoundingBox = new[] { Math.Min(line.P1.X, line.P2.X), Math.Min(line.P1.Y, line.P2.Y), 
-								                      Math.Abs(line.P2.X - line.P1.X), Math.Abs(line.P2.Y - line.P1.Y) },
+								BoundingBox = new[] { minX, minY, width, height },
 							});
 						}
 					}

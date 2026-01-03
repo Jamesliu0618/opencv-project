@@ -29,6 +29,11 @@ namespace PCBInspection.UI
 
 		private ContextMenuStrip _sequenceContextMenu;
 
+		// 循環執行相關
+		private System.Windows.Forms.Timer _loopTimer;
+		private int                        _loopStepIndex = -1;
+		private bool                       _isLooping;
+
 		public MainForm()
 		{
 			InitializeComponent();
@@ -406,10 +411,18 @@ namespace PCBInspection.UI
 		/// <summary>處理步驟列表的按鈕點擊事件</summary>
 		private void DgvSequence_CellContentClick(object sender, DataGridViewCellEventArgs e)
 		{
-			// 檢查是否點擊「▶」按鈕欄位 (colRun 是第 4 欄，索引為 3)
-			if(e.RowIndex >= 0 && e.ColumnIndex == dgvSequence.Columns["colRun"].Index)
+			if(e.RowIndex < 0) return;
+
+			// 檢查是否點擊「▶」按鈕欄位
+			if(e.ColumnIndex == dgvSequence.Columns["colRun"].Index)
 			{
+				StopLoopExecution(); // 停止循環
 				RunSingleStep(e.RowIndex);
+			}
+			// 檢查是否點擊「↻」循環按鈕
+			else if(e.ColumnIndex == dgvSequence.Columns["colLoop"].Index)
+			{
+				ToggleLoopExecution(e.RowIndex);
 			}
 		}
 
@@ -724,19 +737,83 @@ namespace PCBInspection.UI
 				return;
 			}
 
-			// 複製並繪製高亮
+			// 從原始結果影像重新繪製高亮 (避免高亮疊加)
+			var lastItem = _sequence.LastOrDefault(s => s.LastResultImage != null);
+			if(lastItem?.LastResultImage != null)
+			{
+				imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+			}
+
+			// 在影像上繪製高亮框
 			using(Graphics g = Graphics.FromImage(imageViewer.Image))
 			{
-				using(Pen pen = new Pen(Color.Yellow, 3))
+				// 使用明亮的黃色粗線框住物件
+				using(Pen pen = new Pen(Color.Yellow, 4))
 				{
+					pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Solid;
+
 					if(obj.Type == "圓形")
 					{
-						g.DrawEllipse(pen, (float)(obj.CenterX - obj.Radius), (float)(obj.CenterY - obj.Radius), (float)(obj.Radius * 2), (float)(obj.Radius * 2));
+						// 圓形：繪製圓形高亮
+						float x = (float)(obj.CenterX - obj.Radius);
+						float y = (float)(obj.CenterY - obj.Radius);
+						float d = (float)(obj.Radius * 2);
+						g.DrawEllipse(pen, x, y, d, d);
+
+						// 加繪十字準心
+						using(Pen crossPen = new Pen(Color.Magenta, 2))
+						{
+							int cx = (int)obj.CenterX;
+							int cy = (int)obj.CenterY;
+							int r  = (int)obj.Radius + 15;
+							g.DrawLine(crossPen, cx - r, cy, cx + r, cy);
+							g.DrawLine(crossPen, cx, cy - r, cx, cy + r);
+						}
+					}
+					else if(obj.Type == "直線")
+					{
+						// 直線：使用 BoundingBox 範圍繪製高亮矩形
+						var bb = obj.BoundingBox;
+						int padding = 10;
+						g.DrawRectangle(pen, bb.X - padding, bb.Y - padding, bb.Width + padding * 2, bb.Height + padding * 2);
+
+						// 高亮中心點
+						using(Brush brush = new SolidBrush(Color.Magenta))
+						{
+							g.FillEllipse(brush, (float)(obj.CenterX - 6), (float)(obj.CenterY - 6), 12, 12);
+						}
 					}
 					else
 					{
-						g.DrawRectangle(pen, (float)(obj.CenterX - obj.Width / 2), (float)(obj.CenterY - obj.Height / 2), (float)obj.Width, (float)obj.Height);
+						// 其他物件：使用 BoundingBox 繪製矩形高亮
+						var bb = obj.BoundingBox;
+						if(bb.Width > 0 && bb.Height > 0)
+						{
+							g.DrawRectangle(pen, bb.X, bb.Y, bb.Width, bb.Height);
+						}
+						else
+						{
+							// 如果沒有有效的 BoundingBox，使用 CenterX/CenterY 繪製十字標記
+							int cx = (int)obj.CenterX;
+							int cy = (int)obj.CenterY;
+							g.DrawLine(pen, cx - 20, cy, cx + 20, cy);
+							g.DrawLine(pen, cx, cy - 20, cx, cy + 20);
+						}
 					}
+				}
+
+				// 繪製編號標籤
+				using(Font font = new Font("Arial", 14, FontStyle.Bold))
+				using(Brush bgBrush = new SolidBrush(Color.FromArgb(200, Color.Yellow)))
+				using(Brush txtBrush = new SolidBrush(Color.Black))
+				{
+					string label = $"#{obj.Id}";
+					var size = g.MeasureString(label, font);
+					float lx = (float)(obj.CenterX - size.Width / 2);
+					float ly = (float)(obj.CenterY - obj.Radius - size.Height - 10);
+					if(ly < 5) ly = (float)(obj.CenterY + obj.Radius + 5);
+					g.FillRectangle(bgBrush, lx - 2, ly - 2, size.Width + 4, size.Height + 4);
+					g.DrawString(label, font, txtBrush, lx, ly);
 				}
 			}
 			imageViewer.Invalidate();
@@ -1152,6 +1229,160 @@ namespace PCBInspection.UI
 
 			Log($"已載入配方: {recipe.Name} ({recipe.Steps.Count} 步驟)", TraceLevel.Info);
 		}
+
+		/// <summary>切換循環執行狀態</summary>
+		private void ToggleLoopExecution(int stepIndex)
+		{
+			if (_isLooping && _loopStepIndex == stepIndex)
+			{
+				// 正在循環同一個步驟，停止它
+				StopLoopExecution();
+			}
+			else
+			{
+				// 開始新的循環
+				StopLoopExecution(); // 先停止之前的
+				StartLoopExecution(stepIndex);
+			}
+		}
+
+		/// <summary>開始循環執行指定步驟</summary>
+		private void StartLoopExecution(int stepIndex)
+		{
+			if (imageViewer.Image == null)
+			{
+				Log("請先載入影像", TraceLevel.Error);
+				return;
+			}
+
+			if (stepIndex < 0 || stepIndex >= _sequence.Count) return;
+
+			_loopStepIndex = stepIndex;
+			_isLooping     = true;
+
+			// 更新 UI 顯示循環中
+			var row = dgvSequence.Rows[stepIndex];
+			row.Cells["colLoop"].Value = "■";
+			row.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;
+
+			// 初始化計時器
+			if (_loopTimer == null)
+			{
+				_loopTimer = new System.Windows.Forms.Timer { Interval = 200 };
+				_loopTimer.Tick += LoopTimer_Tick;
+			}
+			_loopTimer.Start();
+
+			Log($"開始循環執行步驟 [{_sequence[stepIndex].Name}]，修改參數後將自動刷新", TraceLevel.Info);
+		}
+
+		/// <summary>停止循環執行</summary>
+		private void StopLoopExecution()
+		{
+			if (!_isLooping) return;
+
+			_loopTimer?.Stop();
+			_isLooping = false;
+
+			// 還原 UI
+			if (_loopStepIndex >= 0 && _loopStepIndex < dgvSequence.Rows.Count)
+			{
+				var row = dgvSequence.Rows[_loopStepIndex];
+				row.Cells["colLoop"].Value = "↻";
+				row.DefaultCellStyle.BackColor = System.Drawing.Color.White;
+			}
+
+			Log($"停止循環執行", TraceLevel.Info);
+			_loopStepIndex = -1;
+		}
+
+		/// <summary>循環計時器事件</summary>
+		private void LoopTimer_Tick(object sender, EventArgs e)
+		{
+			if (!_isLooping || _loopStepIndex < 0) return;
+
+			// 從原始影像重新執行到目標步驟
+			RunToStep(_loopStepIndex);
+		}
+
+		/// <summary>執行到指定步驟 (從原始影像開始)</summary>
+		private void RunToStep(int targetStep)
+		{
+			if (_originalImage == null || targetStep < 0 || targetStep >= _sequence.Count) return;
+
+			// 停止計時器避免重入
+			_loopTimer?.Stop();
+
+			try
+			{
+				Mat currentMat = _originalImage.ToMat();
+				var sw         = System.Diagnostics.Stopwatch.StartNew();
+
+				for (int i = 0; i <= targetStep; i++)
+				{
+					var item = _sequence[i];
+					var row  = dgvSequence.Rows[i];
+
+					try
+					{
+						var result = item.Action(currentMat, item.Parameters);
+						sw.Stop();
+						row.Cells["colTime"].Value = $"{sw.ElapsedMilliseconds}ms";
+
+						if (result.IsOk)
+						{
+							row.Cells["colStatus"].Value           = "OK";
+							row.Cells["colStatus"].Style.ForeColor = System.Drawing.Color.Green;
+
+							item.LastResultImage?.Dispose();
+							item.LastResultImage = result.ResultImage.ToBitmap();
+							item.LastDefects     = result.Defects ?? new List<Defect>();
+
+							var oldMat = currentMat;
+							currentMat = result.ResultImage;
+							if (oldMat != result.ResultImage) oldMat.Dispose();
+						}
+						else
+						{
+							row.Cells["colStatus"].Value           = "NG";
+							row.Cells["colStatus"].Style.ForeColor = System.Drawing.Color.Red;
+							result.ResultImage?.Dispose();
+						}
+						sw.Restart();
+					}
+					catch (Exception ex)
+					{
+						row.Cells["colStatus"].Value = "ERR";
+						Log($"步驟 {item.Name} 執行錯誤: {ex.Message}", TraceLevel.Error);
+						break;
+					}
+				}
+
+				// 顯示結果
+				var lastItem = _sequence[targetStep];
+				if (lastItem.LastResultImage != null)
+				{
+					imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+				}
+				
+				RefreshInfoPanel(sw.ElapsedMilliseconds); // 更新右側面板
+
+				currentMat.Dispose();
+			}
+			catch (Exception ex)
+			{
+				Log($"執行錯誤: {ex.Message}", TraceLevel.Error);
+			}
+			finally
+			{
+				// 重新啟動計時器
+				if (_isLooping)
+				{
+					_loopTimer?.Start();
+				}
+			}
+		}
+
 
 		private class InspectionItem
 		{
