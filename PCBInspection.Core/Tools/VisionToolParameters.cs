@@ -406,4 +406,340 @@ namespace PCBInspection.Core.Tools
 		[DisplayName("繪製特徵點")] [Description("是否在輸出影像上繪製特徵點")]
 		public bool DrawKeypoints { get; set; } = true;
 	}
+
+	// ===== 08. 相機校正 (Camera Calibration) =====
+
+	public class CameraCalibrationParameters
+	{
+		[DisplayName("棋盤格寬度 (格數)")] [Description("棋盤格內角點的水平數量 (通常為 9)")]
+		public int PatternWidth { get; set; } = 9;
+
+		[DisplayName("棋盤格高度 (格數)")] [Description("棋盤格內角點的垂直數量 (通常為 6)")]
+		public int PatternHeight { get; set; } = 6;
+
+		[DisplayName("方格大小 (mm)")] [Description("每個方格的實際邊長 (毫米)")]
+		public float SquareSize { get; set; } = 25.0f;
+
+		[DisplayName("校正影像資料夾")] [Description("包含多張棋盤格影像的資料夾路徑")]
+		public string CalibrationImagesFolder { get; set; } = "";
+
+		[DisplayName("輸出相機矩陣路徑")] [Description("儲存相機內參矩陣的檔案路徑 (.xml)")]
+		public string OutputCameraMatrixPath { get; set; } = "camera_matrix.xml";
+
+		[DisplayName("輸出畸變係數路徑")] [Description("儲存畸變係數的檔案路徑 (.xml)")]
+		public string OutputDistCoeffsPath { get; set; } = "dist_coeffs.xml";
+
+		[DisplayName("顯示重投影誤差")] [Description("是否在 Log 中顯示校正的重投影誤差值")]
+		public bool ShowReprojectionError { get; set; } = true;
+	}
+
+	public class UndistortParameters
+	{
+		[DisplayName("相機矩陣檔案路徑")] [Description("載入相機內參矩陣的檔案路徑 (.xml)")]
+		public string CameraMatrixPath { get; set; } = "camera_matrix.xml";
+
+		[DisplayName("畸變係數檔案路徑")] [Description("載入畸變係數的檔案路徑 (.xml)")]
+		public string DistCoeffsPath { get; set; } = "dist_coeffs.xml";
+
+		[DisplayName("自動裁剪黑邊")] [Description("矯正後自動裁剪邊緣的黑色區域")]
+		public bool AutoCropBlackBorder { get; set; } = true;
+	}
+
+	public class PerspectiveTransformParameters
+	{
+		public enum InterpolationType
+		{
+			Nearest,
+			Linear,
+			Cubic,
+			Lanczos4,
+		}
+
+		[DisplayName("左上角 X")] [Description("源影像的左上角點 X 座標")]
+		public float SrcTopLeftX { get; set; } = 0;
+
+		[DisplayName("左上角 Y")] [Description("源影像的左上角點 Y 座標")]
+		public float SrcTopLeftY { get; set; } = 0;
+
+		[DisplayName("右上角 X")] [Description("源影像的右上角點 X 座標")]
+		public float SrcTopRightX { get; set; } = 100;
+
+		[DisplayName("右上角 Y")] [Description("源影像的右上角點 Y 座標")]
+		public float SrcTopRightY { get; set; } = 0;
+
+		[DisplayName("右下角 X")] [Description("源影像的右下角點 X 座標")]
+		public float SrcBottomRightX { get; set; } = 100;
+
+		[DisplayName("右下角 Y")] [Description("源影像的右下角點 Y 座標")]
+		public float SrcBottomRightY { get; set; } = 100;
+
+		[DisplayName("左下角 X")] [Description("源影像的左下角點 X 座標")]
+		public float SrcBottomLeftX { get; set; } = 0;
+
+		[DisplayName("左下角 Y")] [Description("源影像的左下角點 Y 座標")]
+		public float SrcBottomLeftY { get; set; } = 100;
+
+		[DisplayName("輸出寬度 (px)")] [Description("變換後輸出影像的寬度")]
+		public int OutputWidth { get; set; } = 640;
+
+		[DisplayName("輸出高度 (px)")] [Description("變換後輸出影像的高度")]
+		public int OutputHeight { get; set; } = 480;
+
+		[DisplayName("插值方法")] [Description("影像變換的插值演算法")]
+		public InterpolationType Interpolation { get; set; } = InterpolationType.Linear;
+	}
+
+	// ===== 09. 測量與分析 (Measurement & Analysis) =====
+
+	public class MeasurementToolParameters
+	{
+		public enum MeasureType
+		{
+			Distance,
+			Angle,
+			Area,
+			Perimeter,
+			Diameter,
+		}
+
+		[DisplayName("像素比例 (mm/px)")] [Description("每像素對應的實際長度 (毫米/像素)")]
+		public double PixelScale { get; set; } = 0.1;
+
+		[DisplayName("測量類型")] [Description("選擇測量的幾何量類型")]
+		public MeasureType Type { get; set; } = MeasureType.Distance;
+
+		[DisplayName("顯示單位")] [Description("測量結果顯示的單位 (mm, μm, cm)")]
+		public string DisplayUnit { get; set; } = "mm";
+
+		[DisplayName("小數位數")] [Description("測量結果顯示的小數位數")]
+		public int DecimalPlaces { get; set; } = 2;
+
+		[DisplayName("起點 X")] [Description("測量起點的 X 座標")]
+		public int StartX { get; set; } = 0;
+
+		[DisplayName("起點 Y")] [Description("測量起點的 Y 座標")]
+		public int StartY { get; set; } = 0;
+
+		[DisplayName("終點 X")] [Description("測量終點的 X 座標")]
+		public int EndX { get; set; } = 100;
+
+		[DisplayName("終點 Y")] [Description("測量終點的 Y 座標")]
+		public int EndY { get; set; } = 100;
+
+		[DisplayName("顯示結果於影像")] [Description("是否將測量結果標註在輸出影像上")]
+		public bool DrawOnImage { get; set; } = true;
+	}
+
+	public class ObjectAnalysisParameters
+	{
+		[DisplayName("計算外接矩形")] [Description("計算並繪製物件的水平外接矩形")]
+		public bool ComputeBoundingRect { get; set; } = true;
+
+		[DisplayName("計算最小外接矩形")] [Description("計算並繪製物件的最小旋轉外接矩形")]
+		public bool ComputeMinAreaRect { get; set; } = true;
+
+		[DisplayName("計算外接圓")] [Description("計算並繪製物件的最小外接圓")]
+		public bool ComputeMinEnclosingCircle { get; set; } = false;
+
+		[DisplayName("計算凸包")] [Description("計算並繪製物件的凸包輪廓")]
+		public bool ComputeConvexHull { get; set; } = false;
+
+		[DisplayName("計算形狀特徵")] [Description("計算面積、周長、圓度、長寬比、矩形度等形狀特徵")]
+		public bool ComputeShapeFeatures { get; set; } = true;
+
+		[DisplayName("標註物件編號")] [Description("在每個物件上標註序號")]
+		public bool LabelObjectIndex { get; set; } = true;
+
+		[DisplayName("輸出結果到資料表")] [Description("將分析結果輸出為 DataTable 格式")]
+		public bool OutputToDataTable { get; set; } = true;
+
+		[DisplayName("最小面積過濾 (px²)")] [Description("過濾面積小於此值的物件")]
+		public double FilterMinArea { get; set; } = 100;
+
+		[DisplayName("最大面積過濾 (px²)")] [Description("過濾面積大於此值的物件。設為 0 表示不限制。")]
+		public double FilterMaxArea { get; set; } = 0;
+	}
+
+	public class HistogramAnalysisParameters
+	{
+		public enum HistogramType
+		{
+			Grayscale,
+			RGB,
+			HSV,
+		}
+
+		[DisplayName("顯示直方圖視窗")] [Description("以獨立視窗顯示直方圖")]
+		public bool ShowHistogramWindow { get; set; } = true;
+
+		[DisplayName("計算統計值")] [Description("計算並顯示均值、標準差、最大最小值")]
+		public bool ComputeStatistics { get; set; } = true;
+
+		[DisplayName("直方圖類型")] [Description("選擇直方圖的色彩通道類型")]
+		public HistogramType Type { get; set; } = HistogramType.Grayscale;
+
+		[DisplayName("繪製於影像上")] [Description("將直方圖繪製在輸出影像的右下角")]
+		public bool DrawOnImage { get; set; } = false;
+	}
+
+	public class ProfileLineParameters
+	{
+		[DisplayName("起點 X")] [Description("剖面線起點的 X 座標")]
+		public int StartX { get; set; } = 0;
+
+		[DisplayName("起點 Y")] [Description("剖面線起點的 Y 座標")]
+		public int StartY { get; set; } = 0;
+
+		[DisplayName("終點 X")] [Description("剖面線終點的 X 座標")]
+		public int EndX { get; set; } = 100;
+
+		[DisplayName("終點 Y")] [Description("剖面線終點的 Y 座標")]
+		public int EndY { get; set; } = 0;
+
+		[DisplayName("顯示灰階剖面圖")] [Description("以獨立視窗顯示灰階剖面曲線圖")]
+		public bool ShowProfileWindow { get; set; } = true;
+
+		[DisplayName("剖面線寬度 (px)")] [Description("取樣時平均的線條寬度")]
+		public int LineWidth { get; set; } = 1;
+
+		[DisplayName("輸出數據到 CSV")] [Description("將剖面數據輸出為 CSV 檔案")]
+		public bool OutputToCsv { get; set; } = false;
+
+		[DisplayName("CSV 輸出路徑")] [Description("CSV 檔案的儲存路徑")]
+		public string CsvOutputPath { get; set; } = "profile_data.csv";
+	}
+
+	// ===== 10. 影像品質評估 (Quality Assessment) =====
+
+	public class QualityAssessmentParameters
+	{
+		public enum QualityMetric
+		{
+			PSNR,
+			SSIM,
+			MSE,
+		}
+
+		[DisplayName("品質指標")] [Description("選擇影像品質評估的計算方式:\\n- PSNR: 峰值信噪比\\n- SSIM: 結構相似性\\n- MSE: 均方誤差")]
+		public QualityMetric Metric { get; set; } = QualityMetric.PSNR;
+
+		[DisplayName("參考影像路徑")] [Description("作為品質比較基準的參考影像檔案路徑")]
+		public string ReferenceImagePath { get; set; } = "";
+
+		[DisplayName("顯示品質分數")] [Description("在輸出影像上顯示計算的品質分數")]
+		public bool ShowScore { get; set; } = true;
+
+		[DisplayName("輸出品質報告")] [Description("將品質評估結果輸出到 Log")]
+		public bool OutputReport { get; set; } = true;
+
+		[DisplayName("SSIM 視覺化")] [Description("顯示 SSIM 差異熱圖 (僅適用於 SSIM 指標)")]
+		public bool VisualizeSSIM { get; set; } = false;
+	}
+
+	// ===== 11. 顏色分析 (Color Analysis) =====
+
+	public class ColorAnalysisParameters
+	{
+		[DisplayName("計算主要顏色")] [Description("使用 K-Means 聚類提取主要顏色")]
+		public bool ComputeDominantColors { get; set; } = true;
+
+		[DisplayName("顏色數量")] [Description("K-Means 聚類的顏色數量 (K 值)")]
+		public int ColorCount { get; set; } = 5;
+
+		[DisplayName("顯示顏色分布圖")] [Description("以色塊方式顯示提取的主要顏色")]
+		public bool ShowColorDistribution { get; set; } = true;
+
+		[DisplayName("計算色差")] [Description("與標準色計算 ΔE 色差值")]
+		public bool ComputeColorDifference { get; set; } = false;
+
+		[DisplayName("標準色 Lab 值")] [Description("參考標準色的 Lab 值 (格式: L,a,b)")]
+		public string StandardLabColor { get; set; } = "50,0,0";
+
+		[DisplayName("色差容許範圍 ΔE")] [Description("允許的最大色差值")]
+		public double DeltaEThreshold { get; set; } = 5.0;
+	}
+
+	// ===== 12. 背景處理 (Background Processing) =====
+
+	public class BackgroundSubtractionParameters
+	{
+		public enum SubtractionMethod
+		{
+			MOG2,
+			KNN,
+		}
+
+		[DisplayName("方法")] [Description("背景分割演算法:\\n- MOG2: 高斯混合模型\\n- KNN: K近鄰演算法")]
+		public SubtractionMethod Method { get; set; } = SubtractionMethod.MOG2;
+
+		[DisplayName("學習率")] [Description("背景模型的更新速度 (0-1)，設為 -1 表示自動")]
+		public double LearningRate { get; set; } = 0.01;
+
+		[DisplayName("歷史幀數")] [Description("用於建立背景模型的歷史幀數")]
+		public int History { get; set; } = 500;
+
+		[DisplayName("方差閾值")] [Description("MOG2 的像素方差閾值")]
+		public double VarThreshold { get; set; } = 16;
+
+		[DisplayName("偵測陰影")] [Description("是否偵測並標記陰影區域")]
+		public bool DetectShadows { get; set; } = false;
+
+		[DisplayName("形態學後處理")] [Description("對前景遮罩進行形態學開運算去除雜訊")]
+		public bool MorphologicalPostProcess { get; set; } = true;
+
+		[DisplayName("核心大小 (px)")] [Description("形態學後處理的核心大小")]
+		public int MorphKernelSize { get; set; } = 3;
+	}
+
+	// ===== 13. 缺陷檢測 (Defect Detection) =====
+
+	public class DefectDetectionParameters
+	{
+		public enum DetectionMode
+		{
+			TemplateDiff,
+			EdgeBased,
+			ColorBased,
+		}
+
+		public enum DefectType
+		{
+			Any,
+			Scratch,
+			Stain,
+			Dent,
+			Missing,
+			Extra,
+		}
+
+		[DisplayName("檢測模式")] [Description("缺陷檢測的演算法模式:\\n- TemplateDiff: 與參考影像差異比對\\n- EdgeBased: 邊緣異常檢測\\n- ColorBased: 色彩異常檢測")]
+		public DetectionMode Mode { get; set; } = DetectionMode.TemplateDiff;
+
+		[DisplayName("參考樣本路徑")] [Description("無缺陷的標準參考影像路徑")]
+		public string ReferenceSamplePath { get; set; } = "";
+
+		[DisplayName("最小缺陷面積 (px²)")] [Description("過濾小於此面積的缺陷")]
+		public double MinDefectArea { get; set; } = 50;
+
+		[DisplayName("最大缺陷面積 (px²)")] [Description("過濾大於此面積的缺陷。設為 0 表示不限制。")]
+		public double MaxDefectArea { get; set; } = 0;
+
+		[DisplayName("差異閾值 (0-255)")] [Description("差異影像的二值化閾值")]
+		public double DifferenceThreshold { get; set; } = 30;
+
+		[DisplayName("高亮顯示缺陷")] [Description("在輸出影像上以紅色框標示缺陷位置")]
+		public bool HighlightDefects { get; set; } = true;
+
+		[DisplayName("缺陷類型標註")] [Description("指定要檢測的缺陷類型")]
+		public DefectType TypeFilter { get; set; } = DefectType.Any;
+
+		[DisplayName("輸出缺陷報告")] [Description("將缺陷統計資訊輸出到 Log")]
+		public bool OutputDefectReport { get; set; } = true;
+
+		[DisplayName("缺陷座標輸出到 CSV")] [Description("將所有缺陷的座標與資訊輸出為 CSV")]
+		public bool OutputToCsv { get; set; } = false;
+
+		[DisplayName("CSV 輸出路徑")] [Description("CSV 檔案的儲存路徑")]
+		public string CsvOutputPath { get; set; } = "defect_report.csv";
+	}
 }
