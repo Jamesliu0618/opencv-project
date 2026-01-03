@@ -23,6 +23,13 @@ namespace PCBInspection.Core.Models
 		public double Rectangularity { get; set; }
 		/// <summary>角度 (度)</summary>
 		public double Angle { get; set; }
+		
+		/// <summary>面積 (像素平方)</summary>
+		public double Area { get; set; }
+		/// <summary>重心 X 座標</summary>
+		public double CenterX { get; set; }
+		/// <summary>重心 Y 座標</summary>
+		public double CenterY { get; set; }
 	}
 
 	/// <summary>完整檢測結果報告</summary>

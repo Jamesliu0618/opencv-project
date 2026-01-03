@@ -94,27 +94,85 @@ namespace PCBInspection.Core.Services
 					// 4. 執行輪廓搜尋
 					Cv2.FindContours(gray, out Point[][] contours, out HierarchyIndex[] hierarchy, mode, method);
 
-					// 5. 繪製符合條件的輪廓
-					if(pp.DrawContours)
+					// 5. 進行區塊分析 (Blob Analysis)
+					var defects = new List<Defect>();
+					int blobCount = 0;
+
+					foreach(var c in contours)
 					{
-						// 依據面積大小過濾
-						var validContours = new List<Point[]>();
-						foreach(var c in contours)
+						// 計算面積
+						double area = Cv2.ContourArea(c);
+						
+						// 面積過濾
+						if(area < pp.MinArea) continue;
+						if(pp.MaxArea > 0 && area > pp.MaxArea) continue;
+
+						blobCount++;
+						
+						// 計算幾何特徵
+						var rect = Cv2.BoundingRect(c);
+						double perimeter = Cv2.ArcLength(c, true);
+						
+						// 計算形心 (Centroid) / 重心
+						var moments = Cv2.Moments(c);
+						double cx = 0, cy = 0;
+						if(moments.M00 != 0)
 						{
-							double area = Cv2.ContourArea(c);
-							if(area >= pp.MinArea && (pp.MaxArea <= 0 || area <= pp.MaxArea))
-							{
-								validContours.Add(c);
-							}
+							cx = moments.M10 / moments.M00;
+							cy = moments.M01 / moments.M00;
+						}
+						else
+						{
+							// 若面積為 0 (極端情況)，使用 BoundingBox 中心
+							cx = rect.X + rect.Width / 2.0;
+							cy = rect.Y + rect.Height / 2.0;
 						}
 
-						// 繪製輪廓到結果圖 (使用紅色線條)
-						if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
-						Cv2.DrawContours(result, validContours, -1, Scalar.Red, 2);
+						// 計算形狀因子
+						double circularity = (perimeter > 0) ? (4 * Math.PI * area) / (perimeter * perimeter) : 0;
+						double rectangularity = (rect.Width * rect.Height > 0) ? area / (rect.Width * rect.Height) : 0;
+
+						// 加入 Defect 列表
+						var defect = new Defect
+						{
+							Id          = blobCount.ToString(),
+							Type        = "Blob",
+							Confidence  = area, // 將面積做為主要的特徵值
+							Area        = area,
+							CenterX     = cx,
+							CenterY     = cy,
+							BoundingBox = new[] { rect.X, rect.Y, rect.Width, rect.Height },
+							Circularity = circularity,
+							Rectangularity = rectangularity,
+							Angle       = 0
+						};
+						
+						// 擬合旋轉矩形以取得角度 (若點數夠多)
+						if(c.Length >= 5)
+						{
+							var rotRect = Cv2.MinAreaRect(c);
+							defect.Angle = rotRect.Angle;
+						}
+						
+						defects.Add(defect);
+
+						// 繪製輪廓
+						if(pp.DrawContours)
+						{
+							// 繪製輪廓線 (紅色)
+							if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+							Cv2.DrawContours(result, new[] { c }, -1, Scalar.Red, 2);
+							
+							// 繪製重心 (綠色十字)
+							Cv2.DrawMarker(result, new Point((int)cx, (int)cy), Scalar.Lime, MarkerTypes.Cross, 10, 1);
+							
+							// 繪製外接矩形 (黃色)
+							Cv2.Rectangle(result, rect, Scalar.Yellow, 1);
+						}
 					}
 					
 					gray.Dispose();
-					return (true, result, new List<Defect>());
+					return (true, result, defects);
 				},
 			});
 
