@@ -1,7 +1,7 @@
 import cv2
 import os
 
-input_path = r'C:/Users/fly20/.gemini/antigravity/brain/7dfd7b80-47eb-44b0-870c-e06ae17f4316/pcb_vision_icons_set_1767405973674.png'
+input_path = r'C:/Users/fly20/.gemini/antigravity/brain/7dfd7b80-47eb-44b0-870c-e06ae17f4316/pcb_vision_icons_flat_white_1767406344397.png'
 output_dir = r'd:/Repo/opencv/Resources/Icons'
 
 if not os.path.exists(output_dir):
