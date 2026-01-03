@@ -23,6 +23,10 @@ namespace PCBInspection.Core.Detectors
 
 		public string Name { get => "SurfaceDefectDetector"; }
 
+		/// <summary>
+		///     執行表面瑕疵偵測演算法。
+		///     邏輯：影像相減法 (背景相減近似值) -> 閾值分割 -> 輪廓分類。
+		/// </summary>
 		public List<Defect> Detect(Mat image, List<Component> components = null)
 		{
 			var defects = new List<Defect>();
@@ -40,6 +44,7 @@ namespace PCBInspection.Core.Detectors
 					{
 						using(var thresh = new Mat())
 						{
+							// 1. 預處理：轉灰階
 							if(image.Channels() == 3)
 							{
 								Cv2.CvtColor(image, gray, ColorConversionCodes.BGR2GRAY);
@@ -49,14 +54,14 @@ namespace PCBInspection.Core.Detectors
 								image.CopyTo(gray);
 							}
 
-							// 使用中值濾波去除椒鹽雜訊
+							// 2. 中值濾波：生成「平滑背景」影像，消除細小雜訊
 							Cv2.MedianBlur(gray, blurred, _blurSize);
 
-							// 計算高通濾波結果以偵測表面紋理異常
+							// 3. 背景相減：原始圖減去平滑圖，剩餘部分即為突發性的表面異常 (如刮痕、污染)
 							Cv2.Subtract(gray, blurred, diff);
 							Cv2.ConvertScaleAbs(diff, diff);
 
-							// 閾值分割
+							// 4. 二值化分割與形態學閉運算 (Close)：連接斷裂的瑕疵塊
 							Cv2.Threshold(diff, thresh, _thresholdValue, 255, ThresholdTypes.Binary);
 
 							// 形態學閉運算連接相鄰瑕疵
@@ -64,6 +69,8 @@ namespace PCBInspection.Core.Detectors
 							{
 								Cv2.MorphologyEx(thresh, thresh, MorphTypes.Close, kernel);
 							}
+
+							// 5. 提取輪廓並分類
 							Cv2.FindContours(thresh, out var contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 							int idx = 0;
 

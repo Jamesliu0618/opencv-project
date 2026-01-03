@@ -21,6 +21,18 @@ namespace PCBInspection.Core.Detectors
 
 		public string Name { get => "CircuitDefectDetector"; }
 
+		/// <summary>
+		///     執行電路瑕疵偵測演算法。
+		///     此方法會對輸入影像進行以下步驟：
+		///     1. 轉換為灰度圖 (如果原始影像是彩色)。
+		///     2. 使用 Otsu 閾值法進行二值化，提取電路線路。
+		///     3. 應用形態學細化操作 (骨架化)，以簡化線路結構。
+		///     4. 使用連通元件分析 (Connected Components Analysis) 識別獨立的電路區域。
+		///     5. 根據每個連通區域的尺寸和面積，判斷是否存在斷路 (OPEN_CIRCUIT) 或橋接 (BRIDGE) 瑕疵。
+		/// </summary>
+		/// <param name="image">待檢測的輸入影像。</param>
+		/// <param name="components">選配的元件列表，此偵測器目前未使用。</param>
+		/// <returns>偵測到的瑕疵列表。</returns>
 		public List<Defect> Detect(Mat image, List<Component> components = null)
 		{
 			var defects = new List<Defect>();

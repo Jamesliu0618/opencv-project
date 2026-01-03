@@ -24,6 +24,10 @@ namespace PCBInspection.Core.Detectors
 
 		public string Name { get => "SolderDefectDetector"; }
 
+		/// <summary>
+		///     執行焊點瑕疵偵測演算法。
+		///     邏輯：自適應二值化 -> 形態學開運算 -> 輪廓分析 (面積、圓度、長寬比)。
+		/// </summary>
 		public List<Defect> Detect(Mat image, List<Component> components = null)
 		{
 			var defects = new List<Defect>();
@@ -37,6 +41,7 @@ namespace PCBInspection.Core.Detectors
 			{
 				using(var thresh = new Mat())
 				{
+					// 1. 預處理：轉灰階
 					if(image.Channels() == 3)
 					{
 						Cv2.CvtColor(image, gray, ColorConversionCodes.BGR2GRAY);
@@ -46,14 +51,16 @@ namespace PCBInspection.Core.Detectors
 						image.CopyTo(gray);
 					}
 
-					// 使用自適應閾值偵測焊點區域
+					// 2. 自適應二值化：偵測焊點區域，BinaryInv 反轉使前景為白色
 					Cv2.AdaptiveThreshold(gray, thresh, 255, AdaptiveThresholdTypes.GaussianC, ThresholdTypes.BinaryInv, 11, 5);
 
-					// 形態學開運算去除雜訊
+					// 3. 形態學開運算 (Opening)：先腐蝕後膨脹，去除細小噪點並平滑輪廓
 					using(var kernel = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(_morphKernel, _morphKernel)))
 					{
 						Cv2.MorphologyEx(thresh, thresh, MorphTypes.Open, kernel);
 					}
+
+					// 4. 提取外部輪廓
 					Cv2.FindContours(thresh, out var contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 					int idx = 0;
 
@@ -61,14 +68,15 @@ namespace PCBInspection.Core.Detectors
 					{
 						var area = Cv2.ContourArea(contour);
 
+						// 過濾過小或過大的非焊點區域
 						if(area < _minSolderArea || area > _maxSolderArea)
 						{
 							continue;
 						}
 						var rect        = Cv2.BoundingRect(contour);
-						var circularity = CalculateCircularity(contour, area);
+						var circularity = CalculateCircularity(contour, area); // 計算圓度 (判定焊點飽滿度)
 
-						// 根據形態分析判斷瑕疵類型
+						// 5. 根據幾何特徵 (面積、圓度、長寬比) 進行瑕疵分類
 						var defectType = AnalyzeSolderDefect(area, circularity, rect);
 
 						if(defectType != null)
