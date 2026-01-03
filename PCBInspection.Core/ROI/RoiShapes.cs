@@ -87,6 +87,7 @@ namespace PCBInspection.Core.ROI
     {
         public PointF Center { get; set; }
         public float Radius { get; set; }
+        public PointF StartCorner { get; set; } // For bounding-box style drawing
 
         public CircleRoi(PointF center, float radius)
         {

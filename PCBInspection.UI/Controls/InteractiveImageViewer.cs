@@ -203,7 +203,9 @@ namespace PCBInspection.UI.Controls
                }
                else if (Mode == ViewerMode.DrawCircle)
                {
-                   _tempRoi = new CircleRoi(imgPt, 0);
+                   var circ = new CircleRoi(imgPt, 0);
+                   circ.StartCorner = imgPt;
+                   _tempRoi = circ;
                }
                else if (Mode == ViewerMode.DrawPoly)
                {
@@ -262,9 +264,23 @@ namespace PCBInspection.UI.Controls
                 }
                 else if (_tempRoi is CircleRoi circ)
                 {
-                    // Distance
-                    double radius = Math.Sqrt(Math.Pow(imgPt.X - circ.Center.X, 2) + Math.Pow(imgPt.Y - circ.Center.Y, 2));
-                    circ.Radius = (float)radius;
+                    // Calculate bounding box from start corner to current mouse position
+                    float x1 = circ.StartCorner.X;
+                    float y1 = circ.StartCorner.Y;
+                    float x2 = imgPt.X;
+                    float y2 = imgPt.Y;
+
+                    float minX = Math.Min(x1, x2);
+                    float minY = Math.Min(y1, y2);
+                    float maxX = Math.Max(x1, x2);
+                    float maxY = Math.Max(y1, y2);
+
+                    float width = maxX - minX;
+                    float height = maxY - minY;
+
+                    // Inscribed circle: center of bounding box, radius = half of smaller dimension
+                    circ.Center = new PointF(minX + width / 2, minY + height / 2);
+                    circ.Radius = Math.Min(width, height) / 2;
                 }
                 Invalidate();
             }
@@ -333,6 +349,22 @@ namespace PCBInspection.UI.Controls
                 RoiListChanged?.Invoke(this, EventArgs.Empty);
                 Invalidate();
             }
+        }
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+
+            // 
+            // InteractiveImageViewer
+            // 
+            this.Name = "InteractiveImageViewer";
+            this.Size = new System.Drawing.Size(233, 228);
+            this.ResumeLayout(false);
         }
     }
 }

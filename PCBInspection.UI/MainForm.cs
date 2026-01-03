@@ -558,15 +558,24 @@ namespace PCBInspection.UI
                             Mat finalResult = result.ResultImage;
                             if (roiMask != null)
                             {
-                                // 確保結果影像與原圖通道數一致
+                                // 確保結果影像與原圖通道數一致 (支援 4 通道 BGRA)
                                 Mat resultToMerge = result.ResultImage;
-                                if (currentMat.Channels() != result.ResultImage.Channels())
+                                int dstCh = currentMat.Channels();
+                                int srcCh = result.ResultImage.Channels();
+
+                                if (dstCh != srcCh)
                                 {
                                     resultToMerge = new Mat();
-                                    if (result.ResultImage.Channels() == 1)
-                                        Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
-                                    else
-                                        Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2GRAY);
+                                    if (dstCh == 4)
+                                    {
+                                        if (srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
+                                        else if (srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
+                                    }
+                                    else if (dstCh == 3)
+                                    {
+                                        if (srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+                                        else if (srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
+                                    }
                                 }
 
                                 // 將結果的 ROI 區域複製到原圖上
@@ -867,13 +876,22 @@ namespace PCBInspection.UI
                     if (roiMask != null)
                     {
                         Mat resultToMerge = result.ResultImage;
-                        if (inputMat.Channels() != result.ResultImage.Channels())
+                        int dstCh = inputMat.Channels();
+                        int srcCh = result.ResultImage.Channels();
+
+                        if (dstCh != srcCh)
                         {
                             resultToMerge = new Mat();
-                            if (result.ResultImage.Channels() == 1)
-                                Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
-                            else
-                                Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2GRAY);
+                            if (dstCh == 4)
+                            {
+                                if (srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
+                                else if (srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
+                            }
+                            else if (dstCh == 3)
+                            {
+                                if (srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+                                else if (srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
+                            }
                         }
 
                         finalResult = inputMat.Clone();

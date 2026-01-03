@@ -124,7 +124,7 @@ namespace PCBInspection.UI.Controls
             {
                 Text = "統計資訊",
                 Dock = DockStyle.Top,
-                Height = 180, // Reduced slightly needed?
+                Height = 280, 
                 Font = new Font("Microsoft JhengHei", 10f, FontStyle.Bold),
                 Padding = new Padding(5)
             };
@@ -136,8 +136,14 @@ namespace PCBInspection.UI.Controls
                 RowCount = 10,
                 Font = new Font("Microsoft JhengHei", 9f)
             };
-            statsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            statsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            statsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+            statsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+
+            // Explicitly set row styles to ensure even spacing
+            for (int i = 0; i < 10; i++)
+            {
+                statsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 10f));
+            }
 
             int row = 0;
             AddStatRow(statsPanel, "影像尺寸:", out lblImageSize, out lblImageSizeValue, ref row);
@@ -161,7 +167,7 @@ namespace PCBInspection.UI.Controls
                 Text = "檢測結果",
                 Dock = DockStyle.Fill,
                 Font = new Font("Microsoft JhengHei", 10f, FontStyle.Bold),
-                Padding = new Padding(5)
+                Padding = new Padding(8, 20, 8, 8)
             };
 
             dgvResults = new DataGridView
