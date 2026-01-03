@@ -1078,4 +1078,460 @@ namespace PCBInspection.Core.Tools
 		[DisplayName("CSV 輸出路徑")] [Description("CSV 檔案的儲存路徑")]
 		public string CsvOutputPath { get; set; } = "defect_report.csv";
 	}
+
+	// ===== 14. 幾何量測工具 (Geometry Measurement - AISYS OVK 對應) =====
+
+	/// <summary>角度量測參數 (對應 AxAngleMsr)</summary>
+	public class AngleMeasurementParameters
+	{
+		/// <summary>量測模式</summary>
+		public enum AngleMode
+		{
+			/// <summary>三點夾角 (頂點 + 兩端點)</summary>
+			ThreePoints,
+			/// <summary>兩線夾角</summary>
+			TwoLines,
+		}
+
+		/// <summary>選擇角度量測模式</summary>
+		[DisplayName("量測模式")] [Description("三點模式使用頂點+兩端點計算夾角；兩線模式使用直線方程式計算")]
+		public AngleMode Mode { get; set; } = AngleMode.ThreePoints;
+
+		// 三點模式參數
+		/// <summary>頂點 X 座標</summary>
+		[Category("三點模式")] [DisplayName("頂點 X")]
+		public int VertexX { get; set; } = 100;
+		/// <summary>頂點 Y 座標</summary>
+		[Category("三點模式")] [DisplayName("頂點 Y")]
+		public int VertexY { get; set; } = 100;
+		/// <summary>第一端點 X 座標</summary>
+		[Category("三點模式")] [DisplayName("端點1 X")]
+		public int Point1X { get; set; } = 50;
+		/// <summary>第一端點 Y 座標</summary>
+		[Category("三點模式")] [DisplayName("端點1 Y")]
+		public int Point1Y { get; set; } = 50;
+		/// <summary>第二端點 X 座標</summary>
+		[Category("三點模式")] [DisplayName("端點2 X")]
+		public int Point2X { get; set; } = 150;
+		/// <summary>第二端點 Y 座標</summary>
+		[Category("三點模式")] [DisplayName("端點2 Y")]
+		public int Point2Y { get; set; } = 50;
+
+		// 兩線模式參數 (線1: 點A到點B, 線2: 點C到點D)
+		/// <summary>線1 起點 X</summary>
+		[Category("兩線模式")] [DisplayName("線1 起點 X")]
+		public int Line1StartX { get; set; } = 0;
+		/// <summary>線1 起點 Y</summary>
+		[Category("兩線模式")] [DisplayName("線1 起點 Y")]
+		public int Line1StartY { get; set; } = 0;
+		/// <summary>線1 終點 X</summary>
+		[Category("兩線模式")] [DisplayName("線1 終點 X")]
+		public int Line1EndX { get; set; } = 100;
+		/// <summary>線1 終點 Y</summary>
+		[Category("兩線模式")] [DisplayName("線1 終點 Y")]
+		public int Line1EndY { get; set; } = 0;
+		/// <summary>線2 起點 X</summary>
+		[Category("兩線模式")] [DisplayName("線2 起點 X")]
+		public int Line2StartX { get; set; } = 0;
+		/// <summary>線2 起點 Y</summary>
+		[Category("兩線模式")] [DisplayName("線2 起點 Y")]
+		public int Line2StartY { get; set; } = 0;
+		/// <summary>線2 終點 X</summary>
+		[Category("兩線模式")] [DisplayName("線2 終點 X")]
+		public int Line2EndX { get; set; } = 0;
+		/// <summary>線2 終點 Y</summary>
+		[Category("兩線模式")] [DisplayName("線2 終點 Y")]
+		public int Line2EndY { get; set; } = 100;
+
+		/// <summary>結果顯示的小數位數</summary>
+		[DisplayName("小數位數")]
+		public int DecimalPlaces { get; set; } = 2;
+
+		/// <summary>是否在影像上繪製結果</summary>
+		[DisplayName("繪製結果")]
+		public bool DrawOnImage { get; set; } = true;
+	}
+
+	/// <summary>直線交點計算參數 (對應 AxIntersectionMsr)</summary>
+	public class LineIntersectionParameters
+	{
+		/// <summary>線1 起點 X</summary>
+		[DisplayName("線1 起點 X")]
+		public int Line1StartX { get; set; } = 0;
+		/// <summary>線1 起點 Y</summary>
+		[DisplayName("線1 起點 Y")]
+		public int Line1StartY { get; set; } = 0;
+		/// <summary>線1 終點 X</summary>
+		[DisplayName("線1 終點 X")]
+		public int Line1EndX { get; set; } = 100;
+		/// <summary>線1 終點 Y</summary>
+		[DisplayName("線1 終點 Y")]
+		public int Line1EndY { get; set; } = 100;
+		/// <summary>線2 起點 X</summary>
+		[DisplayName("線2 起點 X")]
+		public int Line2StartX { get; set; } = 100;
+		/// <summary>線2 起點 Y</summary>
+		[DisplayName("線2 起點 Y")]
+		public int Line2StartY { get; set; } = 0;
+		/// <summary>線2 終點 X</summary>
+		[DisplayName("線2 終點 X")]
+		public int Line2EndX { get; set; } = 0;
+		/// <summary>線2 終點 Y</summary>
+		[DisplayName("線2 終點 Y")]
+		public int Line2EndY { get; set; } = 100;
+
+		/// <summary>是否在影像上繪製結果</summary>
+		[DisplayName("繪製結果")]
+		public bool DrawOnImage { get; set; } = true;
+
+		/// <summary>交點標記半徑</summary>
+		[DisplayName("標記半徑 (px)")]
+		public int MarkerRadius { get; set; } = 5;
+	}
+
+	/// <summary>點到線距離計算參數 (對應 AxPointLineDistanceMsr)</summary>
+	public class PointLineDistanceParameters
+	{
+		/// <summary>點座標 X</summary>
+		[DisplayName("點 X")]
+		public int PointX { get; set; } = 50;
+		/// <summary>點座標 Y</summary>
+		[DisplayName("點 Y")]
+		public int PointY { get; set; } = 50;
+		/// <summary>線起點 X</summary>
+		[DisplayName("線起點 X")]
+		public int LineStartX { get; set; } = 0;
+		/// <summary>線起點 Y</summary>
+		[DisplayName("線起點 Y")]
+		public int LineStartY { get; set; } = 0;
+		/// <summary>線終點 X</summary>
+		[DisplayName("線終點 X")]
+		public int LineEndX { get; set; } = 100;
+		/// <summary>線終點 Y</summary>
+		[DisplayName("線終點 Y")]
+		public int LineEndY { get; set; } = 0;
+
+		/// <summary>每像素對應的實際長度 (毫米/像素)</summary>
+		[DisplayName("像素比例 (mm/px)")]
+		public double PixelScale { get; set; } = 0.1;
+
+		/// <summary>結果顯示單位</summary>
+		[DisplayName("顯示單位")]
+		public string DisplayUnit { get; set; } = "mm";
+
+		/// <summary>結果顯示的小數位數</summary>
+		[DisplayName("小數位數")]
+		public int DecimalPlaces { get; set; } = 2;
+
+		/// <summary>是否在影像上繪製結果</summary>
+		[DisplayName("繪製結果")]
+		public bool DrawOnImage { get; set; } = true;
+	}
+
+	/// <summary>迴歸直線參數 (對應 AxLineRegression)</summary>
+	public class LineRegressionParameters
+	{
+		/// <summary>點群座標 (格式: x1,y1;x2,y2;...)</summary>
+		[DisplayName("點群座標")] [Description("格式: x1,y1;x2,y2;x3,y3;... 例如: 10,20;30,40;50,55")]
+		public string PointsData { get; set; } = "10,20;30,40;50,60;70,80;90,100";
+
+		/// <summary>是否使用偵測到的輪廓邊緣點</summary>
+		[DisplayName("使用輪廓邊緣點")] [Description("自動從輸入二值影像提取邊緣點，忽略手動輸入的點群座標")]
+		public bool UseContourPoints { get; set; } = false;
+
+		/// <summary>擬合線延伸長度 (像素)</summary>
+		[DisplayName("線延伸長度 (px)")]
+		public int LineExtension { get; set; } = 500;
+
+		/// <summary>是否在影像上繪製結果</summary>
+		[DisplayName("繪製結果")]
+		public bool DrawOnImage { get; set; } = true;
+
+		/// <summary>是否標記原始點</summary>
+		[DisplayName("標記原始點")]
+		public bool DrawPoints { get; set; } = true;
+
+		/// <summary>點標記半徑</summary>
+		[DisplayName("點標記半徑 (px)")]
+		public int PointRadius { get; set; } = 3;
+	}
+
+	/// <summary>迴歸圓參數 (對應 AxCircleRegression)</summary>
+	public class CircleRegressionParameters
+	{
+		/// <summary>點群座標 (格式: x1,y1;x2,y2;...)</summary>
+		[DisplayName("點群座標")] [Description("格式: x1,y1;x2,y2;x3,y3;... 例如: 100,50;150,100;100,150;50,100")]
+		public string PointsData { get; set; } = "100,50;150,100;100,150;50,100";
+
+		/// <summary>是否使用偵測到的輪廓邊緣點</summary>
+		[DisplayName("使用輪廓邊緣點")] [Description("自動從輸入二值影像提取邊緣點，忽略手動輸入的點群座標")]
+		public bool UseContourPoints { get; set; } = false;
+
+		/// <summary>每像素對應的實際長度 (毫米/像素)</summary>
+		[DisplayName("像素比例 (mm/px)")]
+		public double PixelScale { get; set; } = 0.1;
+
+		/// <summary>結果顯示單位</summary>
+		[DisplayName("顯示單位")]
+		public string DisplayUnit { get; set; } = "mm";
+
+		/// <summary>結果顯示的小數位數</summary>
+		[DisplayName("小數位數")]
+		public int DecimalPlaces { get; set; } = 2;
+
+		/// <summary>是否在影像上繪製結果</summary>
+		[DisplayName("繪製結果")]
+		public bool DrawOnImage { get; set; } = true;
+
+		/// <summary>是否標記原始點</summary>
+		[DisplayName("標記原始點")]
+		public bool DrawPoints { get; set; } = true;
+
+		/// <summary>點標記半徑</summary>
+		[DisplayName("點標記半徑 (px)")]
+		public int PointRadius { get; set; } = 3;
+	}
+
+	/// <summary>兩線間距參數 (對應 AxLineLineGapMsr)</summary>
+	public class LineLineGapParameters
+	{
+		/// <summary>線1 起點 X</summary>
+		[DisplayName("線1 起點 X")]
+		public int Line1StartX { get; set; } = 0;
+		/// <summary>線1 起點 Y</summary>
+		[DisplayName("線1 起點 Y")]
+		public int Line1StartY { get; set; } = 0;
+		/// <summary>線1 終點 X</summary>
+		[DisplayName("線1 終點 X")]
+		public int Line1EndX { get; set; } = 100;
+		/// <summary>線1 終點 Y</summary>
+		[DisplayName("線1 終點 Y")]
+		public int Line1EndY { get; set; } = 0;
+		/// <summary>線2 起點 X</summary>
+		[DisplayName("線2 起點 X")]
+		public int Line2StartX { get; set; } = 0;
+		/// <summary>線2 起點 Y</summary>
+		[DisplayName("線2 起點 Y")]
+		public int Line2StartY { get; set; } = 50;
+		/// <summary>線2 終點 X</summary>
+		[DisplayName("線2 終點 X")]
+		public int Line2EndX { get; set; } = 100;
+		/// <summary>線2 終點 Y</summary>
+		[DisplayName("線2 終點 Y")]
+		public int Line2EndY { get; set; } = 50;
+
+		/// <summary>每像素對應的實際長度 (毫米/像素)</summary>
+		[DisplayName("像素比例 (mm/px)")]
+		public double PixelScale { get; set; } = 0.1;
+
+		/// <summary>結果顯示單位</summary>
+		[DisplayName("顯示單位")]
+		public string DisplayUnit { get; set; } = "mm";
+
+		/// <summary>結果顯示的小數位數</summary>
+		[DisplayName("小數位數")]
+		public int DecimalPlaces { get; set; } = 2;
+
+		/// <summary>是否在影像上繪製結果</summary>
+		[DisplayName("繪製結果")]
+		public bool DrawOnImage { get; set; } = true;
+	}
+
+	// ===== 15. 影像處理擴充工具 (Image Processing - AISYS OVK 對應) =====
+
+	/// <summary>算術邏輯運算參數 (對應 AxImageALops)</summary>
+	public class ImageArithmeticParameters
+	{
+		/// <summary>運算類型</summary>
+		public enum OperationType
+		{
+			/// <summary>加法</summary>
+			Add,
+			/// <summary>減法</summary>
+			Subtract,
+			/// <summary>乘法</summary>
+			Multiply,
+			/// <summary>除法</summary>
+			Divide,
+			/// <summary>位元 AND</summary>
+			BitwiseAnd,
+			/// <summary>位元 OR</summary>
+			BitwiseOr,
+			/// <summary>位元 XOR</summary>
+			BitwiseXor,
+			/// <summary>位元 NOT</summary>
+			BitwiseNot,
+			/// <summary>絕對差值</summary>
+			AbsDiff,
+			/// <summary>最大值</summary>
+			Max,
+			/// <summary>最小值</summary>
+			Min,
+		}
+
+		/// <summary>選擇運算類型</summary>
+		[DisplayName("運算類型")] [Description("影像算術邏輯運算類型")]
+		public OperationType Operation { get; set; } = OperationType.Add;
+
+		/// <summary>第二張影像路徑 (用於雙運算元運算)</summary>
+		[DisplayName("第二影像路徑")] [Description("用於雙運算元運算的第二張影像 (BitwiseNot 除外)")]
+		public string SecondImagePath { get; set; } = "";
+
+		/// <summary>純量值 (用於影像+純量運算)</summary>
+		[DisplayName("純量值")] [Description("用於 Add/Subtract 時的純量值 (0~255)")]
+		public int ScalarValue { get; set; } = 50;
+
+		/// <summary>是否使用純量而非第二影像</summary>
+		[DisplayName("使用純量")] [Description("使用純量進行運算，而非第二張影像")]
+		public bool UseScalar { get; set; } = true;
+	}
+
+	/// <summary>對比亮度調整參數 (對應 AxImageGainOffset)</summary>
+	public class GainOffsetParameters
+	{
+		/// <summary>對比度 (Gain/Alpha)，1.0 為原始</summary>
+		[DisplayName("對比度 (Gain)")] [Description("對比度調整，1.0 為原始，大於 1 增加對比")]
+		public double Gain { get; set; } = 1.0;
+
+		/// <summary>亮度偏移 (Offset/Beta)</summary>
+		[DisplayName("亮度 (Offset)")] [Description("亮度偏移，0 為原始，正值調亮，負值調暗")]
+		public double Offset { get; set; } = 0;
+	}
+
+	/// <summary>LUT 色彩轉換參數 (對應 AxImageLut)</summary>
+	public class LutParameters
+	{
+		/// <summary>預設 LUT 類型</summary>
+		public enum LutPreset
+		{
+			/// <summary>反相</summary>
+			Invert,
+			/// <summary>Gamma 校正</summary>
+			Gamma,
+			/// <summary>對數</summary>
+			Log,
+			/// <summary>自訂</summary>
+			Custom,
+		}
+
+		/// <summary>選擇 LUT 預設類型</summary>
+		[DisplayName("LUT 類型")]
+		public LutPreset Preset { get; set; } = LutPreset.Invert;
+
+		/// <summary>Gamma 值 (用於 Gamma 校正)</summary>
+		[DisplayName("Gamma 值")] [Description("Gamma 校正值，小於 1 調亮，大於 1 調暗")]
+		public double GammaValue { get; set; } = 1.0;
+
+		/// <summary>自訂 LUT 表格 (256 個值，以分號分隔)</summary>
+		[DisplayName("自訂 LUT")] [Description("256 個值 (0~255)，以分號分隔")]
+		public string CustomLut { get; set; } = "";
+	}
+
+	/// <summary>影像投影參數 (對應 AxImageProjector)</summary>
+	public class ImageProjectionParameters
+	{
+		/// <summary>投影方向</summary>
+		public enum ProjectionDirection
+		{
+			/// <summary>水平投影 (沿 X 軸累加，輸出列向量)</summary>
+			Horizontal,
+			/// <summary>垂直投影 (沿 Y 軸累加，輸出行向量)</summary>
+			Vertical,
+		}
+
+		/// <summary>選擇投影方向</summary>
+		[DisplayName("投影方向")]
+		public ProjectionDirection Direction { get; set; } = ProjectionDirection.Horizontal;
+
+		/// <summary>累加方式</summary>
+		public enum ReduceType
+		{
+			/// <summary>總和</summary>
+			Sum,
+			/// <summary>平均</summary>
+			Average,
+			/// <summary>最大值</summary>
+			Max,
+			/// <summary>最小值</summary>
+			Min,
+		}
+
+		/// <summary>選擇累加方式</summary>
+		[DisplayName("累加方式")]
+		public ReduceType Type { get; set; } = ReduceType.Average;
+
+		/// <summary>是否繪製投影圖表</summary>
+		[DisplayName("繪製投影圖")] [Description("在影像邊緣繪製投影結果圖表")]
+		public bool DrawProjection { get; set; } = true;
+	}
+
+	/// <summary>對焦評估參數 (對應 AxImageFocusRatio)</summary>
+	public class FocusRatioParameters
+	{
+		/// <summary>評估方法</summary>
+		public enum FocusMethod
+		{
+			/// <summary>Laplacian 方差</summary>
+			LaplacianVariance,
+			/// <summary>Sobel 梯度</summary>
+			SobelGradient,
+			/// <summary>Tenengrad (Sobel 平方和)</summary>
+			Tenengrad,
+		}
+
+		/// <summary>選擇對焦評估方法</summary>
+		[DisplayName("評估方法")]
+		public FocusMethod Method { get; set; } = FocusMethod.LaplacianVariance;
+
+		/// <summary>是否在影像上顯示對焦分數</summary>
+		[DisplayName("顯示分數")]
+		public bool ShowScore { get; set; } = true;
+	}
+
+	/// <summary>色版分離參數 (對應 AxImageRgbSeparator 等)</summary>
+	public class ChannelSeparatorParameters
+	{
+		/// <summary>色彩空間類型</summary>
+		public enum ColorSpaceType
+		{
+			/// <summary>RGB</summary>
+			RGB,
+			/// <summary>HSV</summary>
+			HSV,
+			/// <summary>HSI</summary>
+			HSI,
+			/// <summary>Lab</summary>
+			Lab,
+			/// <summary>Luv</summary>
+			Luv,
+			/// <summary>XYZ</summary>
+			XYZ,
+			/// <summary>YCrCb</summary>
+			YCrCb,
+		}
+
+		/// <summary>選擇色彩空間</summary>
+		[DisplayName("色彩空間")]
+		public ColorSpaceType ColorSpace { get; set; } = ColorSpaceType.RGB;
+
+		/// <summary>選擇輸出通道 (0/1/2)</summary>
+		[DisplayName("輸出通道")] [Description("選擇輸出的通道索引 (0=第一通道)")]
+		public int ChannelIndex { get; set; } = 0;
+	}
+
+	/// <summary>RGB 色版合成參數 (對應 AxImageRgbComposer)</summary>
+	public class RgbComposerParameters
+	{
+		/// <summary>紅色通道影像路徑</summary>
+		[DisplayName("R 通道影像")]
+		public string RedChannelPath { get; set; } = "";
+
+		/// <summary>綠色通道影像路徑</summary>
+		[DisplayName("G 通道影像")]
+		public string GreenChannelPath { get; set; } = "";
+
+		/// <summary>藍色通道影像路徑</summary>
+		[DisplayName("B 通道影像")]
+		public string BlueChannelPath { get; set; } = "";
+	}
 }

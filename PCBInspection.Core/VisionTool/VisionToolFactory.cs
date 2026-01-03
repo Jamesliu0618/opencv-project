@@ -30,6 +30,8 @@ namespace PCBInspection.Core.Services
 			AddCalibrationTools(tools);
 			AddAnalysisTools(tools);
 			AddBackgroundDefectTools(tools);
+			AddGeometryMeasurementTools(tools);
+			AddImageProcessingTools(tools);
 
 			// Wrap calls with logging
 			var wrappedTools = new List<ToolDefinition>();
