@@ -44,6 +44,9 @@ namespace PCBInspection.UI
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.btnTsUndo = new System.Windows.Forms.ToolStripButton();
             this.btnTsRedo = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnTsBatch = new System.Windows.Forms.ToolStripButton();
+            this.btnTsRecipe = new System.Windows.Forms.ToolStripButton();
             
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.lblStatusMain = new System.Windows.Forms.ToolStripStatusLabel();
@@ -126,7 +129,10 @@ namespace PCBInspection.UI
             this.btnTsRoiPoly,
             this.toolStripSeparator5,
             this.btnTsUndo,
-            this.btnTsRedo});
+            this.btnTsRedo,
+            this.toolStripSeparator6,
+            this.btnTsBatch,
+            this.btnTsRecipe});
             this.toolStripMain.Location = new System.Drawing.Point(0, 0);
             this.toolStripMain.Name = "toolStripMain";
             this.toolStripMain.Size = new System.Drawing.Size(1264, 45);
@@ -155,6 +161,13 @@ namespace PCBInspection.UI
             this.btnTsUndo.ForeColor = System.Drawing.Color.Black;
             this.btnTsRedo.Text = "↪";
             this.btnTsRedo.ForeColor = System.Drawing.Color.Black;
+
+            this.btnTsBatch.Text = "▦ 批次";
+            this.btnTsBatch.ForeColor = System.Drawing.Color.DarkBlue;
+            this.btnTsBatch.ToolTipText = "批次處理";
+            this.btnTsRecipe.Text = "☰ 配方";
+            this.btnTsRecipe.ForeColor = System.Drawing.Color.DarkGreen;
+            this.btnTsRecipe.ToolTipText = "配方管理器";
 
             // 
             // btnTsNew
@@ -406,6 +419,9 @@ namespace PCBInspection.UI
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
         private System.Windows.Forms.ToolStripButton btnTsUndo;
         private System.Windows.Forms.ToolStripButton btnTsRedo;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator6;
+        private System.Windows.Forms.ToolStripButton btnTsBatch;
+        private System.Windows.Forms.ToolStripButton btnTsRecipe;
 
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel lblStatusMain;

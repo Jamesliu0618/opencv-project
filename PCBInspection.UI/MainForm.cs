@@ -209,6 +209,10 @@ namespace PCBInspection.UI
 			btnTsUndo.Click += (s, e) => PerformUndo();
 			btnTsRedo.Click += (s, e) => PerformRedo();
 
+			// Toolbar - Batch & Recipe
+			btnTsBatch.Click  += (s, e) => OpenBatchProcessing();
+			btnTsRecipe.Click += (s, e) => OpenRecipeManager();
+
 			// Toolbox
 			tvTools.NodeMouseDoubleClick += (s, e) => AddToolToSequence(e.Node);
 
@@ -1084,6 +1088,69 @@ namespace PCBInspection.UI
 				currentMat?.Dispose();
 				roiMask?.Dispose();
 			}
+		}
+
+		/// <summary>開啟批次處理對話框</summary>
+		private void OpenBatchProcessing()
+		{
+			using (var form = new BatchProcessingForm())
+			{
+				form.ShowDialog(this);
+			}
+		}
+
+		/// <summary>開啟配方管理器對話框</summary>
+		private void OpenRecipeManager()
+		{
+			using (var form = new RecipeManagerForm())
+			{
+				if (form.ShowDialog(this) == DialogResult.OK && form.SelectedRecipe != null)
+				{
+					// 載入選取的配方到工具序列
+					LoadRecipeToSequence(form.SelectedRecipe);
+				}
+			}
+		}
+
+		/// <summary>載入配方到工具序列</summary>
+		private void LoadRecipeToSequence(Core.Models.Recipe recipe)
+		{
+			if (recipe == null || recipe.Steps == null || recipe.Steps.Count == 0)
+			{
+				Log("配方不包含任何步驟", TraceLevel.Warning);
+				return;
+			}
+
+			// 清空現有序列
+			_sequence.Clear();
+			dgvSequence.Rows.Clear();
+
+			var allTools = VisionToolFactory.GetAllTools();
+
+			foreach (var step in recipe.Steps)
+			{
+				if (!step.Enabled) continue;
+
+				var toolDef = allTools.FirstOrDefault(t => t.Name == step.ToolName);
+				if (toolDef == null)
+				{
+					Log($"找不到工具: {step.ToolName}", TraceLevel.Warning);
+					continue;
+				}
+
+				var item = new InspectionItem
+				{
+					Name       = toolDef.Name,
+					Action     = toolDef.Action,
+					Parameters = Activator.CreateInstance(toolDef.DefaultParameters.GetType()),
+				};
+				CopyProperties(toolDef.DefaultParameters, item.Parameters);
+				_sequence.Add(item);
+				int idx = dgvSequence.Rows.Add(item.Name, "", "Wait");
+				dgvSequence.Rows[idx].Tag = item;
+			}
+
+			Log($"已載入配方: {recipe.Name} ({recipe.Steps.Count} 步驟)", TraceLevel.Info);
 		}
 
 		private class InspectionItem
