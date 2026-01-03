@@ -46,6 +46,15 @@ namespace PCBInspection.UI
 		// 循環執行相關
 		/// <summary>循環執行專用計時器</summary>
 		private System.Windows.Forms.Timer _loopTimer;
+
+		/// <summary>Singleton instance for accessing from property editors</summary>
+		public static MainForm Instance { get; private set; }
+
+		/// <summary>取得當前檢測到的物件列表</summary>
+		public List<DetectedObject> GetDetectedObjects()
+		{
+			return _lastDetectedObjects ?? new List<DetectedObject>();
+		}
 		
 		/// <summary>目前正在循環執行的步驟索引</summary>
 		private int                        _loopStepIndex = -1;

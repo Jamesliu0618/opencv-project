@@ -41,10 +41,10 @@ namespace PCBInspection.Core.Services
 					if (pp.Mode == AngleMeasurementParameters.AngleMode.ThreePoints)
 					{
 						// 三點夾角計算：頂點 V，端點 P1 和 P2
-						double v1x = pp.Point1X - pp.VertexX;
-						double v1y = pp.Point1Y - pp.VertexY;
-						double v2x = pp.Point2X - pp.VertexX;
-						double v2y = pp.Point2Y - pp.VertexY;
+						double v1x = pp.Point1.X - pp.Vertex.X;
+						double v1y = pp.Point1.Y - pp.Vertex.Y;
+						double v2x = pp.Point2.X - pp.Vertex.X;
+						double v2y = pp.Point2.Y - pp.Vertex.Y;
 
 						double dot      = v1x * v2x + v1y * v2y;
 						double mag1     = Math.Sqrt(v1x * v1x + v1y * v1y);
@@ -55,20 +55,20 @@ namespace PCBInspection.Core.Services
 
 						if (pp.DrawOnImage)
 						{
-							Cv2.Line(result, new Point(pp.VertexX, pp.VertexY), new Point(pp.Point1X, pp.Point1Y), color, 2);
-							Cv2.Line(result, new Point(pp.VertexX, pp.VertexY), new Point(pp.Point2X, pp.Point2Y), color, 2);
-							Cv2.Circle(result, new Point(pp.VertexX, pp.VertexY), 5, color, -1);
-							Cv2.Circle(result, new Point(pp.Point1X, pp.Point1Y), 4, color, -1);
-							Cv2.Circle(result, new Point(pp.Point2X, pp.Point2Y), 4, color, -1);
+							Cv2.Line(result, new Point(pp.Vertex.X, pp.Vertex.Y), new Point(pp.Point1.X, pp.Point1.Y), color, 2);
+							Cv2.Line(result, new Point(pp.Vertex.X, pp.Vertex.Y), new Point(pp.Point2.X, pp.Point2.Y), color, 2);
+							Cv2.Circle(result, new Point(pp.Vertex.X, pp.Vertex.Y), 5, color, -1);
+							Cv2.Circle(result, new Point(pp.Point1.X, pp.Point1.Y), 4, color, -1);
+							Cv2.Circle(result, new Point(pp.Point2.X, pp.Point2.Y), 4, color, -1);
 						}
 					}
 					else
 					{
 						// 兩線夾角計算
-						double d1x = pp.Line1EndX - pp.Line1StartX;
-						double d1y = pp.Line1EndY - pp.Line1StartY;
-						double d2x = pp.Line2EndX - pp.Line2StartX;
-						double d2y = pp.Line2EndY - pp.Line2StartY;
+						double d1x = pp.Line1End.X - pp.Line1Start.X;
+						double d1y = pp.Line1End.Y - pp.Line1Start.Y;
+						double d2x = pp.Line2End.X - pp.Line2Start.X;
+						double d2y = pp.Line2End.Y - pp.Line2Start.Y;
 
 						double dot      = d1x * d2x + d1y * d2y;
 						double mag1     = Math.Sqrt(d1x * d1x + d1y * d1y);
@@ -79,8 +79,8 @@ namespace PCBInspection.Core.Services
 
 						if (pp.DrawOnImage)
 						{
-							Cv2.Line(result, new Point(pp.Line1StartX, pp.Line1StartY), new Point(pp.Line1EndX, pp.Line1EndY), color, 2);
-							Cv2.Line(result, new Point(pp.Line2StartX, pp.Line2StartY), new Point(pp.Line2EndX, pp.Line2EndY), new Scalar(255, 255, 0), 2);
+							Cv2.Line(result, new Point(pp.Line1Start.X, pp.Line1Start.Y), new Point(pp.Line1End.X, pp.Line1End.Y), color, 2);
+							Cv2.Line(result, new Point(pp.Line2Start.X, pp.Line2Start.Y), new Point(pp.Line2End.X, pp.Line2End.Y), new Scalar(255, 255, 0), 2);
 						}
 					}
 
@@ -89,8 +89,8 @@ namespace PCBInspection.Core.Services
 
 					if (pp.DrawOnImage)
 					{
-						int textX = pp.Mode == AngleMeasurementParameters.AngleMode.ThreePoints ? pp.VertexX + 10 : (pp.Line1StartX + pp.Line1EndX) / 2;
-						int textY = pp.Mode == AngleMeasurementParameters.AngleMode.ThreePoints ? pp.VertexY - 10 : (pp.Line1StartY + pp.Line1EndY) / 2;
+						int textX = pp.Mode == AngleMeasurementParameters.AngleMode.ThreePoints ? pp.Vertex.X + 10 : (pp.Line1Start.X + pp.Line1End.X) / 2;
+						int textY = pp.Mode == AngleMeasurementParameters.AngleMode.ThreePoints ? pp.Vertex.Y - 10 : (pp.Line1Start.Y + pp.Line1End.Y) / 2;
 						Cv2.PutText(result, text, new Point(textX, textY), HersheyFonts.HersheySimplex, 0.7, color, 2);
 					}
 
@@ -122,10 +122,10 @@ namespace PCBInspection.Core.Services
 					Scalar colorMarker = new Scalar(0, 0, 255);
 
 					// 計算交點 (使用向量叉積法)
-					double x1 = pp.Line1StartX, y1 = pp.Line1StartY;
-					double x2 = pp.Line1EndX,   y2 = pp.Line1EndY;
-					double x3 = pp.Line2StartX, y3 = pp.Line2StartY;
-					double x4 = pp.Line2EndX,   y4 = pp.Line2EndY;
+					double x1 = pp.Line1Start.X, y1 = pp.Line1Start.Y;
+					double x2 = pp.Line1End.X,   y2 = pp.Line1End.Y;
+					double x3 = pp.Line2Start.X, y3 = pp.Line2Start.Y;
+					double x4 = pp.Line2End.X,   y4 = pp.Line2End.Y;
 
 					double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
@@ -180,12 +180,12 @@ namespace PCBInspection.Core.Services
 					Scalar colorDist  = new Scalar(255, 255, 0);
 
 					// 點到直線距離公式: |ax + by + c| / sqrt(a² + b²)
-					double x0 = pp.PointX;
-					double y0 = pp.PointY;
-					double x1 = pp.LineStartX;
-					double y1 = pp.LineStartY;
-					double x2 = pp.LineEndX;
-					double y2 = pp.LineEndY;
+					double x0 = pp.TargetPoint.X;
+					double y0 = pp.TargetPoint.Y;
+					double x1 = pp.LineStart.X;
+					double y1 = pp.LineStart.Y;
+					double x2 = pp.LineEnd.X;
+					double y2 = pp.LineEnd.Y;
 
 					double dx       = x2 - x1;
 					double dy       = y2 - y1;
@@ -420,11 +420,11 @@ namespace PCBInspection.Core.Services
 					Scalar colorGap   = new Scalar(0, 0, 255);
 
 					// 計算線1中點到線2的距離 (假定兩線近乎平行)
-					double midX = (pp.Line1StartX + pp.Line1EndX) / 2.0;
-					double midY = (pp.Line1StartY + pp.Line1EndY) / 2.0;
+					double midX = (pp.Line1Start.X + pp.Line1End.X) / 2.0;
+					double midY = (pp.Line1Start.Y + pp.Line1End.Y) / 2.0;
 
-					double x1 = pp.Line2StartX, y1 = pp.Line2StartY;
-					double x2 = pp.Line2EndX,   y2 = pp.Line2EndY;
+					double x1 = pp.Line2Start.X, y1 = pp.Line2Start.Y;
+					double x2 = pp.Line2End.X,   y2 = pp.Line2End.Y;
 					double dx = x2 - x1, dy = y2 - y1;
 					double lineMag = Math.Sqrt(dx * dx + dy * dy);
 					double distPx  = Math.Abs((y2 - y1) * midX - (x2 - x1) * midY + x2 * y1 - y2 * x1) / (lineMag + 1e-10);
@@ -445,8 +445,8 @@ namespace PCBInspection.Core.Services
 
 					if (pp.DrawOnImage)
 					{
-						Cv2.Line(result, new Point(pp.Line1StartX, pp.Line1StartY), new Point(pp.Line1EndX, pp.Line1EndY), colorLine1, 2);
-						Cv2.Line(result, new Point(pp.Line2StartX, pp.Line2StartY), new Point(pp.Line2EndX, pp.Line2EndY), colorLine2, 2);
+						Cv2.Line(result, new Point(pp.Line1Start.X, pp.Line1Start.Y), new Point(pp.Line1End.X, pp.Line1End.Y), colorLine1, 2);
+						Cv2.Line(result, new Point(pp.Line2Start.X, pp.Line2Start.Y), new Point(pp.Line2End.X, pp.Line2End.Y), colorLine2, 2);
 						Cv2.Line(result, new Point((int)midX, (int)midY), new Point((int)fx, (int)fy), colorGap, 2, LineTypes.AntiAlias);
 						Cv2.Circle(result, new Point((int)midX, (int)midY), 4, colorGap, -1);
 						Cv2.Circle(result, new Point((int)fx, (int)fy), 4, colorGap, -1);
