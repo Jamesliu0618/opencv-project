@@ -35,6 +35,31 @@ namespace PCBInspection.Core.Services
 					{
 						Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 					}
+					else if(result.Channels() == 4)
+					{
+						Cv2.CvtColor(result, result, ColorConversionCodes.BGRA2BGR);
+					}
+
+					if(pp.UseObjectReference && pp.ContextDefects != null)
+					{
+						var objStart = pp.ContextDefects.FirstOrDefault(d => d.Id == pp.StartObjectId);
+						var objEnd   = pp.ContextDefects.FirstOrDefault(d => d.Id == pp.EndObjectId);
+
+						if(objStart != null && objStart.BoundingBox != null && objStart.BoundingBox.Length >= 4)
+						{
+							pp.StartX = objStart.BoundingBox[0] + objStart.BoundingBox[2] / 2;
+							pp.StartY = objStart.BoundingBox[1] + objStart.BoundingBox[3] / 2;
+							OnLog?.Invoke($"[測量] 起點使用物件 #{objStart.Id} ({pp.StartX}, {pp.StartY})", false);
+						}
+
+						if(objEnd != null && objEnd.BoundingBox != null && objEnd.BoundingBox.Length >= 4)
+						{
+							pp.EndX = objEnd.BoundingBox[0] + objEnd.BoundingBox[2] / 2;
+							pp.EndY = objEnd.BoundingBox[1] + objEnd.BoundingBox[3] / 2;
+							OnLog?.Invoke($"[測量] 終點使用物件 #{objEnd.Id} ({pp.EndX}, {pp.EndY})", false);
+						}
+					}
+
 					double dx       = pp.EndX - pp.StartX;
 					double dy       = pp.EndY - pp.StartY;
 					double distPx   = Math.Sqrt(dx * dx + dy * dy);
@@ -54,12 +79,13 @@ namespace PCBInspection.Core.Services
 
 					if(pp.DrawOnImage)
 					{
-						Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Green, 2);
-						Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, Scalar.Green, -1);
-						Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, Scalar.Green,   -1);
+						Scalar brightGreen = new Scalar(0, 255, 0);
+						Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), brightGreen, 2);
+						Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, brightGreen, -1);
+						Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, brightGreen,   -1);
 						int midX = (pp.StartX + pp.EndX) / 2;
 						int midY = (pp.StartY + pp.EndY) / 2;
-						Cv2.PutText(result, text, new Point(midX + 5, midY - 5), HersheyFonts.HersheySimplex, 0.6, Scalar.Green, 2);
+						Cv2.PutText(result, text, new Point(midX + 5, midY - 5), HersheyFonts.HersheySimplex, 0.6, brightGreen, 2);
 					}
 					OnLog?.Invoke($"[測量] 距離: {text} (像素: {distPx:F2})", false);
 					return (true, result, new List<Defect>());
@@ -80,6 +106,11 @@ namespace PCBInspection.Core.Services
 					{
 						Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 					}
+					else if(result.Channels() == 4)
+					{
+						Cv2.CvtColor(result, result, ColorConversionCodes.BGRA2BGR);
+					}
+
 					var gray = new Mat();
 
 					if(img.Channels() >= 3)
@@ -93,6 +124,7 @@ namespace PCBInspection.Core.Services
 					Cv2.FindContours(gray, out Point[][] contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
 					var defects = new List<Defect>();
 					int idx     = 0;
+					Scalar brightGreen = new Scalar(0, 255, 0);
 
 					foreach(var contour in contours)
 					{
@@ -116,30 +148,30 @@ namespace PCBInspection.Core.Services
 
 						if(pp.ComputeBoundingRect)
 						{
-							Cv2.Rectangle(result, rect, Scalar.Green);
+							Cv2.Rectangle(result, rect, brightGreen);
 						}
 
 						if(pp.ComputeMinAreaRect)
 						{
 							Point[] pts = Cv2.BoxPoints(minRect).Select(pt => new Point((int)pt.X, (int)pt.Y)).ToArray();
-							Cv2.Polylines(result, new[] { pts }, true, Scalar.Green);
+							Cv2.Polylines(result, new[] { pts }, true, brightGreen);
 						}
 
 						if(pp.ComputeMinEnclosingCircle)
 						{
 							Cv2.MinEnclosingCircle(contour, out Point2f center, out float radius);
-							Cv2.Circle(result, (int)center.X, (int)center.Y, (int)radius, Scalar.Green);
+							Cv2.Circle(result, (int)center.X, (int)center.Y, (int)radius, brightGreen);
 						}
 
 						if(pp.ComputeConvexHull)
 						{
 							Point[] hull = Cv2.ConvexHull(contour);
-							Cv2.Polylines(result, new[] { hull }, true, Scalar.Green);
+							Cv2.Polylines(result, new[] { hull }, true, brightGreen);
 						}
 
 						if(pp.LabelObjectIndex)
 						{
-							Cv2.PutText(result, $"#{idx + 1}", new Point(rect.X, rect.Y - 5), HersheyFonts.HersheySimplex, 0.4, Scalar.Green);
+							Cv2.PutText(result, $"#{idx + 1}", new Point(rect.X, rect.Y - 5), HersheyFonts.HersheySimplex, 0.4, brightGreen);
 						}
 
 						defects.Add(new Defect
@@ -193,6 +225,10 @@ namespace PCBInspection.Core.Services
 					{
 						Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 					}
+					else if(result.Channels() == 4)
+					{
+						Cv2.CvtColor(result, result, ColorConversionCodes.BGRA2BGR);
+					}
 
 					// 計算並可選繪製直方圖
 					using(Mat hist = new Mat())
@@ -208,11 +244,12 @@ namespace PCBInspection.Core.Services
 							int offsetX = result.Width  - histW - 10;
 							int offsetY = result.Height - histH - 10;
 							Cv2.Rectangle(result, new Rect(offsetX - 2, offsetY - 2, histW + 4, histH + 4), Scalar.Black, -1);
-
+							
+							Scalar brightGreen = new Scalar(0, 255, 0);
 							for(int i = 0; i < 256; i++)
 							{
 								int h = (int)hist.At<float>(i);
-								Cv2.Line(result, new Point(offsetX + i, offsetY + histH), new Point(offsetX + i, offsetY + histH - h), Scalar.Green);
+								Cv2.Line(result, new Point(offsetX + i, offsetY + histH), new Point(offsetX + i, offsetY + histH - h), brightGreen);
 							}
 						}
 					}
@@ -235,6 +272,11 @@ namespace PCBInspection.Core.Services
 					{
 						Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 					}
+					else if(result.Channels() == 4)
+					{
+						Cv2.CvtColor(result, result, ColorConversionCodes.BGRA2BGR);
+					}
+
 					Mat gray = new Mat();
 
 					if(img.Channels() >= 3)
@@ -262,9 +304,10 @@ namespace PCBInspection.Core.Services
 					}
 
 					// 繪製剖面線標示
-					Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Green, 2);
-					Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, Scalar.Green, -1);
-					Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, Scalar.Green,   -1);
+					Scalar brightGreen = new Scalar(0, 255, 0);
+					Cv2.Line(result, new Point(pp.StartX,   pp.StartY), new Point(pp.EndX, pp.EndY), brightGreen, 2);
+					Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, brightGreen, -1);
+					Cv2.Circle(result, new Point(pp.EndX,   pp.EndY),   4, brightGreen,   -1);
 
 					// 繪製小型剖面圖在影像右下角
 					int graphW  = Math.Min(256, length);
@@ -279,7 +322,7 @@ namespace PCBInspection.Core.Services
 						int idx2 = i                                             * profileData.Count / graphW;
 						int y1   = offsetY + graphH - profileData[idx1] * graphH / 255;
 						int y2   = offsetY + graphH - profileData[idx2] * graphH / 255;
-						Cv2.Line(result, new Point(offsetX + i - 1, y1), new Point(offsetX + i, y2), Scalar.Green);
+						Cv2.Line(result, new Point(offsetX + i - 1, y1), new Point(offsetX + i, y2), brightGreen);
 					}
 
 					if(pp.OutputToCsv && !string.IsNullOrEmpty(pp.CsvOutputPath))

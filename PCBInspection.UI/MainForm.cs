@@ -1382,6 +1382,20 @@ namespace PCBInspection.UI
 			RunToStep(_loopStepIndex);
 		}
 
+		private void InjectContext(object parameters, List<Defect> defects)
+		{
+			if(parameters == null || defects == null) return;
+			try
+			{
+				var prop = parameters.GetType().GetProperty("ContextDefects");
+				if(prop != null)
+				{
+					prop.SetValue(parameters, new List<Defect>(defects)); // Clone/Copy reference
+				}
+			}
+			catch { }
+		}
+
 		/// <summary>執行到指定步驟 (從原始影像開始)</summary>
 		private void RunToStep(int targetStep)
 		{
@@ -1394,6 +1408,7 @@ namespace PCBInspection.UI
 			{
 				Mat currentMat = _originalImage.ToMat();
 				var sw         = System.Diagnostics.Stopwatch.StartNew();
+				var accumulatedDefects = new List<Defect>(); // 累積所有步驟產生的缺陷上下文
 
 				for (int i = 0; i <= targetStep; i++)
 				{
@@ -1402,6 +1417,9 @@ namespace PCBInspection.UI
 
 					try
 					{
+						// 注入上下文缺陷
+						InjectContext(item.Parameters, accumulatedDefects);
+
 						var result = item.Action(currentMat, item.Parameters);
 						sw.Stop();
 						row.Cells["colTime"].Value = $"{sw.ElapsedMilliseconds}ms";
@@ -1414,6 +1432,9 @@ namespace PCBInspection.UI
 							item.LastResultImage?.Dispose();
 							item.LastResultImage = result.ResultImage.ToBitmap();
 							item.LastDefects     = result.Defects ?? new List<Defect>();
+							
+							// 累積缺陷到上下文列表中 (供後續步驟使用)
+							accumulatedDefects.AddRange(item.LastDefects);
 
 							var oldMat = currentMat;
 							currentMat = result.ResultImage;

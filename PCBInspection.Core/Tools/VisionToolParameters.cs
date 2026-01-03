@@ -1,5 +1,8 @@
 using OpenCvSharp;
 using System.ComponentModel;
+using System.Collections.Generic;
+using System.Xml.Serialization;
+using PCBInspection.Core.Models;
 
 namespace PCBInspection.Core.Tools
 {
@@ -763,6 +766,26 @@ namespace PCBInspection.Core.Tools
 		/// <summary>是否在輸出影像上標註測量結果</summary>
 		[DisplayName("顯示結果於影像")] [Description("是否將測量結果標註在輸出影像上")]
 		public bool DrawOnImage { get; set; } = true;
+
+		/// <summary>是否使用物件編號做為測量參考點</summary>
+		[Category("物件參考")]
+		[DisplayName("使用物件參考")] [Description("啟用後將使用指定編號的物件中心點進行測量，而非手動座標")]
+		public bool UseObjectReference { get; set; } = false;
+
+		/// <summary>起點參考的物件編號 (例如: "1")</summary>
+		[Category("物件參考")]
+		[DisplayName("起點物件編號")] [Description("測量起點參考的物件編號 (需搭配前置的物件分析步驟)")]
+		public string StartObjectId { get; set; } = "1";
+
+		/// <summary>終點參考的物件編號 (例如: "2")</summary>
+		[Category("物件參考")]
+		[DisplayName("終點物件編號")] [Description("測量終點參考的物件編號")]
+		public string EndObjectId { get; set; } = "2";
+
+		/// <summary>上下文缺陷列表 (執行時自動注入，不顯示)</summary>
+		[Browsable(false)]
+		[XmlIgnore]
+		public List<Defect> ContextDefects { get; set; }
 	}
 
 	/// <summary>物件特徵分析參數</summary>
