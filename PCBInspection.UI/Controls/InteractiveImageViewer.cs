@@ -59,6 +59,14 @@ namespace PCBInspection.UI.Controls
             this.Cursor = Cursors.Hand;
         }
 
+        public string GetDebugInfo()
+        {
+            return $"Scale={_scale:F3}, Offset={_offsetX:F1},{_offsetY:F1}, " +
+                   $"CtlSize={Width}x{Height}, Dock={Dock}, Parent={Parent?.Name} ({Parent?.Width}x{Parent?.Height}), " +
+                   $"ImgSize={(_image == null ? "null" : $"{_image.Width}x{_image.Height}")}, " +
+                   $"Visible={Visible}, Mode={Mode}";
+        }
+
         // --- Transformation Helpers ---
 
         public void FitToWindow()
@@ -133,12 +141,32 @@ namespace PCBInspection.UI.Controls
             base.OnPaint(e);
             
             var g = e.Graphics;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor; // Pixelated for precise inspection
+            g.InterpolationMode = InterpolationMode.NearestNeighbor; 
             g.PixelOffsetMode = PixelOffsetMode.Half;
+
+            // Draw Debug String FIRST to ensure visibility
+            try 
+            {
+                string debugText = $"[DEBUG] Ctl: {Width}x{Height}, Scale: {_scale:F2}, Offset: {_offsetX:F0},{_offsetY:F0}";
+                if (_image != null) 
+                    debugText += $" | Img: {_image.Width}x{_image.Height} | PixelFmt: {_image.PixelFormat}";
+                else 
+                    debugText += " | Img: NULL";
+                
+                g.DrawString(debugText, SystemFonts.DefaultFont, Brushes.Red, 10, 10);
+            }
+            catch { /* Ignore Font errors */ }
 
             if (_image != null)
             {
-                g.DrawImage(_image, _offsetX, _offsetY, _image.Width * _scale, _image.Height * _scale);
+                try
+                {
+                    g.DrawImage(_image, _offsetX, _offsetY, _image.Width * _scale, _image.Height * _scale);
+                }
+                catch (Exception ex)
+                {
+                    g.DrawString($"[DRAW ERROR] {ex.GetType().Name}: {ex.Message}", SystemFonts.DefaultFont, Brushes.Red, 10, 30);
+                }
             }
 
             // Draw ROIs

@@ -367,6 +367,7 @@ namespace PCBInspection.Core.Services
 
                     var gray = new Mat();
                     if (img.Channels() == 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+                    else if (img.Channels() == 4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
                     else img.CopyTo(gray);
 
                     // HoughCircles has built-in Canny

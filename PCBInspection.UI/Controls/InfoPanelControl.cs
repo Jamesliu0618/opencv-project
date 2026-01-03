@@ -459,40 +459,48 @@ namespace PCBInspection.UI.Controls
 
             using (var g = Graphics.FromImage(_histogramBitmap))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.FromArgb(45, 45, 48));
-
-                // 繪製網格線
-                using (var gridPen = new Pen(Color.FromArgb(70, 70, 70), 1) { DashStyle = DashStyle.Dot })
+                try
                 {
-                    for (int i = 50; i < 256; i += 50)
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.Clear(Color.FromArgb(45, 45, 48));
+
+                    // 繪製網格線
+                    using (var gridPen = new Pen(Color.FromArgb(70, 70, 70), 1) { DashStyle = DashStyle.Dot })
                     {
-                        float x = (float)i / 255 * width;
-                        g.DrawLine(gridPen, x, 0, x, height);
+                        for (int i = 50; i < 256; i += 50)
+                        {
+                            float x = (float)i / 255 * width;
+                            g.DrawLine(gridPen, x, 0, x, height);
+                        }
+                    }
+
+                    // 計算並繪製直方圖
+                    if (image.Channels() == 1)
+                    {
+                        DrawHistogramChannel(g, image, 0, Color.White, width, height);
+                    }
+                    else
+                    {
+                        // BGR 三通道
+                        Cv2.Split(image, out Mat[] ch);
+                        DrawHistogramChannel(g, ch[0], 0, Color.FromArgb(180, Color.Blue), width, height);
+                        DrawHistogramChannel(g, ch[1], 0, Color.FromArgb(180, Color.Lime), width, height);
+                        DrawHistogramChannel(g, ch[2], 0, Color.FromArgb(180, Color.Red), width, height);
+                        foreach (var c in ch) c.Dispose();
+                    }
+
+                    // X軸標籤
+                    using (var font = new Font("Consolas", 7f))
+                    using (var brush = new SolidBrush(Color.Gray))
+                    {
+                        g.DrawString("0", font, brush, 2, height - 12);
+                        g.DrawString("255", font, brush, width - 22, height - 12);
                     }
                 }
-
-                // 計算並繪製直方圖
-                if (image.Channels() == 1)
+                catch (Exception ex)
                 {
-                    DrawHistogramChannel(g, image, 0, Color.White, width, height);
-                }
-                else
-                {
-                    // BGR 三通道
-                    Cv2.Split(image, out Mat[] ch);
-                    DrawHistogramChannel(g, ch[0], 0, Color.FromArgb(180, Color.Blue), width, height);
-                    DrawHistogramChannel(g, ch[1], 0, Color.FromArgb(180, Color.Lime), width, height);
-                    DrawHistogramChannel(g, ch[2], 0, Color.FromArgb(180, Color.Red), width, height);
-                    foreach (var c in ch) c.Dispose();
-                }
-
-                // X軸標籤
-                using (var font = new Font("Consolas", 7f))
-                using (var brush = new SolidBrush(Color.Gray))
-                {
-                    g.DrawString("0", font, brush, 2, height - 12);
-                    g.DrawString("255", font, brush, width - 22, height - 12);
+                    // 在直方圖區域繪製錯誤訊息
+                     g.DrawString($"Histogram Error: {ex.Message}", SystemFonts.DefaultFont, Brushes.Red, 5, 5);
                 }
             }
 

@@ -41,6 +41,60 @@ namespace PCBInspection.UI
             InitializeToolbox();
             LoadToolbarIcons();
             WireEvents();
+            
+            this.Load += (s, e) => ForceLayoutFix();
+        }
+
+        private void ForceLayoutFix()
+        {
+            // 強制修正 Layout 問題
+            if (this.imageViewer != null && this.splitContainerCenterRight != null)
+            {
+                // 1. 強制重設父容器 (解決被 orphaned panel 搶走的問題)
+                if (this.imageViewer.Parent != this.splitContainerCenterRight.Panel1)
+                {
+                    Log($"[LayoutFix] Reparenting ImageViewer from {this.imageViewer.Parent?.Name ?? "null"} to SplitContainer.Panel1", TraceLevel.Warning);
+                    this.splitContainerCenterRight.Panel1.Controls.Add(this.imageViewer);
+                }
+
+                // 2. 設定 Dock 與 Z-Order
+                this.imageViewer.Dock = DockStyle.Fill;
+                this.thumbnailBar.Dock = DockStyle.Bottom;
+                
+                // 確保順序: ThumbnailBar (Bottom) 優先，ImageViewer (Fill) 其次
+                this.thumbnailBar.BringToFront(); 
+                
+                Log("[LayoutFix] Forced Dock=Fill for ImageViewer and Dock=Bottom for ThumbnailBar", TraceLevel.Info);
+            }
+        }
+
+        private void DumpLayoutInfo()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== Layout Debug Info ===");
+                sb.AppendLine($"MainForm: {this.Size}, State={this.WindowState}");
+                
+                if (splitContainerMain != null)
+                    sb.AppendLine($"SplitMain: {splitContainerMain.Size}, P1={splitContainerMain.Panel1.Size}, P2={splitContainerMain.Panel2.Size}, Splitter={splitContainerMain.SplitterDistance}");
+                
+                if (splitContainerCenterRight != null)
+                {
+                    var p1 = splitContainerCenterRight.Panel1;
+                    sb.AppendLine($"SplitRight: {splitContainerCenterRight.Size}, P1={p1.Size}, P1.Controls={p1.Controls.Count}");
+                    
+                    foreach(Control c in p1.Controls)
+                    {
+                        sb.AppendLine($"  - {c.Name}: Type={c.GetType().Name}, Size={c.Size}, Dock={c.Dock}, Visible={c.Visible}, Index={p1.Controls.GetChildIndex(c)}");
+                    }
+                }
+                Log(sb.ToString(), TraceLevel.Info);
+            }
+            catch(Exception ex)
+            {
+                Log($"DumpLayoutInfo Error: {ex.Message}", TraceLevel.Error);
+            }
         }
 
         private void SetupTheme()
@@ -383,17 +437,33 @@ namespace PCBInspection.UI
         {
             try
             {
+                Log($"[DebugViewer] Attempting load: {path}", TraceLevel.Info);
+                DumpLayoutInfo(); // Log layout before loading
+                
                 _currImagePath = path;
                 using (var mat = Cv2.ImRead(path))
                 {
-                    if (mat.Empty()) return;
+                    if (mat.Empty()) 
+                    {
+                        Log($"[DebugViewer] Mat is Empty! Check path encoding or file integrity.", TraceLevel.Error);
+                        return;
+                    }
 
-                    var bmp = BitmapConverter.ToBitmap(mat);
+                    // 必須深拷貝，避免 Mat 釋放後 Bitmap 資料失效
+                    var rawBmp = BitmapConverter.ToBitmap(mat);
+                    var bmp = new Bitmap(rawBmp); 
+                    
                     imageViewer.Image = bmp;
 
                     // 保存原始圖片副本
                     _originalImage?.Dispose();
                     _originalImage = (Bitmap)bmp.Clone();
+                    
+                    // 釋放暫時的 GDI 物件 (若 ToBitmap 產生了獨立物件)
+                    rawBmp.Dispose();
+
+                    // Debug Log
+                    Log($"[DebugViewer] Success. {imageViewer.GetDebugInfo()}", TraceLevel.Info);
                 }
                 
                 // 清除歷史與狀態
@@ -405,7 +475,7 @@ namespace PCBInspection.UI
             }
             catch (Exception ex)
             {
-                 Log($"載入失敗: {ex.Message}", TraceLevel.Error);
+                 Log($"載入失敗: {ex.Message} \nStack: {ex.StackTrace}", TraceLevel.Error);
             }
         }
 
@@ -537,11 +607,12 @@ namespace PCBInspection.UI
                 
                 if (_sequence.Count > 0)
                 {
-                    var lastItem = _sequence.Last();
-                    if (lastItem.LastResultImage != null)
+                    // 尋找最後一個有結果的步驟 (若發生錯誤，顯示最後成功的步驟)
+                    var lastValidItem = _sequence.LastOrDefault(x => x.LastResultImage != null);
+                    
+                    if (lastValidItem != null)
                     {
-                        imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
-                        
+                        imageViewer.Image = (Bitmap)lastValidItem.LastResultImage.Clone();
                         RefreshInfoPanel(swTotal.ElapsedMilliseconds);
                     }
                 }
@@ -557,8 +628,19 @@ namespace PCBInspection.UI
         {
             string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
             string fullMsg = $"[{timestamp}] {msg}";
-            lstLog.Items.Add(new LogItem { Message = fullMsg, Level = level });
-            lstLog.TopIndex = lstLog.Items.Count - 1;
+            
+            try
+            {
+                lstLog.Items.Add(new LogItem { Message = fullMsg, Level = level });
+                lstLog.TopIndex = lstLog.Items.Count - 1;
+            }
+            catch { /* UI Error check */ }
+
+            try
+            {
+                System.IO.File.AppendAllText("debug.log", $"[{timestamp}] [{level}] {msg}{Environment.NewLine}");
+            }
+            catch { /* File Error check */ }
         }
 
         private class LogItem

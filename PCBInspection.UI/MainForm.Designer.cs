@@ -216,7 +216,7 @@ namespace PCBInspection.UI
             this.splitContainerCenterRight.Panel1.Controls.Add(this.thumbnailBar);
             this.thumbnailBar.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.imageViewer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.imageViewer.BringToFront();
+            this.thumbnailBar.BringToFront();
 
             this.splitContainerCenterRight.Panel2.Controls.Add(this.infoPanel);
             this.splitContainerCenterRight.Size = new System.Drawing.Size(910, 754);
@@ -324,14 +324,8 @@ namespace PCBInspection.UI
             // 
             // panelCenter
             // 
-            this.panelCenter.Controls.Add(this.panelImage);
-            this.panelCenter.Controls.Add(this.panelLog);
             this.panelCenter.Dock = System.Windows.Forms.DockStyle.Fill;
-
-            this.panelImage.Controls.Add(this.imageViewer);
             this.panelImage.Dock = System.Windows.Forms.DockStyle.Fill;
-
-            this.imageViewer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.imageViewer.BackColor = System.Drawing.Color.Silver;
 
             this.panelLog.Controls.Add(this.lstLog);
