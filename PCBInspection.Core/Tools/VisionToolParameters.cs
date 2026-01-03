@@ -18,7 +18,7 @@ namespace PCBInspection.Core.Tools
 			Median,
 			Box,
 			Bilateral,
-        }
+		}
 
 		[DisplayName("模糊類型")] [Description("選擇模糊演算法:\n- Gaussian: 高斯模糊 (常用)\n- Median: 中值濾波 (去椒鹽雜訊)\n- Box: 均值模糊\n- Bilateral: 雙邊濾波 (保留邊緣)")]
 		public BlurType Type { get; set; } = BlurType.Gaussian;
@@ -39,7 +39,7 @@ namespace PCBInspection.Core.Tools
 			Otsu,
 			Adaptive,
 			ToZero,
-        }
+		}
 
 		[DisplayName("閾值方法")] [Description("選擇二值化方法:\n- Binary: 標準二值化\n- BinaryInv: 反向二值化\n- Otsu: 自動計算最佳閾值\n- Adaptive: 自適應閾值\n- ToZero: 低於閾值設為 0")]
 		public ThreshMethod Method { get; set; } = ThreshMethod.Binary;
@@ -68,7 +68,7 @@ namespace PCBInspection.Core.Tools
 			Gradient,
 			TopHat,
 			BlackHat,
-        }
+		}
 
 		[DisplayName("運算類型")] [Description("形態學運算:\n- Erode: 腐蝕\n- Dilate: 膨脹\n- Open: 開運算 (先腐後膨)\n- Close: 閉運算 (先膨後腐)\n- Gradient: 形態學梯度\n- TopHat: 頂帽\n- BlackHat: 黑帽")]
 		public MorphOp Operation { get; set; } = MorphOp.Open;
@@ -94,7 +94,7 @@ namespace PCBInspection.Core.Tools
 			BGR2Lab,
 			HSV2BGR,
 			Gray2BGR,
-        }
+		}
 
 		[DisplayName("轉換類型")] [Description("色彩空間轉換:\n- BGR2Gray: 彩色轉灰階\n- BGR2HSV: 轉 HSV (色相/飽和度/明度)\n- BGR2Lab: 轉 Lab 色彩空間\n- HSV2BGR: HSV 轉回 BGR\n- Gray2BGR: 灰階轉 BGR (3通道)")]
 		public ConversionType Type { get; set; } = ConversionType.BGR2Gray;
@@ -139,7 +139,7 @@ namespace PCBInspection.Core.Tools
 			Sobel,
 			Laplacian,
 			Scharr,
-        }
+		}
 
 		[DisplayName("邊緣偵測方法")] [Description("- Canny: 最常用，雙閾值\n- Sobel: 一階微分\n- Laplacian: 二階微分\n- Scharr: 改進版 Sobel")]
 		public EdgeMethod Method { get; set; } = EdgeMethod.Canny;
@@ -159,7 +159,7 @@ namespace PCBInspection.Core.Tools
 			Simple,
 			TC89_L1,
 			TC89_KCOS,
-        }
+		}
 
 		public enum ContourModeType
 		{
@@ -167,7 +167,7 @@ namespace PCBInspection.Core.Tools
 			List,
 			CComp,
 			Tree,
-        }
+		}
 
 		[DisplayName("輪廓模式")] [Description("- External: 僅最外層輪廓\n- List: 所有輪廓 (無階層)\n- CComp: 兩層結構\n- Tree: 完整階層")]
 		public ContourModeType Mode { get; set; } = ContourModeType.External;
@@ -214,7 +214,7 @@ namespace PCBInspection.Core.Tools
 			SmallestRadius,
 			LargestRadius,
 			XPosition,
-        }
+		}
 
 		[DisplayName("dp")] [Description("累加器解析度與影像解析度的反比 (1 = 相同解析度)")]
 		public double Dp { get; set; } = 1;
@@ -263,7 +263,7 @@ namespace PCBInspection.Core.Tools
 			CCorrNormed,
 			CCoeff,
 			CCoeffNormed,
-        }
+		}
 
 		[DisplayName("匹配方法")] [Description("- SqDiff: 平方差 (越小越好)\n- CCorr: 相關性 (越大越好)\n- CCoeff: 相關係數 (越大越好)\n- *Normed: 正規化版本")]
 		public MatchMethod Method { get; set; } = MatchMethod.CCoeffNormed;
@@ -308,7 +308,7 @@ namespace PCBInspection.Core.Tools
 			Horizontal,
 			Vertical,
 			Both,
-        }
+		}
 
 		public enum RotationType
 		{
@@ -316,7 +316,7 @@ namespace PCBInspection.Core.Tools
 			Rotate90CW,
 			Rotate180,
 			Rotate90CCW,
-        }
+		}
 
 		[DisplayName("旋轉")] [Description("順時針旋轉角度")]
 		public RotationType Rotation { get; set; } = RotationType.None;
@@ -331,7 +331,7 @@ namespace PCBInspection.Core.Tools
 		{
 			ByScale,
 			BySize,
-        }
+		}
 
 		[DisplayName("縮放模式")]
 		public ResizeMode Mode { get; set; } = ResizeMode.ByScale;
@@ -389,7 +389,7 @@ namespace PCBInspection.Core.Tools
 			FAST,
 			BRISK,
 			AKAZE,
-        }
+		}
 
 		[DisplayName("偵測器類型")] [Description("- ORB: 快速、免費\n- SIFT: 精確、需 contrib\n- FAST: 極快速\n- BRISK: 二進制描述子\n- AKAZE: 非線性尺度空間")]
 		public DetectorType Detector { get; set; } = DetectorType.ORB;
@@ -695,13 +695,6 @@ namespace PCBInspection.Core.Tools
 
 	public class DefectDetectionParameters
 	{
-		public enum DetectionMode
-		{
-			TemplateDiff,
-			EdgeBased,
-			ColorBased,
-		}
-
 		public enum DefectType
 		{
 			Any,
@@ -710,6 +703,13 @@ namespace PCBInspection.Core.Tools
 			Dent,
 			Missing,
 			Extra,
+		}
+
+		public enum DetectionMode
+		{
+			TemplateDiff,
+			EdgeBased,
+			ColorBased,
 		}
 
 		[DisplayName("檢測模式")] [Description("缺陷檢測的演算法模式:\\n- TemplateDiff: 與參考影像差異比對\\n- EdgeBased: 邊緣異常檢測\\n- ColorBased: 色彩異常檢測")]

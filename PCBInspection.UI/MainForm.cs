@@ -1100,7 +1100,7 @@ namespace PCBInspection.UI
 			Info,
 			Warning,
 			Error,
-        }
+		}
 
 		private class LogItem
 		{

@@ -5,10 +5,10 @@ using System.Collections.Generic;
 
 namespace PCBInspection.Core.Detectors
 {
-    /// <summary>
-    ///     焊點瑕疵偵測器 - 使用形態學與輪廓分析偵測冷焊、虛焊、漏焊、短路
-    /// </summary>
-    public class SolderDefectDetector : IDefectDetector
+	/// <summary>
+	///     焊點瑕疵偵測器 - 使用形態學與輪廓分析偵測冷焊、虛焊、漏焊、短路
+	/// </summary>
+	public class SolderDefectDetector : IDefectDetector
 	{
 		private readonly double _maxSolderArea;
 

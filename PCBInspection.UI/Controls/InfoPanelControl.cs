@@ -555,9 +555,9 @@ namespace PCBInspection.UI.Controls
 			}
 		}
 
-        /// <summary>更新 ROI 資訊</summary>
-        /// <summary>更新 ROI 資訊</summary>
-        public void UpdateRoiInfo(List<RoiBase> rois, Mat image)
+		/// <summary>更新 ROI 資訊</summary>
+		/// <summary>更新 ROI 資訊</summary>
+		public void UpdateRoiInfo(List<RoiBase> rois, Mat image)
 		{
 			if(rois == null || rois.Count == 0 || image == null)
 			{

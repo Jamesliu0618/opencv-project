@@ -18,7 +18,7 @@ namespace PCBInspection.UI.Controls
 			DrawCircle,
 			DrawPoly,
 			EditROI,
-        }
+		}
 
 		// Image
 		private Bitmap     _image;
@@ -405,11 +405,11 @@ namespace PCBInspection.UI.Controls
 			}
 		}
 
-        /// <summary>
-        ///     Required method for Designer support - do not modify
-        ///     the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
+		/// <summary>
+		///     Required method for Designer support - do not modify
+		///     the contents of this method with the code editor.
+		/// </summary>
+		private void InitializeComponent()
 		{
 			SuspendLayout();
 

@@ -4,10 +4,10 @@ using System.Collections.Generic;
 
 namespace PCBInspection.Core.Detectors
 {
-    /// <summary>
-    ///     電路異常偵測器 - 使用連通元件分析偵測斷路、橋接
-    /// </summary>
-    public class CircuitDefectDetector : IDefectDetector
+	/// <summary>
+	///     電路異常偵測器 - 使用連通元件分析偵測斷路、橋接
+	/// </summary>
+	public class CircuitDefectDetector : IDefectDetector
 	{
 		private readonly int _maxGapWidth;
 

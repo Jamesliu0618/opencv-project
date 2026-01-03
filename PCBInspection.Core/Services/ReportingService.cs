@@ -8,15 +8,15 @@ using System.Text;
 
 namespace PCBInspection.Core.Services
 {
-    /// <summary>
-    ///     報告服務 - 生成 JSON 報告和統計匯出
-    /// </summary>
-    public static class ReportingService
+	/// <summary>
+	///     報告服務 - 生成 JSON 報告和統計匯出
+	/// </summary>
+	public static class ReportingService
 	{
-        /// <summary>
-        ///     生成完整檢測報告
-        /// </summary>
-        public static InspectionReport GenerateReport(InspectionResult result, ReportOptions options = null)
+		/// <summary>
+		///     生成完整檢測報告
+		/// </summary>
+		public static InspectionReport GenerateReport(InspectionResult result, ReportOptions options = null)
 		{
 			options = options ?? new ReportOptions();
 
@@ -63,10 +63,10 @@ namespace PCBInspection.Core.Services
 			return report;
 		}
 
-        /// <summary>
-        ///     儲存 JSON 報告
-        /// </summary>
-        public static string SaveJsonReport(InspectionReport report, string outputDir)
+		/// <summary>
+		///     儲存 JSON 報告
+		/// </summary>
+		public static string SaveJsonReport(InspectionReport report, string outputDir)
 		{
 			Directory.CreateDirectory(outputDir);
 			var filename = $"{report.PcbId}_report_{report.GeneratedAt:yyyyMMddHHmmss}.json";
@@ -76,10 +76,10 @@ namespace PCBInspection.Core.Services
 			return path;
 		}
 
-        /// <summary>
-        ///     生成 CSV 統計匯出
-        /// </summary>
-        public static string ExportStatisticsCsv(IEnumerable<InspectionReport> reports, string outputPath)
+		/// <summary>
+		///     生成 CSV 統計匯出
+		/// </summary>
+		public static string ExportStatisticsCsv(IEnumerable<InspectionReport> reports, string outputPath)
 		{
 			var sb = new StringBuilder();
 			sb.AppendLine("ReportId,PcbId,GeneratedAt,Decision,ProcessingTimeMs,TotalComponents,TotalDefects,MaxSeverity");
@@ -93,10 +93,10 @@ namespace PCBInspection.Core.Services
 			return outputPath;
 		}
 
-        /// <summary>
-        ///     生成每日統計摘要
-        /// </summary>
-        public static DailySummary GenerateDailySummary(IEnumerable<InspectionReport> reports, DateTime date)
+		/// <summary>
+		///     生成每日統計摘要
+		/// </summary>
+		public static DailySummary GenerateDailySummary(IEnumerable<InspectionReport> reports, DateTime date)
 		{
 			var dayReports = reports.Where(r => r.GeneratedAt.Date == date.Date).ToList();
 

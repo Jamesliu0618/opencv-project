@@ -7,15 +7,15 @@ using System.IO;
 
 namespace PCBInspection.Core.Services
 {
-    /// <summary>
-    ///     標註影像產生服務 - 在影像上繪製瑕疵框、元件標記和量測資訊
-    /// </summary>
-    public static class AnnotationService
+	/// <summary>
+	///     標註影像產生服務 - 在影像上繪製瑕疵框、元件標記和量測資訊
+	/// </summary>
+	public static class AnnotationService
 	{
-        /// <summary>
-        ///     繪製完整標註影像
-        /// </summary>
-        public static Mat Annotate(Mat image, List<Component> components, List<Defect> defects, InspectionDecision decision, AnnotationOptions options = null)
+		/// <summary>
+		///     繪製完整標註影像
+		/// </summary>
+		public static Mat Annotate(Mat image, List<Component> components, List<Defect> defects, InspectionDecision decision, AnnotationOptions options = null)
 		{
 			if(image == null || image.Empty())
 			{
@@ -153,10 +153,10 @@ namespace PCBInspection.Core.Services
 			}
 		}
 
-        /// <summary>
-        ///     儲存標註影像
-        /// </summary>
-        public static string SaveAnnotatedImage(Mat annotatedImage, string outputDir, string pcbId)
+		/// <summary>
+		///     儲存標註影像
+		/// </summary>
+		public static string SaveAnnotatedImage(Mat annotatedImage, string outputDir, string pcbId)
 		{
 			Directory.CreateDirectory(outputDir);
 			string filename = $"{pcbId}_annotated_{DateTime.UtcNow:yyyyMMddHHmmss}.png";
@@ -166,10 +166,10 @@ namespace PCBInspection.Core.Services
 		}
 	}
 
-    /// <summary>
-    ///     標註選項
-    /// </summary>
-    public class AnnotationOptions
+	/// <summary>
+	///     標註選項
+	/// </summary>
+	public class AnnotationOptions
 	{
 		public bool   ShowComponents   { get; set; } = true;
 		public bool   ShowDefects      { get; set; } = true;

@@ -5,10 +5,10 @@ using System.Collections.Generic;
 
 namespace PCBInspection.Core.Detectors
 {
-    /// <summary>
-    ///     表面瑕疵偵測器 - 使用形態學操作偵測刮痕、污染、氧化
-    /// </summary>
-    public class SurfaceDefectDetector : IDefectDetector
+	/// <summary>
+	///     表面瑕疵偵測器 - 使用形態學操作偵測刮痕、污染、氧化
+	/// </summary>
+	public class SurfaceDefectDetector : IDefectDetector
 	{
 		private readonly int    _blurSize;
 		private readonly int    _minDefectArea;

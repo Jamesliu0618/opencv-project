@@ -7,10 +7,10 @@ using System.Linq;
 
 namespace PCBInspection.Core.Detectors
 {
-    /// <summary>
-    ///     瑕疵聚合器 - 整合多個偵測器結果並計算嚴重度分級
-    /// </summary>
-    public class DefectAggregator
+	/// <summary>
+	///     瑕疵聚合器 - 整合多個偵測器結果並計算嚴重度分級
+	/// </summary>
+	public class DefectAggregator
 	{
 		private readonly List<IDefectDetector> _detectors;
 
@@ -29,10 +29,10 @@ namespace PCBInspection.Core.Detectors
 			_detectors = detectors?.ToList() ?? new List<IDefectDetector>();
 		}
 
-        /// <summary>
-        ///     執行所有偵測器並聚合結果
-        /// </summary>
-        public AggregatedResult Detect(Mat image, List<Component> components = null)
+		/// <summary>
+		///     執行所有偵測器並聚合結果
+		/// </summary>
+		public AggregatedResult Detect(Mat image, List<Component> components = null)
 		{
 			var allDefects = new List<Defect>();
 
@@ -136,10 +136,10 @@ namespace PCBInspection.Core.Detectors
 		}
 	}
 
-    /// <summary>
-    ///     聚合結果
-    /// </summary>
-    public class AggregatedResult
+	/// <summary>
+	///     聚合結果
+	/// </summary>
+	public class AggregatedResult
 	{
 		public List<Defect>       Defects     { get; set; } = new List<Defect>();
 		public int                MaxSeverity { get; set; }
@@ -147,10 +147,10 @@ namespace PCBInspection.Core.Detectors
 		public bool               IsOk        { get; set; }
 	}
 
-    /// <summary>
-    ///     檢測判定結果
-    /// </summary>
-    public enum InspectionDecision
+	/// <summary>
+	///     檢測判定結果
+	/// </summary>
+	public enum InspectionDecision
 	{
 		OK,
 		REVIEW,
