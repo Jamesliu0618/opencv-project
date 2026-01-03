@@ -89,6 +89,15 @@ namespace PCBInspection.UI.Controls
 		public float OffsetX => _offsetX;
 		public float OffsetY => _offsetY;
 
+		/// <summary>
+		/// 更新影像但保留當前的縮放比例與平移位置
+		/// </summary>
+		public void SetImagePreserveView(Bitmap newImage)
+		{
+			_image = newImage;
+			Invalidate();
+		}
+
 		public void SetView(float scale, float ox, float oy)
 		{
 			if(Math.Abs(_scale - scale) < 0.0001f && Math.Abs(_offsetX - ox) < 0.1f && Math.Abs(_offsetY - oy) < 0.1f) return;

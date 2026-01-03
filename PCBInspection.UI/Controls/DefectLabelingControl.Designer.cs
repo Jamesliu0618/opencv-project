@@ -18,12 +18,12 @@ namespace PCBInspection.UI.Controls
 
 		private void InitializeComponent()
 		{
-			this.pnlTop = new System.Windows.Forms.Panel();
+			this.pnlTop = new System.Windows.Forms.TableLayoutPanel();
 			this.lblType = new System.Windows.Forms.Label();
 			this.cbType = new System.Windows.Forms.ComboBox();
 			this.lblSeverity = new System.Windows.Forms.Label();
 			this.cbSeverity = new System.Windows.Forms.ComboBox();
-			this.btnAdd = new System.Windows.Forms.Button();
+			this.btnStartLabeling = new System.Windows.Forms.Button();
 			this.dgvLabels = new System.Windows.Forms.DataGridView();
 			this.pnlBottom = new System.Windows.Forms.Panel();
 			this.btnSave = new System.Windows.Forms.Button();
@@ -36,39 +36,48 @@ namespace PCBInspection.UI.Controls
 
 			// pnlTop
 			this.pnlTop.Dock = System.Windows.Forms.DockStyle.Top;
-			this.pnlTop.Height = 40;
-			this.pnlTop.Controls.Add(this.btnAdd);
-			this.pnlTop.Controls.Add(this.cbSeverity);
-			this.pnlTop.Controls.Add(this.lblSeverity);
-			this.pnlTop.Controls.Add(this.cbType);
-			this.pnlTop.Controls.Add(this.lblType);
+			this.pnlTop.Height = 50;
+			this.pnlTop.ColumnCount = 5;
+			this.pnlTop.RowCount = 1;
+			this.pnlTop.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 45f));
+			this.pnlTop.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35f));
+			this.pnlTop.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60f));
+			this.pnlTop.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
+			this.pnlTop.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90f));
+			this.pnlTop.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+			this.pnlTop.Padding = new Padding(3, 0, 3, 0);
+
+			this.pnlTop.Controls.Add(this.lblType, 0, 0);
+			this.pnlTop.Controls.Add(this.cbType, 1, 0);
+			this.pnlTop.Controls.Add(this.lblSeverity, 2, 0);
+			this.pnlTop.Controls.Add(this.cbSeverity, 3, 0);
+			this.pnlTop.Controls.Add(this.btnStartLabeling, 4, 0);
 
 			// lblType
 			this.lblType.AutoSize = true;
-			this.lblType.Location = new System.Drawing.Point(5, 12);
+			this.lblType.TextAlign = ContentAlignment.MiddleRight;
+			this.lblType.Anchor = AnchorStyles.Right;
 			this.lblType.Text = "類型:";
 
 			// cbType
-			this.cbType.Location = new System.Drawing.Point(40, 8);
-			this.cbType.Width = 100;
+			this.cbType.Anchor = AnchorStyles.Left | AnchorStyles.Right;
 			this.cbType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 
 			// lblSeverity
 			this.lblSeverity.AutoSize = true;
-			this.lblSeverity.Location = new System.Drawing.Point(150, 12);
+			this.lblSeverity.TextAlign = ContentAlignment.MiddleRight;
+			this.lblSeverity.Anchor = AnchorStyles.Right;
 			this.lblSeverity.Text = "嚴重度:";
 
 			// cbSeverity
-			this.cbSeverity.Location = new System.Drawing.Point(200, 8);
-			this.cbSeverity.Width = 80;
+			this.cbSeverity.Anchor = AnchorStyles.Left | AnchorStyles.Right;
 			this.cbSeverity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.cbSeverity.Items.AddRange(new object[] { "1 (輕微)", "2 (一般)", "3 (嚴重)" });
 			this.cbSeverity.SelectedIndex = 1;
 
-			// btnAdd
-			this.btnAdd.Location = new System.Drawing.Point(290, 7);
-			this.btnAdd.Text = "手動加入";
-			this.btnAdd.Size = new Size(75, 25);
+			// btnStartLabeling
+			this.btnStartLabeling.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+			this.btnStartLabeling.Text = "開始繪製";
 			// 實際上主要透過 Viewer 畫圖加入，此按鈕可選
 
 			// pnlBottom
@@ -127,12 +136,12 @@ namespace PCBInspection.UI.Controls
 			this.ResumeLayout(false);
 		}
 
-		private System.Windows.Forms.Panel pnlTop;
+		private System.Windows.Forms.TableLayoutPanel pnlTop;
 		private System.Windows.Forms.Label lblType;
 		private System.Windows.Forms.ComboBox cbType;
 		private System.Windows.Forms.Label lblSeverity;
 		private System.Windows.Forms.ComboBox cbSeverity;
-		private System.Windows.Forms.Button btnAdd;
+		private System.Windows.Forms.Button btnStartLabeling;
 		private System.Windows.Forms.DataGridView dgvLabels;
 		private System.Windows.Forms.Panel pnlBottom;
 		private System.Windows.Forms.Button btnSave;

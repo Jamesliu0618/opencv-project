@@ -67,6 +67,9 @@ namespace PCBInspection.UI
 			
 			// 載入工具列圖示
 			LoadToolbarIcons();
+
+			// 載入工具箱圖示
+			LoadToolboxIcons();
 			
 			// 綁定所有控制項事件
 			WireEvents();
@@ -145,21 +148,23 @@ namespace PCBInspection.UI
 				btnTsZoomIn.Image    = LoadIcon(iconDir, "ZoomIn");
 				btnTsZoomOut.Image   = LoadIcon(iconDir, "ZoomOut");
 				btnTsFit.Image       = LoadIcon(iconDir, "Fit");
+				btnTsSplit.Image     = LoadIcon(iconDir, "Split");
 				btnTsPointer.Image   = LoadIcon(iconDir, "Pointer");
 				btnTsRoiRect.Image   = LoadIcon(iconDir, "RoiRect");
 				btnTsRoiCircle.Image = LoadIcon(iconDir, "RoiCircle");
 				btnTsRoiPoly.Image   = LoadIcon(iconDir, "RoiPoly");
 				btnTsUndo.Image      = LoadIcon(iconDir, "Undo");
 				btnTsRedo.Image      = LoadIcon(iconDir, "Redo");
+				btnTsBatch.Image     = LoadIcon(iconDir, "Batch");
+				btnTsRecipe.Image    = LoadIcon(iconDir, "Recipe");
 
 				// Set styles
 				foreach(ToolStripItem item in toolStripMain.Items)
 				{
 					if(item is ToolStripButton btn)
 					{
-						btn.DisplayStyle      = ToolStripItemDisplayStyle.ImageAndText;
-						btn.TextImageRelation = TextImageRelation.ImageBeforeText;
-						btn.Padding           = new Padding(5, 0, 5, 0);
+						btn.DisplayStyle = ToolStripItemDisplayStyle.Image;
+						btn.Padding      = new Padding(5, 0, 5, 0);
 					}
 				}
 			}
@@ -184,6 +189,48 @@ namespace PCBInspection.UI
 		}
 
 		/// <summary>
+		/// 載入工具箱 TreeView 所需的穩定工業風圖示
+		/// </summary>
+		private void LoadToolboxIcons()
+		{
+			try
+			{
+				string iconDir = @"d:\Repo\opencv\Resources\Icons";
+				imgListToolbox.ImageSize = new Size(20, 20);
+				imgListToolbox.ColorDepth = ColorDepth.Depth32Bit;
+
+				imgListToolbox.Images.Add("default", LoadIcon(iconDir, "tool_default"));      // 0
+				imgListToolbox.Images.Add("preprocess", LoadIcon(iconDir, "cat_preprocess")); // 1
+				imgListToolbox.Images.Add("color", LoadIcon(iconDir, "cat_color"));           // 2
+				imgListToolbox.Images.Add("feature", LoadIcon(iconDir, "cat_feature"));       // 3
+				imgListToolbox.Images.Add("measurement", LoadIcon(iconDir, "cat_measurement")); // 4
+				imgListToolbox.Images.Add("analysis", LoadIcon(iconDir, "cat_analysis"));     // 5
+				imgListToolbox.Images.Add("calibration", LoadIcon(iconDir, "cat_calibration")); // 6
+				imgListToolbox.Images.Add("defect", LoadIcon(iconDir, "cat_defect"));         // 7
+			}
+			catch (Exception ex)
+			{
+				Log($"載入工具箱圖標失敗: {ex.Message}", TraceLevel.Warning);
+			}
+		}
+
+		/// <summary>
+		/// 根據類別名稱取得對應的圖示索引
+		/// </summary>
+		private int GetIconIndexForCategory(string category)
+		{
+			if (string.IsNullOrEmpty(category)) return 0;
+			if (category.Contains("預處理") || category.Contains("處理")) return 1;
+			if (category.Contains("色彩")) return 2;
+			if (category.Contains("特徵提取")) return 3;
+			if (category.Contains("幾何") || category.Contains("測量") || category.Contains("量測")) return 4;
+			if (category.Contains("分析") || category.Contains("影像處理")) return 5;
+			if (category.Contains("校正")) return 6;
+			if (category.Contains("背景") || category.Contains("檢測")) return 7;
+			return 0;
+		}
+
+		/// <summary>
 		/// 初始化左側工具箱，將 VisionToolFactory 中定義的所有工具按類別分群顯示在 TreeView
 		/// </summary>
 		private void InitializeToolbox()
@@ -194,12 +241,21 @@ namespace PCBInspection.UI
 
 			foreach(var group in grouped)
 			{
-				var catNode = new TreeNode(group.Key);
+				int iconIdx = GetIconIndexForCategory(group.Key);
+				var catNode = new TreeNode(group.Key)
+				{
+					ImageIndex = iconIdx,
+					SelectedImageIndex = iconIdx
+				};
 
 				foreach(var tool in group)
 				{
-					var toolNode = new TreeNode(tool.Name);
-					toolNode.Tag = tool;
+					var toolNode = new TreeNode(tool.Name)
+					{
+						Tag = tool,
+						ImageIndex = 0, // 子工具使用通用方塊圖標
+						SelectedImageIndex = 0
+					};
 					catNode.Nodes.Add(toolNode);
 				}
 				tvTools.Nodes.Add(catNode);
@@ -839,7 +895,7 @@ namespace PCBInspection.UI
 
 						if(row.Selected)
 						{
-							imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
+							imageViewer.SetImagePreserveView((Bitmap)item.LastResultImage.Clone());
 						}
 						maskedInput?.Dispose();
 					}
@@ -864,8 +920,8 @@ namespace PCBInspection.UI
 
 					if(lastValidItem != null)
 					{
-						// 更新 Viewer 顯示最終結果
-						imageViewer.Image = (Bitmap)lastValidItem.LastResultImage.Clone();
+						// 更新 Viewer 顯示最終結果 (保留縮放比例)
+						imageViewer.SetImagePreserveView((Bitmap)lastValidItem.LastResultImage.Clone());
 						RefreshInfoPanel(swTotal.ElapsedMilliseconds);
 					}
 				}
@@ -936,11 +992,11 @@ namespace PCBInspection.UI
 				return;
 			}
 
-			// 從原始結果影像重新繪製高亮 (避免高亮疊加)
+			// 從原始結果影像重新繪製高亮 (避免高亮疊加，保留縮放比例)
 			var lastItem = _sequence.LastOrDefault(s => s.LastResultImage != null);
 			if(lastItem?.LastResultImage != null)
 			{
-				imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+				imageViewer.SetImagePreserveView((Bitmap)lastItem.LastResultImage.Clone());
 			}
 
 			// 在影像上繪製高亮框
@@ -1232,9 +1288,8 @@ namespace PCBInspection.UI
 					item.LastResultImage?.Dispose();
 					item.LastResultImage = finalResult.ToBitmap();
 					item.LastDefects     = result.Defects ?? new List<Defect>();
-					imageViewer.Image    = (Bitmap)item.LastResultImage.Clone();
+					imageViewer.SetImagePreserveView((Bitmap)item.LastResultImage.Clone());
 					RefreshInfoPanel(swStep.ElapsedMilliseconds);
-					imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
 
 					if(finalResult != result.ResultImage)
 					{
@@ -1363,7 +1418,7 @@ namespace PCBInspection.UI
 
 						if(row.Selected)
 						{
-							imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
+							imageViewer.SetImagePreserveView((Bitmap)item.LastResultImage.Clone());
 						}
 						maskedInput?.Dispose();
 					}

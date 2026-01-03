@@ -3,6 +3,7 @@ using PCBInspection.Core.Services;
 using System;
 using System.IO;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace PCBInspection.UI
 {
@@ -23,7 +24,7 @@ namespace PCBInspection.UI
 		private void InitializeComponent()
 		{
 			this.Text            = "批次處理";
-			this.Size            = new System.Drawing.Size(600, 500);
+			this.Size            = new System.Drawing.Size(600, 580);
 			this.StartPosition   = FormStartPosition.CenterParent;
 			this.FormBorderStyle = FormBorderStyle.FixedDialog;
 			this.MaximizeBox     = false;
@@ -99,16 +100,33 @@ namespace PCBInspection.UI
 				Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
 			};
 
-			lblResultOk    = new Label { Text = "OK: -", Location = new System.Drawing.Point(10, 25), AutoSize = true, ForeColor = System.Drawing.Color.Green };
-			lblResultNg    = new Label { Text = "NG: -", Location = new System.Drawing.Point(120, 25), AutoSize = true, ForeColor = System.Drawing.Color.Red };
-			lblResultError = new Label { Text = "錯誤: -", Location = new System.Drawing.Point(230, 25), AutoSize = true, ForeColor = System.Drawing.Color.Orange };
-			lblYield       = new Label { Text = "良率: -", Location = new System.Drawing.Point(350, 25), AutoSize = true, Font = new System.Drawing.Font(Font, System.Drawing.FontStyle.Bold) };
+			lblResultOk    = new Label { Text = "OK: -", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, ForeColor = System.Drawing.Color.Green };
+			lblResultNg    = new Label { Text = "NG: -", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, ForeColor = System.Drawing.Color.Red };
+			lblResultError = new Label { Text = "錯誤: -", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, ForeColor = System.Drawing.Color.Orange };
+			lblYield       = new Label { Text = "良率: -", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new System.Drawing.Font(Font, System.Drawing.FontStyle.Bold) };
 
-			grpResult.Controls.AddRange(new Control[] { lblResultOk, lblResultNg, lblResultError, lblYield });
+			var tblResult = new TableLayoutPanel
+			{
+				Dock = DockStyle.Fill,
+				ColumnCount = 4,
+				RowCount = 1,
+				Padding = new Padding(5)
+			};
+			tblResult.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+			tblResult.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+			tblResult.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+			tblResult.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+
+			tblResult.Controls.Add(lblResultOk, 0, 0);
+			tblResult.Controls.Add(lblResultNg, 1, 0);
+			tblResult.Controls.Add(lblResultError, 2, 0);
+			tblResult.Controls.Add(lblYield, 3, 0);
+
+			grpResult.Controls.Add(tblResult);
 
 			// 按鈕
-			btnStart  = new Button { Text = "▶ 開始處理", Location = new System.Drawing.Point(350, 450), Size = new System.Drawing.Size(100, 30), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
-			btnCancel = new Button { Text = "取消", Location = new System.Drawing.Point(460, 450), Size = new System.Drawing.Size(100, 30), Anchor = AnchorStyles.Bottom | AnchorStyles.Right, Enabled = false };
+			btnStart  = new Button { Text = "▶ 開始處理", Location = new System.Drawing.Point(350, 500), Size = new System.Drawing.Size(100, 30), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
+			btnCancel = new Button { Text = "取消", Location = new System.Drawing.Point(460, 500), Size = new System.Drawing.Size(100, 30), Anchor = AnchorStyles.Bottom | AnchorStyles.Right, Enabled = false };
 
 			this.Controls.AddRange(new Control[] { grpInput, grpOutput, grpProgress, grpResult, btnStart, btnCancel });
 		}

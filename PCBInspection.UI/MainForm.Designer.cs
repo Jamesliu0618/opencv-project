@@ -58,6 +58,7 @@ namespace PCBInspection.UI
             this.splitContainerCenterRight = new System.Windows.Forms.SplitContainer();
             this.splitContainerImages = new System.Windows.Forms.SplitContainer(); // New SplitContainer
             this.imageViewerRef = new PCBInspection.UI.Controls.InteractiveImageViewer(); // New Viewer
+            this.imgListToolbox = new System.Windows.Forms.ImageList(this.components);
             this.tabToolbox = new System.Windows.Forms.TabControl();
             this.tabPageTools = new System.Windows.Forms.TabPage();
             this.tabPageHistory = new System.Windows.Forms.TabPage(); // New TabPage
@@ -364,6 +365,13 @@ namespace PCBInspection.UI
             this.tvTools.BackColor = System.Drawing.Color.White;
             this.tvTools.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tvTools.ForeColor = System.Drawing.Color.Black;
+            this.tvTools.ImageList = this.imgListToolbox;
+            this.tvTools.ImageIndex = 0;
+            this.tvTools.SelectedImageIndex = 0;
+            this.tvTools.ItemHeight = 24;
+            this.tvTools.Indent = 20;
+            this.tvTools.ShowLines = true;
+            this.tvTools.BorderStyle = System.Windows.Forms.BorderStyle.None;
 
             // 
             // dgvSequence
@@ -571,5 +579,6 @@ namespace PCBInspection.UI
         private System.Windows.Forms.ListBox lstHistory;
         private System.Windows.Forms.TabPage tabPageLabeling;
         private PCBInspection.UI.Controls.DefectLabelingControl defectLabelingControl1;
+        private System.Windows.Forms.ImageList imgListToolbox;
     }
 }

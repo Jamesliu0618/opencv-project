@@ -27,7 +27,7 @@ namespace PCBInspection.UI.Controls
 			_labels = new List<LabelItem>();
 
 			// 綁定 UI 事件
-			btnAdd.Click += BtnAdd_Click;
+			btnStartLabeling.Click += BtnAdd_Click;
 			btnDelete.Click += BtnDelete_Click;
 			btnSave.Click += BtnSave_Click;
 			dgvLabels.SelectionChanged += DgvLabels_SelectionChanged;
