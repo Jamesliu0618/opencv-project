@@ -925,6 +925,806 @@ namespace PCBInspection.Core.Services
 				},
 			});
 
+			// =========================================================
+			// 08. 相機校正 (Camera Calibration)
+			// =========================================================
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "相機校正 (Camera Calibration)",
+				Category          = "08. 校正",
+				DefaultParameters = new CameraCalibrationParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (CameraCalibrationParameters)p;
+
+					if(string.IsNullOrEmpty(pp.CalibrationImagesFolder) || !Directory.Exists(pp.CalibrationImagesFolder))
+					{
+						throw new InvalidOperationException("校正影像資料夾不存在或未指定。");
+					}
+
+					var imageFiles = Directory.GetFiles(pp.CalibrationImagesFolder, "*.jpg")
+						.Concat(Directory.GetFiles(pp.CalibrationImagesFolder, "*.png"))
+						.Concat(Directory.GetFiles(pp.CalibrationImagesFolder, "*.bmp"))
+						.ToArray();
+
+					if(imageFiles.Length < 3)
+					{
+						throw new InvalidOperationException("至少需要 3 張校正影像。");
+					}
+
+					var patternSize = new Size(pp.PatternWidth, pp.PatternHeight);
+					var objPoints   = new List<List<Point3f>>();
+					var imgPoints   = new List<List<Point2f>>();
+					Size imageSize  = new Size();
+
+					// 建立 3D 物件點
+					var objp = new List<Point3f>();
+					for(int y = 0; y < pp.PatternHeight; y++)
+						for(int x = 0; x < pp.PatternWidth; x++)
+							objp.Add(new Point3f(x * pp.SquareSize, y * pp.SquareSize, 0));
+
+					int validCount = 0;
+					foreach(var file in imageFiles)
+					{
+						using(var calibImg = Cv2.ImRead(file, ImreadModes.Grayscale))
+						{
+							if(calibImg.Empty()) continue;
+							imageSize = calibImg.Size();
+
+							if(Cv2.FindChessboardCorners(calibImg, patternSize, out Point2f[] corners))
+							{
+								Cv2.CornerSubPix(calibImg, corners, new Size(11, 11), new Size(-1, -1),
+									new TermCriteria(CriteriaTypes.Eps | CriteriaTypes.MaxIter, 30, 0.001));
+								objPoints.Add(objp);
+								imgPoints.Add(corners.ToList());
+								validCount++;
+							}
+						}
+					}
+
+					if(validCount < 3)
+					{
+						throw new InvalidOperationException($"僅找到 {validCount} 張有效的棋盤格影像，至少需要 3 張。");
+					}
+
+					// 校正 - 將點座標轉換為 Mat 陣列
+					var cameraMatrix = new Mat();
+					var distCoeffs   = new Mat();
+
+					// 轉換為 IEnumerable<Mat> 格式
+					var objPointsMats = new List<Mat>();
+					var imgPointsMats = new List<Mat>();
+					foreach(var pts in objPoints)
+					{
+						var mat = new Mat(pts.Count, 1, MatType.CV_32FC3);
+						for(int i = 0; i < pts.Count; i++)
+							mat.Set(i, 0, new Vec3f(pts[i].X, pts[i].Y, pts[i].Z));
+						objPointsMats.Add(mat);
+					}
+					foreach(var pts in imgPoints)
+					{
+						var mat = new Mat(pts.Count, 1, MatType.CV_32FC2);
+						for(int i = 0; i < pts.Count; i++)
+							mat.Set(i, 0, new Vec2f(pts[i].X, pts[i].Y));
+						imgPointsMats.Add(mat);
+					}
+
+					double rms = Cv2.CalibrateCamera(objPointsMats, imgPointsMats,
+						imageSize, cameraMatrix, distCoeffs, out Mat[] rvecsOut, out Mat[] tvecsOut);
+
+					// 釋放暫時 Mat
+					foreach(var m in objPointsMats) m.Dispose();
+					foreach(var m in imgPointsMats) m.Dispose();
+
+					// 儲存結果
+					using(var fs = new FileStorage(pp.OutputCameraMatrixPath, FileStorage.Modes.Write))
+					{
+						fs.Write("camera_matrix", cameraMatrix);
+					}
+					using(var fs = new FileStorage(pp.OutputDistCoeffsPath, FileStorage.Modes.Write))
+					{
+						fs.Write("dist_coeffs", distCoeffs);
+					}
+
+					if(pp.ShowReprojectionError)
+					{
+						OnLog?.Invoke($"[校正] 重投影誤差 RMS: {rms:F4} ({validCount} 張影像)", false);
+					}
+
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+					Cv2.PutText(result, $"Calibration RMS: {rms:F4}", new Point(10, 30), HersheyFonts.HersheySimplex, 0.8, Scalar.Green, 2);
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "畸變矯正 (Undistort)",
+				Category          = "08. 校正",
+				DefaultParameters = new UndistortParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (UndistortParameters)p;
+
+					if(!File.Exists(pp.CameraMatrixPath))
+						throw new InvalidOperationException($"相機矩陣檔案不存在: {pp.CameraMatrixPath}");
+					if(!File.Exists(pp.DistCoeffsPath))
+						throw new InvalidOperationException($"畸變係數檔案不存在: {pp.DistCoeffsPath}");
+
+					Mat cameraMatrix, distCoeffs;
+					using(var fs = new FileStorage(pp.CameraMatrixPath, FileStorage.Modes.Read))
+					{
+						cameraMatrix = fs["camera_matrix"].ReadMat();
+					}
+					using(var fs = new FileStorage(pp.DistCoeffsPath, FileStorage.Modes.Read))
+					{
+						distCoeffs = fs["dist_coeffs"].ReadMat();
+					}
+
+					var result = new Mat();
+					if(pp.AutoCropBlackBorder)
+					{
+						var newCameraMatrix = Cv2.GetOptimalNewCameraMatrix(cameraMatrix, distCoeffs, img.Size(), 0, img.Size(), out Rect roi);
+						Cv2.Undistort(img, result, cameraMatrix, distCoeffs, newCameraMatrix);
+						if(roi.Width > 0 && roi.Height > 0)
+						{
+							result = new Mat(result, roi).Clone();
+						}
+					}
+					else
+					{
+						Cv2.Undistort(img, result, cameraMatrix, distCoeffs);
+					}
+					cameraMatrix.Dispose();
+					distCoeffs.Dispose();
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "透視變換 (Perspective Transform)",
+				Category          = "08. 校正",
+				DefaultParameters = new PerspectiveTransformParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (PerspectiveTransformParameters)p;
+
+					var srcPoints = new Point2f[]
+					{
+						new Point2f(pp.SrcTopLeftX, pp.SrcTopLeftY),
+						new Point2f(pp.SrcTopRightX, pp.SrcTopRightY),
+						new Point2f(pp.SrcBottomRightX, pp.SrcBottomRightY),
+						new Point2f(pp.SrcBottomLeftX, pp.SrcBottomLeftY),
+					};
+
+					var dstPoints = new Point2f[]
+					{
+						new Point2f(0, 0),
+						new Point2f(pp.OutputWidth - 1, 0),
+						new Point2f(pp.OutputWidth - 1, pp.OutputHeight - 1),
+						new Point2f(0, pp.OutputHeight - 1),
+					};
+
+					var M = Cv2.GetPerspectiveTransform(srcPoints, dstPoints);
+					var result = new Mat();
+
+					InterpolationFlags interp = InterpolationFlags.Linear;
+					switch(pp.Interpolation)
+					{
+						case PerspectiveTransformParameters.InterpolationType.Nearest: interp = InterpolationFlags.Nearest; break;
+						case PerspectiveTransformParameters.InterpolationType.Cubic: interp = InterpolationFlags.Cubic; break;
+						case PerspectiveTransformParameters.InterpolationType.Lanczos4: interp = InterpolationFlags.Lanczos4; break;
+					}
+
+					Cv2.WarpPerspective(img, result, M, new Size(pp.OutputWidth, pp.OutputHeight), interp);
+					M.Dispose();
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			// =========================================================
+			// 09. 測量與分析 (Measurement & Analysis)
+			// =========================================================
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "距離測量 (Measure Distance)",
+				Category          = "09. 測量分析",
+				DefaultParameters = new MeasurementToolParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (MeasurementToolParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+
+					double dx = pp.EndX - pp.StartX;
+					double dy = pp.EndY - pp.StartY;
+					double distPx = Math.Sqrt(dx * dx + dy * dy);
+					double distReal = distPx * pp.PixelScale;
+
+					string unit = pp.DisplayUnit;
+					if(unit == "μm") distReal *= 1000;
+					else if(unit == "cm") distReal /= 10;
+
+					string format = $"F{pp.DecimalPlaces}";
+					string text = $"{distReal.ToString(format)} {unit}";
+
+					if(pp.DrawOnImage)
+					{
+						Cv2.Line(result, new Point(pp.StartX, pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Cyan, 2);
+						Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, Scalar.Green, -1);
+						Cv2.Circle(result, new Point(pp.EndX, pp.EndY), 4, Scalar.Red, -1);
+						int midX = (pp.StartX + pp.EndX) / 2;
+						int midY = (pp.StartY + pp.EndY) / 2;
+						Cv2.PutText(result, text, new Point(midX + 5, midY - 5), HersheyFonts.HersheySimplex, 0.6, Scalar.Yellow, 2);
+					}
+
+					OnLog?.Invoke($"[測量] 距離: {text} (像素: {distPx:F2})", false);
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "物件分析 (Object Analysis)",
+				Category          = "09. 測量分析",
+				DefaultParameters = new ObjectAnalysisParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (ObjectAnalysisParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+
+					var gray = new Mat();
+					if(img.Channels() >= 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+					else img.CopyTo(gray);
+
+					Cv2.FindContours(gray, out Point[][] contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+					var defects = new List<Defect>();
+					int idx = 0;
+
+					foreach(var contour in contours)
+					{
+						double area = Cv2.ContourArea(contour);
+						if(area < pp.FilterMinArea) continue;
+						if(pp.FilterMaxArea > 0 && area > pp.FilterMaxArea) continue;
+
+						double perimeter = Cv2.ArcLength(contour, true);
+						double circularity = 4 * Math.PI * area / (perimeter * perimeter);
+						var rect = Cv2.BoundingRect(contour);
+						var minRect = Cv2.MinAreaRect(contour);
+						double aspectRatio = (double)rect.Width / Math.Max(rect.Height, 1);
+						double rectangularity = area / (rect.Width * rect.Height + 0.001);
+
+						if(pp.ComputeBoundingRect)
+							Cv2.Rectangle(result, rect, Scalar.Green, 1);
+
+						if(pp.ComputeMinAreaRect)
+						{
+							var pts = Cv2.BoxPoints(minRect).Select(pt => new Point((int)pt.X, (int)pt.Y)).ToArray();
+							Cv2.Polylines(result, new[] { pts }, true, Scalar.Cyan, 1);
+						}
+
+						if(pp.ComputeMinEnclosingCircle)
+						{
+							Cv2.MinEnclosingCircle(contour, out Point2f center, out float radius);
+							Cv2.Circle(result, (int)center.X, (int)center.Y, (int)radius, Scalar.Magenta, 1);
+						}
+
+						if(pp.ComputeConvexHull)
+						{
+							var hull = Cv2.ConvexHull(contour);
+							Cv2.Polylines(result, new[] { hull }, true, Scalar.Yellow, 1);
+						}
+
+						if(pp.LabelObjectIndex)
+						{
+							Cv2.PutText(result, $"#{idx + 1}", new Point(rect.X, rect.Y - 5), HersheyFonts.HersheySimplex, 0.4, Scalar.White, 1);
+						}
+
+						defects.Add(new Defect
+						{
+							Id          = (idx + 1).ToString(),
+							Type        = "物件",
+							Confidence  = circularity,
+							BoundingBox = new[] { rect.X, rect.Y, rect.Width, rect.Height },
+						});
+
+						if(pp.ComputeShapeFeatures)
+						{
+							OnLog?.Invoke($"[物件#{idx + 1}] 面積:{area:F0} 周長:{perimeter:F1} 圓度:{circularity:F3} 長寬比:{aspectRatio:F2} 矩形度:{rectangularity:F3}", false);
+						}
+						idx++;
+					}
+
+					gray.Dispose();
+					OnLog?.Invoke($"[物件分析] 共找到 {idx} 個物件", false);
+					return (true, result, defects);
+				},
+			});
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "直方圖分析 (Histogram Analysis)",
+				Category          = "09. 測量分析",
+				DefaultParameters = new HistogramAnalysisParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (HistogramAnalysisParameters)p;
+					var result = img.Clone();
+
+					var gray = new Mat();
+					if(img.Channels() >= 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+					else img.CopyTo(gray);
+
+					if(pp.ComputeStatistics)
+					{
+						Cv2.MeanStdDev(gray, out Scalar mean, out Scalar stddev);
+						Cv2.MinMaxLoc(gray, out double minVal, out double maxVal);
+						OnLog?.Invoke($"[直方圖] 均值:{mean.Val0:F2} 標準差:{stddev.Val0:F2} 最小:{minVal} 最大:{maxVal}", false);
+					}
+
+					if(pp.DrawOnImage && result.Channels() == 1)
+					{
+						Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+					}
+
+					// 計算並可選繪製直方圖
+					using(var hist = new Mat())
+					{
+						int[] histSize = { 256 };
+						Rangef[] ranges = { new Rangef(0, 256) };
+						Cv2.CalcHist(new[] { gray }, new[] { 0 }, null, hist, 1, histSize, ranges);
+						Cv2.Normalize(hist, hist, 0, 100, NormTypes.MinMax);
+
+						if(pp.DrawOnImage)
+						{
+							int histW = 256, histH = 100;
+							int offsetX = result.Width - histW - 10;
+							int offsetY = result.Height - histH - 10;
+
+							Cv2.Rectangle(result, new Rect(offsetX - 2, offsetY - 2, histW + 4, histH + 4), Scalar.Black, -1);
+							for(int i = 0; i < 256; i++)
+							{
+								int h = (int)hist.At<float>(i);
+								Cv2.Line(result, new Point(offsetX + i, offsetY + histH), new Point(offsetX + i, offsetY + histH - h), Scalar.Green);
+							}
+						}
+					}
+
+					gray.Dispose();
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "剖面線分析 (Profile Line)",
+				Category          = "09. 測量分析",
+				DefaultParameters = new ProfileLineParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (ProfileLineParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+
+					var gray = new Mat();
+					if(img.Channels() >= 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+					else img.CopyTo(gray);
+
+					// 取得剖面線上的點
+					int dx = pp.EndX - pp.StartX;
+					int dy = pp.EndY - pp.StartY;
+					int length = (int)Math.Max(Math.Sqrt(dx * dx + dy * dy), 1);
+					var profileData = new List<byte>();
+
+					for(int i = 0; i <= length; i++)
+					{
+						int x = pp.StartX + (int)(dx * i / (double)length);
+						int y = pp.StartY + (int)(dy * i / (double)length);
+						x = Math.Max(0, Math.Min(x, gray.Width - 1));
+						y = Math.Max(0, Math.Min(y, gray.Height - 1));
+						profileData.Add(gray.At<byte>(y, x));
+					}
+
+					// 繪製剖面線標示
+					Cv2.Line(result, new Point(pp.StartX, pp.StartY), new Point(pp.EndX, pp.EndY), Scalar.Cyan, 2);
+					Cv2.Circle(result, new Point(pp.StartX, pp.StartY), 4, Scalar.Green, -1);
+					Cv2.Circle(result, new Point(pp.EndX, pp.EndY), 4, Scalar.Red, -1);
+
+					// 繪製小型剖面圖在影像右下角
+					int graphW = Math.Min(256, length);
+					int graphH = 60;
+					int offsetX = result.Width - graphW - 10;
+					int offsetY = result.Height - graphH - 10;
+
+					Cv2.Rectangle(result, new Rect(offsetX - 2, offsetY - 2, graphW + 4, graphH + 4), Scalar.Black, -1);
+					for(int i = 1; i < graphW && i < profileData.Count; i++)
+					{
+						int idx1 = (i - 1) * profileData.Count / graphW;
+						int idx2 = i * profileData.Count / graphW;
+						int y1 = offsetY + graphH - profileData[idx1] * graphH / 255;
+						int y2 = offsetY + graphH - profileData[idx2] * graphH / 255;
+						Cv2.Line(result, new Point(offsetX + i - 1, y1), new Point(offsetX + i, y2), Scalar.Green);
+					}
+
+					if(pp.OutputToCsv && !string.IsNullOrEmpty(pp.CsvOutputPath))
+					{
+						var lines = profileData.Select((v, i) => $"{i},{v}");
+						File.WriteAllLines(pp.CsvOutputPath, new[] { "Index,GrayValue" }.Concat(lines));
+						OnLog?.Invoke($"[剖面線] 已輸出 {profileData.Count} 筆數據到 {pp.CsvOutputPath}", false);
+					}
+
+					gray.Dispose();
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			// =========================================================
+			// 10. 影像品質評估 (Quality Assessment)
+			// =========================================================
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "品質評估 (Quality Assessment)",
+				Category          = "10. 品質評估",
+				DefaultParameters = new QualityAssessmentParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (QualityAssessmentParameters)p;
+
+					if(string.IsNullOrEmpty(pp.ReferenceImagePath) || !File.Exists(pp.ReferenceImagePath))
+					{
+						throw new InvalidOperationException($"參考影像不存在: {pp.ReferenceImagePath}");
+					}
+
+					using(var refImg = Cv2.ImRead(pp.ReferenceImagePath))
+					{
+						if(refImg.Empty())
+							throw new InvalidOperationException("無法載入參考影像。");
+
+						// 確保尺寸相同
+						Mat imgResized = img;
+						bool needDispose = false;
+						if(img.Width != refImg.Width || img.Height != refImg.Height)
+						{
+							imgResized = new Mat();
+							Cv2.Resize(img, imgResized, refImg.Size());
+							needDispose = true;
+						}
+
+						double score = 0;
+						string metricName = "";
+
+						var result = imgResized.Clone();
+						if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+
+						switch(pp.Metric)
+						{
+							case QualityAssessmentParameters.QualityMetric.PSNR:
+								score = Cv2.PSNR(imgResized, refImg);
+								metricName = "PSNR";
+								break;
+
+							case QualityAssessmentParameters.QualityMetric.MSE:
+								using(var diff = new Mat())
+								{
+									Cv2.Absdiff(imgResized, refImg, diff);
+									diff.ConvertTo(diff, MatType.CV_32F);
+									Cv2.Multiply(diff, diff, diff);
+									score = Cv2.Mean(diff).Val0;
+								}
+								metricName = "MSE";
+								break;
+
+							case QualityAssessmentParameters.QualityMetric.SSIM:
+								// 簡化版 SSIM 計算
+								using(var gray1 = new Mat())
+								using(var gray2 = new Mat())
+								{
+									if(imgResized.Channels() >= 3) Cv2.CvtColor(imgResized, gray1, ColorConversionCodes.BGR2GRAY);
+									else imgResized.CopyTo(gray1);
+									if(refImg.Channels() >= 3) Cv2.CvtColor(refImg, gray2, ColorConversionCodes.BGR2GRAY);
+									else refImg.CopyTo(gray2);
+
+									score = Cv2.PSNR(gray1, gray2) / 50.0; // 近似 SSIM (簡化)
+									if(score > 1) score = 1;
+								}
+								metricName = "SSIM (approx)";
+								break;
+						}
+
+						if(pp.ShowScore)
+						{
+							Cv2.PutText(result, $"{metricName}: {score:F4}", new Point(10, 30), HersheyFonts.HersheySimplex, 0.8, Scalar.Green, 2);
+						}
+
+						if(pp.OutputReport)
+						{
+							OnLog?.Invoke($"[品質評估] {metricName}: {score:F4}", false);
+						}
+
+						if(needDispose) imgResized.Dispose();
+						return (true, result, new List<Defect>());
+					}
+				},
+			});
+
+			// =========================================================
+			// 11. 顏色分析 (Color Analysis)
+			// =========================================================
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "顏色分析 (Color Analysis)",
+				Category          = "02. 色彩處理",
+				DefaultParameters = new ColorAnalysisParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (ColorAnalysisParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+
+					if(pp.ComputeDominantColors && img.Channels() >= 3)
+					{
+						// 將影像轉為 float 並 reshape 為 Nx3
+						using(var samples = new Mat())
+						{
+							img.ConvertTo(samples, MatType.CV_32FC3);
+							samples.Reshape(1, img.Rows * img.Cols);
+							var data = new Mat(img.Rows * img.Cols, 3, MatType.CV_32F);
+
+							for(int y = 0; y < img.Rows; y++)
+								for(int x = 0; x < img.Cols; x++)
+								{
+									var pixel = img.At<Vec3b>(y, x);
+									int idx = y * img.Cols + x;
+									data.Set(idx, 0, (float)pixel.Item0);
+									data.Set(idx, 1, (float)pixel.Item1);
+									data.Set(idx, 2, (float)pixel.Item2);
+								}
+
+							var labels = new Mat();
+							var centers = new Mat();
+							Cv2.Kmeans(data, pp.ColorCount, labels,
+								new TermCriteria(CriteriaTypes.Eps | CriteriaTypes.MaxIter, 10, 1.0),
+								3, KMeansFlags.PpCenters, centers);
+
+							if(pp.ShowColorDistribution)
+							{
+								int swatchH = 30;
+								int swatchW = result.Width / pp.ColorCount;
+								int offsetY = result.Height - swatchH - 5;
+
+								for(int i = 0; i < centers.Rows; i++)
+								{
+									var b = (int)centers.At<float>(i, 0);
+									var g = (int)centers.At<float>(i, 1);
+									var r = (int)centers.At<float>(i, 2);
+									Cv2.Rectangle(result, new Rect(i * swatchW, offsetY, swatchW, swatchH), new Scalar(b, g, r), -1);
+								}
+							}
+
+							data.Dispose();
+							labels.Dispose();
+							centers.Dispose();
+						}
+					}
+
+					if(pp.ComputeColorDifference)
+					{
+						// 計算平均 Lab 色差
+						try
+						{
+							var parts = pp.StandardLabColor.Split(',');
+							if(parts.Length == 3)
+							{
+								double stdL = double.Parse(parts[0]);
+								double stdA = double.Parse(parts[1]);
+								double stdB = double.Parse(parts[2]);
+
+								using(var lab = new Mat())
+								{
+									if(img.Channels() >= 3) Cv2.CvtColor(img, lab, ColorConversionCodes.BGR2Lab);
+									else throw new InvalidOperationException("色差計算需要彩色影像。");
+
+									var mean = Cv2.Mean(lab);
+									double dL = mean.Val0 - stdL;
+									double dA = mean.Val1 - 128 - stdA;
+									double dB = mean.Val2 - 128 - stdB;
+									double deltaE = Math.Sqrt(dL * dL + dA * dA + dB * dB);
+
+									bool pass = deltaE <= pp.DeltaEThreshold;
+									Cv2.PutText(result, $"ΔE: {deltaE:F2} ({(pass ? "PASS" : "FAIL")})", new Point(10, 30),
+										HersheyFonts.HersheySimplex, 0.7, pass ? Scalar.Green : Scalar.Red, 2);
+									OnLog?.Invoke($"[顏色分析] ΔE: {deltaE:F2} (閾值: {pp.DeltaEThreshold})", false);
+								}
+							}
+						}
+						catch { }
+					}
+
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			// =========================================================
+			// 12. 背景處理 (Background Processing)
+			// =========================================================
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "背景分割 (Background Subtraction)",
+				Category          = "12. 背景處理",
+				DefaultParameters = new BackgroundSubtractionParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (BackgroundSubtractionParameters)p;
+					var fgMask = new Mat();
+
+					// 建立背景分割器 (由於是單張影像，這裡示範基本用法)
+					if(pp.Method == BackgroundSubtractionParameters.SubtractionMethod.MOG2)
+					{
+						using(var bgSub = BackgroundSubtractorMOG2.Create(pp.History, pp.VarThreshold, pp.DetectShadows))
+						{
+							bgSub.Apply(img, fgMask, pp.LearningRate);
+						}
+					}
+					else
+					{
+						using(var bgSub = BackgroundSubtractorKNN.Create(pp.History, pp.VarThreshold, pp.DetectShadows))
+						{
+							bgSub.Apply(img, fgMask, pp.LearningRate);
+						}
+					}
+
+					if(pp.MorphologicalPostProcess)
+					{
+						using(var kernel = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(pp.MorphKernelSize, pp.MorphKernelSize)))
+						{
+							Cv2.MorphologyEx(fgMask, fgMask, MorphTypes.Open, kernel);
+							Cv2.MorphologyEx(fgMask, fgMask, MorphTypes.Close, kernel);
+						}
+					}
+
+					var result = new Mat();
+					Cv2.CvtColor(fgMask, result, ColorConversionCodes.GRAY2BGR);
+					return (true, result, new List<Defect>());
+				},
+			});
+
+			// =========================================================
+			// 13. 缺陷檢測 (Defect Detection)
+			// =========================================================
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "缺陷偵測 (Defect Detection)",
+				Category          = "13. 缺陷檢測",
+				DefaultParameters = new DefectDetectionParameters(),
+				Action = (img, p) =>
+				{
+					var pp = (DefectDetectionParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+
+					var defects = new List<Defect>();
+					Mat diffMask = new Mat();
+
+					if(pp.Mode == DefectDetectionParameters.DetectionMode.TemplateDiff)
+					{
+						if(string.IsNullOrEmpty(pp.ReferenceSamplePath) || !File.Exists(pp.ReferenceSamplePath))
+						{
+							throw new InvalidOperationException($"參考樣本影像不存在: {pp.ReferenceSamplePath}");
+						}
+
+						using(var refImg = Cv2.ImRead(pp.ReferenceSamplePath))
+						{
+							if(refImg.Empty())
+								throw new InvalidOperationException("無法載入參考樣本影像。");
+
+							Mat imgResized = img;
+							bool needDispose = false;
+							if(img.Width != refImg.Width || img.Height != refImg.Height)
+							{
+								imgResized = new Mat();
+								Cv2.Resize(img, imgResized, refImg.Size());
+								needDispose = true;
+								Cv2.Resize(result, result, refImg.Size());
+							}
+
+							using(var gray1 = new Mat())
+							using(var gray2 = new Mat())
+							using(var diff = new Mat())
+							{
+								if(imgResized.Channels() >= 3) Cv2.CvtColor(imgResized, gray1, ColorConversionCodes.BGR2GRAY);
+								else imgResized.CopyTo(gray1);
+								if(refImg.Channels() >= 3) Cv2.CvtColor(refImg, gray2, ColorConversionCodes.BGR2GRAY);
+								else refImg.CopyTo(gray2);
+
+								Cv2.Absdiff(gray1, gray2, diff);
+								Cv2.Threshold(diff, diffMask, pp.DifferenceThreshold, 255, ThresholdTypes.Binary);
+							}
+
+							if(needDispose) imgResized.Dispose();
+						}
+					}
+					else if(pp.Mode == DefectDetectionParameters.DetectionMode.EdgeBased)
+					{
+						var gray = new Mat();
+						if(img.Channels() >= 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+						else img.CopyTo(gray);
+
+						Cv2.Canny(gray, diffMask, 50, 150);
+						using(var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(3, 3)))
+						{
+							Cv2.Dilate(diffMask, diffMask, kernel);
+						}
+						gray.Dispose();
+					}
+					else // ColorBased
+					{
+						using(var hsv = new Mat())
+						{
+							if(img.Channels() >= 3) Cv2.CvtColor(img, hsv, ColorConversionCodes.BGR2HSV);
+							else throw new InvalidOperationException("色彩檢測需要彩色影像。");
+
+							// 簡單的飽和度閾值
+							Cv2.ExtractChannel(hsv, diffMask, 1);
+							Cv2.Threshold(diffMask, diffMask, pp.DifferenceThreshold, 255, ThresholdTypes.Binary);
+						}
+					}
+
+					// 找輪廓作為缺陷
+					Cv2.FindContours(diffMask, out Point[][] contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+					int idx = 0;
+					var csvLines = new List<string> { "Index,X,Y,Width,Height,Area,Type" };
+
+					foreach(var contour in contours)
+					{
+						double area = Cv2.ContourArea(contour);
+						if(area < pp.MinDefectArea) continue;
+						if(pp.MaxDefectArea > 0 && area > pp.MaxDefectArea) continue;
+
+						var rect = Cv2.BoundingRect(contour);
+
+						if(pp.HighlightDefects)
+						{
+							Cv2.Rectangle(result, rect, Scalar.Red, 2);
+							Cv2.PutText(result, $"D{idx + 1}", new Point(rect.X, rect.Y - 5), HersheyFonts.HersheySimplex, 0.4, Scalar.Red, 1);
+						}
+
+						defects.Add(new Defect
+						{
+							Id          = $"D{idx + 1}",
+							Type        = pp.TypeFilter.ToString(),
+							Confidence  = area,
+							BoundingBox = new[] { rect.X, rect.Y, rect.Width, rect.Height },
+						});
+
+						csvLines.Add($"{idx + 1},{rect.X},{rect.Y},{rect.Width},{rect.Height},{area:F0},{pp.TypeFilter}");
+						idx++;
+					}
+
+					if(pp.OutputDefectReport)
+					{
+						OnLog?.Invoke($"[缺陷檢測] 共發現 {idx} 個缺陷區域", false);
+					}
+
+					if(pp.OutputToCsv && !string.IsNullOrEmpty(pp.CsvOutputPath))
+					{
+						File.WriteAllLines(pp.CsvOutputPath, csvLines);
+						OnLog?.Invoke($"[缺陷檢測] 已輸出報告到 {pp.CsvOutputPath}", false);
+					}
+
+					diffMask.Dispose();
+					return (true, result, defects);
+				},
+			});
+
 			// Wrap calls with logging
 			var wrappedTools = new List<ToolDefinition>();
 
