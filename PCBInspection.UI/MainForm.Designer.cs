@@ -17,534 +17,570 @@ namespace PCBInspection.UI
 
         private void InitializeComponent()
         {
-            this.splitContainer = new System.Windows.Forms.SplitContainer();
-            this.panelImageContainer = new System.Windows.Forms.Panel();
-            this.picPreview = new System.Windows.Forms.PictureBox();
-            this.panelZoomInfo = new System.Windows.Forms.Panel();
-            this.lblZoomLevel = new System.Windows.Forms.Label();
-            this.btnZoomReset = new System.Windows.Forms.Button();
-            this.panelStatus = new System.Windows.Forms.Panel();
-            this.lblResult = new System.Windows.Forms.Label();
-            this.panelControls = new System.Windows.Forms.Panel();
-            this.grpFeatures = new System.Windows.Forms.GroupBox();
-            this.propertyGrid = new System.Windows.Forms.PropertyGrid();
-            this.btnMoveDown = new System.Windows.Forms.Button();
-            this.btnMoveUp = new System.Windows.Forms.Button();
-            this.btnRemove = new System.Windows.Forms.Button();
-            this.btnAdd = new System.Windows.Forms.Button();
-            this.lblSequence = new System.Windows.Forms.Label();
-            this.lblAvailable = new System.Windows.Forms.Label();
-            this.lstSequence = new System.Windows.Forms.ListBox();
-            this.lstAvailable = new System.Windows.Forms.ListBox();
-            this.grpInspection = new System.Windows.Forms.GroupBox();
-            this.btnStop = new System.Windows.Forms.Button();
-            this.btnStart = new System.Windows.Forms.Button();
-            this.btnSingleShot = new System.Windows.Forms.Button();
-            this.grpInfo = new System.Windows.Forms.GroupBox();
-            this.lblProcessTime = new System.Windows.Forms.Label();
-            this.lblDefectCount = new System.Windows.Forms.Label();
-            this.lblComponentCount = new System.Windows.Forms.Label();
-            this.grpConfig = new System.Windows.Forms.GroupBox();
-            this.btnCalibration = new System.Windows.Forms.Button();
-            this.btnLoadImage = new System.Windows.Forms.Button();
-            this.txtImagePath = new System.Windows.Forms.TextBox();
-            this.lblImagePath = new System.Windows.Forms.Label();
-            this.lstDefects = new System.Windows.Forms.ListBox();
-            this.lblDefectList = new System.Windows.Forms.Label();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            this.toolStripMain = new System.Windows.Forms.ToolStrip();
+            this.btnTsNew = new System.Windows.Forms.ToolStripButton();
+            this.btnTsOpen = new System.Windows.Forms.ToolStripButton();
+            this.btnTsSave = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnTsRunOnce = new System.Windows.Forms.ToolStripButton();
+            this.btnTsRunLoop = new System.Windows.Forms.ToolStripButton();
+            this.btnTsStop = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnTsSettings = new System.Windows.Forms.ToolStripButton();
+            // New Buttons
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnTsZoomIn = new System.Windows.Forms.ToolStripButton();
+            this.btnTsZoomOut = new System.Windows.Forms.ToolStripButton();
+            this.btnTsFit = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnTsPointer = new System.Windows.Forms.ToolStripButton();
+            this.btnTsRoiRect = new System.Windows.Forms.ToolStripButton();
+            this.btnTsRoiCircle = new System.Windows.Forms.ToolStripButton();
+            this.btnTsRoiPoly = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnTsUndo = new System.Windows.Forms.ToolStripButton();
+            this.btnTsRedo = new System.Windows.Forms.ToolStripButton();
+
             this.statusStrip = new System.Windows.Forms.StatusStrip();
-            this.toolStripStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripZoomLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
-            this.splitContainer.Panel1.SuspendLayout();
-            this.splitContainer.Panel2.SuspendLayout();
-            this.splitContainer.SuspendLayout();
-            this.panelImageContainer.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.picPreview)).BeginInit();
-            this.panelZoomInfo.SuspendLayout();
-            this.panelStatus.SuspendLayout();
-            this.panelControls.SuspendLayout();
-            this.grpFeatures.SuspendLayout();
-            this.grpInspection.SuspendLayout();
-            this.grpInfo.SuspendLayout();
-            this.grpConfig.SuspendLayout();
-            this.statusStrip.SuspendLayout();
-            this.SuspendLayout();
+            this.lblStatusMain = new System.Windows.Forms.ToolStripStatusLabel();
+            this.lblStatusTime = new System.Windows.Forms.ToolStripStatusLabel();
+            
+            // ... (Skip unchanged) ...
+
             // 
-            // splitContainer
+            // toolStripMain
             // 
-            this.splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
-            this.splitContainer.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer.Name = "splitContainer";
+            this.toolStripMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.toolStripMain.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.toolStripMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.btnTsNew,
+            this.btnTsOpen,
+            this.btnTsSave,
+            this.toolStripSeparator1,
+            this.btnTsRunOnce,
+            this.btnTsRunLoop,
+            this.btnTsStop,
+            this.toolStripSeparator2,
+            this.btnTsSettings,
+            this.toolStripSeparator3,
+            this.btnTsZoomIn,
+            this.btnTsZoomOut,
+            this.btnTsFit,
+            this.toolStripSeparator4,
+            this.btnTsPointer,
+            this.btnTsRoiRect,
+            this.btnTsRoiCircle,
+            this.btnTsRoiPoly,
+            this.toolStripSeparator5,
+            this.btnTsUndo,
+            this.btnTsRedo});
+            this.toolStripMain.Location = new System.Drawing.Point(0, 0);
+            this.toolStripMain.Name = "toolStripMain";
+            this.toolStripMain.Size = new System.Drawing.Size(1264, 35);
+            this.toolStripMain.TabIndex = 0;
+
+            // Define Texts/Icons for new buttons
+            this.btnTsZoomIn.Text = "+";
+            this.btnTsZoomIn.ForeColor = System.Drawing.Color.White;
+            this.btnTsZoomOut.Text = "-";
+            this.btnTsZoomOut.ForeColor = System.Drawing.Color.White;
+            this.btnTsFit.Text = "[ ]";
+            this.btnTsFit.ForeColor = System.Drawing.Color.White;
+            
+            this.btnTsPointer.Text = "指標";
+            this.btnTsPointer.ForeColor = System.Drawing.Color.White;
+            this.btnTsRoiRect.Text = "□";
+            this.btnTsRoiRect.ForeColor = System.Drawing.Color.White;
+            this.btnTsRoiCircle.Text = "○";
+            this.btnTsRoiCircle.ForeColor = System.Drawing.Color.White;
+            this.btnTsRoiPoly.Text = "⬡";
+            this.btnTsRoiPoly.ForeColor = System.Drawing.Color.White;
+
+            this.btnTsUndo.Text = "↩";
+            this.btnTsUndo.ForeColor = System.Drawing.Color.White;
+            this.btnTsRedo.Text = "↪";
+            this.btnTsRedo.ForeColor = System.Drawing.Color.White;
+
             // 
-            // splitContainer.Panel1
+            // btnTsNew
             // 
-            this.splitContainer.Panel1.Controls.Add(this.panelImageContainer);
-            this.splitContainer.Panel1.Controls.Add(this.panelZoomInfo);
-            this.splitContainer.Panel1.Controls.Add(this.panelStatus);
+            this.btnTsNew.ForeColor = System.Drawing.Color.White;
+            this.btnTsNew.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsNew.Name = "btnTsNew";
+            this.btnTsNew.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsNew.Size = new System.Drawing.Size(43, 32);
+            this.btnTsNew.Text = "新建";
             // 
-            // splitContainer.Panel2
+            // btnTsOpen
             // 
-            this.splitContainer.Panel2.Controls.Add(this.panelControls);
-            this.splitContainer.Size = new System.Drawing.Size(1024, 668);
-            this.splitContainer.SplitterDistance = 720;
-            this.splitContainer.TabIndex = 0;
+            this.btnTsOpen.ForeColor = System.Drawing.Color.White;
+            this.btnTsOpen.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsOpen.Name = "btnTsOpen";
+            this.btnTsOpen.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsOpen.Size = new System.Drawing.Size(43, 32);
+            this.btnTsOpen.Text = "開啟";
             // 
-            // panelImageContainer
+            // btnTsSave
             // 
-            this.panelImageContainer.AutoScroll = true;
-            this.panelImageContainer.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.panelImageContainer.Controls.Add(this.picPreview);
-            this.panelImageContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelImageContainer.Location = new System.Drawing.Point(0, 30);
-            this.panelImageContainer.Name = "panelImageContainer";
-            this.panelImageContainer.Size = new System.Drawing.Size(720, 558);
-            this.panelImageContainer.TabIndex = 2;
+            this.btnTsSave.ForeColor = System.Drawing.Color.White;
+            this.btnTsSave.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsSave.Name = "btnTsSave";
+            this.btnTsSave.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsSave.Size = new System.Drawing.Size(43, 32);
+            this.btnTsSave.Text = "儲存";
             // 
-            // picPreview
+            // toolStripSeparator1
             // 
-            this.picPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.picPreview.Location = new System.Drawing.Point(0, 0);
-            this.picPreview.Name = "picPreview";
-            this.picPreview.Size = new System.Drawing.Size(720, 558);
-            this.picPreview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.picPreview.TabIndex = 0;
-            this.picPreview.TabStop = false;
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 35);
             // 
-            // panelZoomInfo
+            // btnTsRunOnce
             // 
-            this.panelZoomInfo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
-            this.panelZoomInfo.Controls.Add(this.lblZoomLevel);
-            this.panelZoomInfo.Controls.Add(this.btnZoomReset);
-            this.panelZoomInfo.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panelZoomInfo.Location = new System.Drawing.Point(0, 0);
-            this.panelZoomInfo.Name = "panelZoomInfo";
-            this.panelZoomInfo.Size = new System.Drawing.Size(720, 30);
-            this.panelZoomInfo.TabIndex = 3;
+            this.btnTsRunOnce.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(255)))), ((int)(((byte)(100)))));
+            this.btnTsRunOnce.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsRunOnce.Name = "btnTsRunOnce";
+            this.btnTsRunOnce.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsRunOnce.Size = new System.Drawing.Size(51, 32);
+            this.btnTsRunOnce.Text = "► 執行";
             // 
-            // lblZoomLevel
+            // btnTsRunLoop
             // 
-            this.lblZoomLevel.AutoSize = true;
-            this.lblZoomLevel.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblZoomLevel.ForeColor = System.Drawing.Color.White;
-            this.lblZoomLevel.Location = new System.Drawing.Point(10, 7);
-            this.lblZoomLevel.Name = "lblZoomLevel";
-            this.lblZoomLevel.Size = new System.Drawing.Size(80, 15);
-            this.lblZoomLevel.TabIndex = 0;
-            this.lblZoomLevel.Text = "縮放: 100%";
+            this.btnTsRunLoop.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(255)))), ((int)(((byte)(100)))));
+            this.btnTsRunLoop.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsRunLoop.Name = "btnTsRunLoop";
+            this.btnTsRunLoop.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsRunLoop.Size = new System.Drawing.Size(63, 32);
+            this.btnTsRunLoop.Text = "↻ 循環";
             // 
-            // btnZoomReset
+            // btnTsStop
             // 
-            this.btnZoomReset.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnZoomReset.ForeColor = System.Drawing.Color.White;
-            this.btnZoomReset.Location = new System.Drawing.Point(120, 3);
-            this.btnZoomReset.Name = "btnZoomReset";
-            this.btnZoomReset.Size = new System.Drawing.Size(80, 24);
-            this.btnZoomReset.TabIndex = 1;
-            this.btnZoomReset.Text = "重置縮放";
-            this.btnZoomReset.UseVisualStyleBackColor = true;
+            this.btnTsStop.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
+            this.btnTsStop.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsStop.Name = "btnTsStop";
+            this.btnTsStop.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsStop.Size = new System.Drawing.Size(51, 32);
+            this.btnTsStop.Text = "■ 停止";
             // 
-            // panelStatus
+            // toolStripSeparator2
             // 
-            this.panelStatus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
-            this.panelStatus.Controls.Add(this.lblResult);
-            this.panelStatus.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelStatus.Location = new System.Drawing.Point(0, 588);
-            this.panelStatus.Name = "panelStatus";
-            this.panelStatus.Size = new System.Drawing.Size(720, 80);
-            this.panelStatus.TabIndex = 1;
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 35);
             // 
-            // lblResult
+            // btnTsSettings
             // 
-            this.lblResult.BackColor = System.Drawing.Color.Gray;
-            this.lblResult.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lblResult.Font = new System.Drawing.Font("Microsoft JhengHei UI", 36F, System.Drawing.FontStyle.Bold);
-            this.lblResult.ForeColor = System.Drawing.Color.White;
-            this.lblResult.Location = new System.Drawing.Point(0, 0);
-            this.lblResult.Name = "lblResult";
-            this.lblResult.Size = new System.Drawing.Size(720, 80);
-            this.lblResult.TabIndex = 0;
-            this.lblResult.Text = "待機中";
-            this.lblResult.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.btnTsSettings.ForeColor = System.Drawing.Color.White;
+            this.btnTsSettings.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnTsSettings.Name = "btnTsSettings";
+            this.btnTsSettings.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTsSettings.Size = new System.Drawing.Size(43, 32);
+            this.btnTsSettings.Text = "設定";
             // 
-            // panelControls
+            // statusStrip
             // 
-            this.panelControls.Controls.Add(this.lstDefects);
-            this.panelControls.Controls.Add(this.lblDefectList);
-            this.panelControls.Controls.Add(this.grpFeatures);
-            this.panelControls.Controls.Add(this.grpInspection);
-            this.panelControls.Controls.Add(this.grpInfo);
-            this.panelControls.Controls.Add(this.grpConfig);
-            this.panelControls.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelControls.Location = new System.Drawing.Point(0, 0);
-            this.panelControls.Name = "panelControls";
-            this.panelControls.Padding = new System.Windows.Forms.Padding(10);
-            this.panelControls.Size = new System.Drawing.Size(300, 668);
-            this.panelControls.TabIndex = 0;
+            this.statusStrip.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.lblStatusMain,
+            this.lblStatusTime});
+            this.statusStrip.Location = new System.Drawing.Point(0, 789);
+            this.statusStrip.Name = "statusStrip";
+            this.statusStrip.Size = new System.Drawing.Size(1264, 22);
+            this.statusStrip.TabIndex = 1;
+            this.statusStrip.Text = "statusStrip1";
             // 
-            // grpFeatures
+            // lblStatusMain
             // 
-            this.grpFeatures.Controls.Add(this.propertyGrid);
-            this.grpFeatures.Controls.Add(this.btnMoveDown);
-            this.grpFeatures.Controls.Add(this.btnMoveUp);
-            this.grpFeatures.Controls.Add(this.btnRemove);
-            this.grpFeatures.Controls.Add(this.btnAdd);
-            this.grpFeatures.Controls.Add(this.lblSequence);
-            this.grpFeatures.Controls.Add(this.lblAvailable);
-            this.grpFeatures.Controls.Add(this.lstSequence);
-            this.grpFeatures.Controls.Add(this.lstAvailable);
-            this.grpFeatures.Dock = System.Windows.Forms.DockStyle.Top;
-            this.grpFeatures.Location = new System.Drawing.Point(10, 335);
-            this.grpFeatures.Name = "grpFeatures";
-            this.grpFeatures.Size = new System.Drawing.Size(280, 240);
-            this.grpFeatures.TabIndex = 5;
-            this.grpFeatures.TabStop = false;
-            this.grpFeatures.Text = "檢測項目設定";
+            this.lblStatusMain.ForeColor = System.Drawing.Color.White;
+            this.lblStatusMain.Name = "lblStatusMain";
+            this.lblStatusMain.Size = new System.Drawing.Size(32, 17);
+            this.lblStatusMain.Text = "就緒";
+            // 
+            // lblStatusTime
+            // 
+            this.lblStatusTime.ForeColor = System.Drawing.Color.White;
+            this.lblStatusTime.Name = "lblStatusTime";
+            this.lblStatusTime.Size = new System.Drawing.Size(0, 17);
+            // 
+            // splitContainerMain
+            // 
+            this.splitContainerMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainerMain.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
+            this.splitContainerMain.Location = new System.Drawing.Point(0, 35);
+            this.splitContainerMain.Name = "splitContainerMain";
+            // 
+            // splitContainerMain.Panel1
+            // 
+            this.splitContainerMain.Panel1.Controls.Add(this.splitContainerLeft);
+            // 
+            // splitContainerMain.Panel2
+            // 
+            this.splitContainerMain.Panel2.Controls.Add(this.panelCenter);
+            this.splitContainerMain.Size = new System.Drawing.Size(1264, 754);
+            this.splitContainerMain.SplitterDistance = 350;
+            this.splitContainerMain.TabIndex = 2;
+            // 
+            // splitContainerLeft
+            // 
+            this.splitContainerLeft.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainerLeft.Location = new System.Drawing.Point(0, 0);
+            this.splitContainerLeft.Name = "splitContainerLeft";
+            this.splitContainerLeft.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // splitContainerLeft.Panel1
+            // 
+            this.splitContainerLeft.Panel1.Controls.Add(this.tabToolbox);
+            // 
+            // splitContainerLeft.Panel2
+            // 
+            this.splitContainerLeft.Panel2.Controls.Add(this.grpProperties);
+            this.splitContainerLeft.Panel2.Controls.Add(this.pnlFlowControl);
+            this.splitContainerLeft.Panel2.Controls.Add(this.dgvSequence);
+            this.splitContainerLeft.Size = new System.Drawing.Size(350, 754);
+            this.splitContainerLeft.SplitterDistance = 300;
+            this.splitContainerLeft.TabIndex = 0;
+            // 
+            // tabToolbox
+            // 
+            this.tabToolbox.Controls.Add(this.tabPageTools);
+            this.tabToolbox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabToolbox.Location = new System.Drawing.Point(0, 0);
+            this.tabToolbox.Name = "tabToolbox";
+            this.tabToolbox.SelectedIndex = 0;
+            this.tabToolbox.Size = new System.Drawing.Size(350, 300);
+            this.tabToolbox.TabIndex = 0;
+            // 
+            // tabPageTools
+            // 
+            this.tabPageTools.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
+            this.tabPageTools.Controls.Add(this.tvTools);
+            this.tabPageTools.Location = new System.Drawing.Point(4, 22);
+            this.tabPageTools.Name = "tabPageTools";
+            this.tabPageTools.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageTools.Size = new System.Drawing.Size(342, 274);
+            this.tabPageTools.TabIndex = 0;
+            this.tabPageTools.Text = "工具箱";
+            // 
+            // tvTools
+            // 
+            this.tvTools.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
+            this.tvTools.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.tvTools.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tvTools.Font = new System.Drawing.Font("Microsoft JhengHei UI", 10F);
+            this.tvTools.ForeColor = System.Drawing.Color.White;
+            this.tvTools.LineColor = System.Drawing.Color.Silver;
+            this.tvTools.Location = new System.Drawing.Point(3, 3);
+            this.tvTools.Name = "tvTools";
+            this.tvTools.Size = new System.Drawing.Size(336, 268);
+            this.tvTools.TabIndex = 0;
+            // 
+            // grpProperties
+            // 
+            this.grpProperties.Controls.Add(this.propertyGrid);
+            this.grpProperties.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.grpProperties.ForeColor = System.Drawing.Color.White;
+            this.grpProperties.Location = new System.Drawing.Point(0, 224);
+            this.grpProperties.Name = "grpProperties";
+            this.grpProperties.Size = new System.Drawing.Size(350, 226);
+            this.grpProperties.TabIndex = 2;
+            this.grpProperties.TabStop = false;
+            this.grpProperties.Text = "參數設定";
             // 
             // propertyGrid
             // 
-            this.propertyGrid.HelpVisible = true;
-            this.propertyGrid.Location = new System.Drawing.Point(6, 140);
+            this.propertyGrid.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertyGrid.HelpBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(70)))));
+            this.propertyGrid.HelpForeColor = System.Drawing.Color.White;
+            this.propertyGrid.Location = new System.Drawing.Point(3, 19);
             this.propertyGrid.Name = "propertyGrid";
-            this.propertyGrid.Size = new System.Drawing.Size(268, 94);
-            this.propertyGrid.TabIndex = 8;
+            this.propertyGrid.Size = new System.Drawing.Size(344, 204);
+            this.propertyGrid.TabIndex = 0;
             this.propertyGrid.ToolbarVisible = false;
+            this.propertyGrid.ViewBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.propertyGrid.ViewForeColor = System.Drawing.Color.White;
+            // 
+            // pnlFlowControl
+            // 
+            this.pnlFlowControl.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
+            this.pnlFlowControl.Controls.Add(this.btnRemoveTool);
+            this.pnlFlowControl.Controls.Add(this.btnMoveDown);
+            this.pnlFlowControl.Controls.Add(this.btnMoveUp);
+            this.pnlFlowControl.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlFlowControl.Location = new System.Drawing.Point(0, 194);
+            this.pnlFlowControl.Name = "pnlFlowControl";
+            this.pnlFlowControl.Size = new System.Drawing.Size(350, 30);
+            this.pnlFlowControl.TabIndex = 1;
+            // 
+            // btnRemoveTool
+            // 
+            this.btnRemoveTool.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRemoveTool.ForeColor = System.Drawing.Color.White;
+            this.btnRemoveTool.Location = new System.Drawing.Point(298, 3);
+            this.btnRemoveTool.Name = "btnRemoveTool";
+            this.btnRemoveTool.Size = new System.Drawing.Size(40, 23);
+            this.btnRemoveTool.TabIndex = 2;
+            this.btnRemoveTool.Text = "-";
+            this.btnRemoveTool.UseVisualStyleBackColor = true;
             // 
             // btnMoveDown
             // 
-            this.btnMoveDown.Font = new System.Drawing.Font("Microsoft JhengHei UI", 8F);
-            this.btnMoveDown.Location = new System.Drawing.Point(234, 100);
+            this.btnMoveDown.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnMoveDown.ForeColor = System.Drawing.Color.White;
+            this.btnMoveDown.Location = new System.Drawing.Point(50, 3);
             this.btnMoveDown.Name = "btnMoveDown";
             this.btnMoveDown.Size = new System.Drawing.Size(40, 23);
-            this.btnMoveDown.TabIndex = 7;
+            this.btnMoveDown.TabIndex = 1;
             this.btnMoveDown.Text = "↓";
             this.btnMoveDown.UseVisualStyleBackColor = true;
             // 
             // btnMoveUp
             // 
-            this.btnMoveUp.Font = new System.Drawing.Font("Microsoft JhengHei UI", 8F);
-            this.btnMoveUp.Location = new System.Drawing.Point(234, 40);
+            this.btnMoveUp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnMoveUp.ForeColor = System.Drawing.Color.White;
+            this.btnMoveUp.Location = new System.Drawing.Point(4, 3);
             this.btnMoveUp.Name = "btnMoveUp";
             this.btnMoveUp.Size = new System.Drawing.Size(40, 23);
-            this.btnMoveUp.TabIndex = 6;
+            this.btnMoveUp.TabIndex = 0;
             this.btnMoveUp.Text = "↑";
             this.btnMoveUp.UseVisualStyleBackColor = true;
             // 
-            // btnRemove
+            // dgvSequence
             // 
-            this.btnRemove.Location = new System.Drawing.Point(115, 80);
-            this.btnRemove.Name = "btnRemove";
-            this.btnRemove.Size = new System.Drawing.Size(40, 23);
-            this.btnRemove.TabIndex = 5;
-            this.btnRemove.Text = "<";
-            this.btnRemove.UseVisualStyleBackColor = true;
+            this.dgvSequence.AllowUserToAddRows = false;
+            this.dgvSequence.AllowUserToDeleteRows = false;
+            this.dgvSequence.AllowUserToResizeRows = false;
+            this.dgvSequence.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(35)))));
+            this.dgvSequence.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.dgvSequence.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
+            this.dgvSequence.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvSequence.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            this.dgvSequence.ColumnHeadersHeight = 30;
+            this.dgvSequence.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            this.dgvSequence.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colStepName,
+            this.colTime,
+            this.colStatus});
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(35)))));
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvSequence.DefaultCellStyle = dataGridViewCellStyle2;
+            this.dgvSequence.Dock = System.Windows.Forms.DockStyle.Top;
+            this.dgvSequence.EnableHeadersVisualStyles = false;
+            this.dgvSequence.GridColor = System.Drawing.Color.Gray;
+            this.dgvSequence.Location = new System.Drawing.Point(0, 0);
+            this.dgvSequence.MultiSelect = false;
+            this.dgvSequence.Name = "dgvSequence";
+            this.dgvSequence.ReadOnly = true;
+            this.dgvSequence.RowHeadersVisible = false;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(35)))));
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.White;
+            this.dgvSequence.RowsDefaultCellStyle = dataGridViewCellStyle3;
+            this.dgvSequence.RowTemplate.Height = 24;
+            this.dgvSequence.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dgvSequence.Size = new System.Drawing.Size(350, 194);
+            this.dgvSequence.TabIndex = 0;
             // 
-            // btnAdd
+            // colStepName
             // 
-            this.btnAdd.Location = new System.Drawing.Point(115, 50);
-            this.btnAdd.Name = "btnAdd";
-            this.btnAdd.Size = new System.Drawing.Size(40, 23);
-            this.btnAdd.TabIndex = 4;
-            this.btnAdd.Text = ">";
-            this.btnAdd.UseVisualStyleBackColor = true;
+            this.colStepName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colStepName.HeaderText = "步驟名稱";
+            this.colStepName.Name = "colStepName";
+            this.colStepName.ReadOnly = true;
             // 
-            // lblSequence
+            // colTime
             // 
-            this.lblSequence.AutoSize = true;
-            this.lblSequence.Font = new System.Drawing.Font("Microsoft JhengHei UI", 8F);
-            this.lblSequence.Location = new System.Drawing.Point(158, 20);
-            this.lblSequence.Name = "lblSequence";
-            this.lblSequence.Size = new System.Drawing.Size(51, 14);
-            this.lblSequence.TabIndex = 3;
-            this.lblSequence.Text = "執行順序";
+            this.colTime.HeaderText = "耗時";
+            this.colTime.Name = "colTime";
+            this.colTime.ReadOnly = true;
+            this.colTime.Width = 60;
             // 
-            // lblAvailable
+            // colStatus
             // 
-            this.lblAvailable.AutoSize = true;
-            this.lblAvailable.Font = new System.Drawing.Font("Microsoft JhengHei UI", 8F);
-            this.lblAvailable.Location = new System.Drawing.Point(6, 20);
-            this.lblAvailable.Name = "lblAvailable";
-            this.lblAvailable.Size = new System.Drawing.Size(51, 14);
-            this.lblAvailable.TabIndex = 2;
-            this.lblAvailable.Text = "可用項目";
+            this.colStatus.HeaderText = "狀態";
+            this.colStatus.Name = "colStatus";
+            this.colStatus.ReadOnly = true;
+            this.colStatus.Width = 60;
             // 
-            // lstSequence
+            // panelCenter
             // 
-            this.lstSequence.FormattingEnabled = true;
-            this.lstSequence.ItemHeight = 15;
-            this.lstSequence.Location = new System.Drawing.Point(161, 37);
-            this.lstSequence.Name = "lstSequence";
-            this.lstSequence.Size = new System.Drawing.Size(70, 94);
-            this.lstSequence.TabIndex = 1;
+            this.panelCenter.Controls.Add(this.panelImage);
+            this.panelCenter.Controls.Add(this.panelLog);
+            this.panelCenter.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelCenter.Location = new System.Drawing.Point(0, 0);
+            this.panelCenter.Name = "panelCenter";
+            this.panelCenter.Size = new System.Drawing.Size(910, 754);
+            this.panelCenter.TabIndex = 0;
             // 
-            // lstAvailable
+            // panelImage
             // 
-            this.lstAvailable.FormattingEnabled = true;
-            this.lstAvailable.ItemHeight = 15;
-            this.lstAvailable.Location = new System.Drawing.Point(6, 37);
-            this.lstAvailable.Name = "lstAvailable";
-            this.lstAvailable.Size = new System.Drawing.Size(103, 94);
-            this.lstAvailable.TabIndex = 0;
+            this.panelImage.BackColor = System.Drawing.Color.Black;
+            this.panelImage.Controls.Add(this.imageViewer);
+            this.panelImage.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelImage.Location = new System.Drawing.Point(0, 0);
+            this.panelImage.Name = "panelImage";
+            this.panelImage.Size = new System.Drawing.Size(910, 554);
+            this.panelImage.TabIndex = 0;
             // 
-            // grpInspection
+            // imageViewer
             // 
-            this.grpInspection.Controls.Add(this.btnStop);
-            this.grpInspection.Controls.Add(this.btnStart);
-            this.grpInspection.Controls.Add(this.btnSingleShot);
-            this.grpInspection.Dock = System.Windows.Forms.DockStyle.Top;
-            this.grpInspection.Location = new System.Drawing.Point(10, 225);
-            this.grpInspection.Name = "grpInspection";
-            this.grpInspection.Size = new System.Drawing.Size(280, 110);
-            this.grpInspection.TabIndex = 2;
-            this.grpInspection.TabStop = false;
-            this.grpInspection.Text = "檢測控制";
+            this.imageViewer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.imageViewer.Location = new System.Drawing.Point(0, 0);
+            this.imageViewer.Name = "imageViewer";
+            this.imageViewer.Size = new System.Drawing.Size(910, 554);
+            this.imageViewer.TabIndex = 0;
+            this.imageViewer.BackColor = System.Drawing.Color.FromArgb(30,30,30);
             // 
-            // btnStop
+            // panelLog
             // 
-            this.btnStop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
-            this.btnStop.Enabled = false;
-            this.btnStop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnStop.Font = new System.Drawing.Font("Microsoft JhengHei UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnStop.ForeColor = System.Drawing.Color.White;
-            this.btnStop.Location = new System.Drawing.Point(145, 65);
-            this.btnStop.Name = "btnStop";
-            this.btnStop.Size = new System.Drawing.Size(120, 35);
-            this.btnStop.TabIndex = 2;
-            this.btnStop.Text = "停止";
-            this.btnStop.UseVisualStyleBackColor = false;
+            this.panelLog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.panelLog.Controls.Add(this.lstLog);
+            this.panelLog.Controls.Add(this.lblLogTitle);
+            this.panelLog.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelLog.Location = new System.Drawing.Point(0, 554);
+            this.panelLog.Name = "panelLog";
+            this.panelLog.Size = new System.Drawing.Size(910, 200);
+            this.panelLog.TabIndex = 1;
             // 
-            // btnStart
+            // lstLog
             // 
-            this.btnStart.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(180)))), ((int)(((byte)(80)))));
-            this.btnStart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnStart.Font = new System.Drawing.Font("Microsoft JhengHei UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnStart.ForeColor = System.Drawing.Color.White;
-            this.btnStart.Location = new System.Drawing.Point(15, 65);
-            this.btnStart.Name = "btnStart";
-            this.btnStart.Size = new System.Drawing.Size(120, 35);
-            this.btnStart.TabIndex = 1;
-            this.btnStart.Text = "連續檢測";
-            this.btnStart.UseVisualStyleBackColor = false;
+            this.lstLog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
+            this.lstLog.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.lstLog.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lstLog.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.lstLog.ForeColor = System.Drawing.Color.LimeGreen;
+            this.lstLog.FormattingEnabled = true;
+            this.lstLog.ItemHeight = 16;
+            this.lstLog.Location = new System.Drawing.Point(0, 20);
+            this.lstLog.Name = "lstLog";
+            this.lstLog.Size = new System.Drawing.Size(910, 180);
+            this.lstLog.TabIndex = 1;
             // 
-            // btnSingleShot
+            // lblLogTitle
             // 
-            this.btnSingleShot.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(120)))), ((int)(((byte)(200)))));
-            this.btnSingleShot.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSingleShot.Font = new System.Drawing.Font("Microsoft JhengHei UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnSingleShot.ForeColor = System.Drawing.Color.White;
-            this.btnSingleShot.Location = new System.Drawing.Point(15, 25);
-            this.btnSingleShot.Name = "btnSingleShot";
-            this.btnSingleShot.Size = new System.Drawing.Size(250, 35);
-            this.btnSingleShot.TabIndex = 0;
-            this.btnSingleShot.Text = "單次檢測";
-            this.btnSingleShot.UseVisualStyleBackColor = false;
-            // 
-            // grpInfo
-            // 
-            this.grpInfo.Controls.Add(this.lblProcessTime);
-            this.grpInfo.Controls.Add(this.lblDefectCount);
-            this.grpInfo.Controls.Add(this.lblComponentCount);
-            this.grpInfo.Dock = System.Windows.Forms.DockStyle.Top;
-            this.grpInfo.Location = new System.Drawing.Point(10, 130);
-            this.grpInfo.Name = "grpInfo";
-            this.grpInfo.Size = new System.Drawing.Size(280, 95);
-            this.grpInfo.TabIndex = 1;
-            this.grpInfo.TabStop = false;
-            this.grpInfo.Text = "檢測資訊";
-            // 
-            // lblProcessTime
-            // 
-            this.lblProcessTime.AutoSize = true;
-            this.lblProcessTime.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
-            this.lblProcessTime.Location = new System.Drawing.Point(15, 70);
-            this.lblProcessTime.Name = "lblProcessTime";
-            this.lblProcessTime.Size = new System.Drawing.Size(100, 15);
-            this.lblProcessTime.TabIndex = 2;
-            this.lblProcessTime.Text = "處理時間: -- ms";
-            // 
-            // lblDefectCount
-            // 
-            this.lblDefectCount.AutoSize = true;
-            this.lblDefectCount.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
-            this.lblDefectCount.Location = new System.Drawing.Point(15, 48);
-            this.lblDefectCount.Name = "lblDefectCount";
-            this.lblDefectCount.Size = new System.Drawing.Size(85, 15);
-            this.lblDefectCount.TabIndex = 1;
-            this.lblDefectCount.Text = "瑕疵數量: --";
-            // 
-            // lblComponentCount
-            // 
-            this.lblComponentCount.AutoSize = true;
-            this.lblComponentCount.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
-            this.lblComponentCount.Location = new System.Drawing.Point(15, 26);
-            this.lblComponentCount.Name = "lblComponentCount";
-            this.lblComponentCount.Size = new System.Drawing.Size(85, 15);
-            this.lblComponentCount.TabIndex = 0;
-            this.lblComponentCount.Text = "零件數量: --";
-            // 
-            // grpConfig
-            // 
-            this.grpConfig.Controls.Add(this.btnCalibration);
-            this.grpConfig.Controls.Add(this.btnLoadImage);
-            this.grpConfig.Controls.Add(this.txtImagePath);
-            this.grpConfig.Controls.Add(this.lblImagePath);
-            this.grpConfig.Dock = System.Windows.Forms.DockStyle.Top;
-            this.grpConfig.Location = new System.Drawing.Point(10, 10);
-            this.grpConfig.Name = "grpConfig";
-            this.grpConfig.Size = new System.Drawing.Size(280, 120);
-            this.grpConfig.TabIndex = 0;
-            this.grpConfig.TabStop = false;
-            this.grpConfig.Text = "設定";
-            // 
-            // btnCalibration
-            // 
-            this.btnCalibration.Location = new System.Drawing.Point(15, 80);
-            this.btnCalibration.Name = "btnCalibration";
-            this.btnCalibration.Size = new System.Drawing.Size(250, 30);
-            this.btnCalibration.TabIndex = 3;
-            this.btnCalibration.Text = "開啟校正精靈";
-            this.btnCalibration.UseVisualStyleBackColor = true;
-            // 
-            // btnLoadImage
-            // 
-            this.btnLoadImage.Location = new System.Drawing.Point(220, 45);
-            this.btnLoadImage.Name = "btnLoadImage";
-            this.btnLoadImage.Size = new System.Drawing.Size(45, 23);
-            this.btnLoadImage.TabIndex = 2;
-            this.btnLoadImage.Text = "...";
-            this.btnLoadImage.UseVisualStyleBackColor = true;
-            // 
-            // txtImagePath
-            // 
-            this.txtImagePath.Location = new System.Drawing.Point(15, 45);
-            this.txtImagePath.Name = "txtImagePath";
-            this.txtImagePath.Size = new System.Drawing.Size(200, 23);
-            this.txtImagePath.TabIndex = 1;
-            // 
-            // lblImagePath
-            // 
-            this.lblImagePath.AutoSize = true;
-            this.lblImagePath.Location = new System.Drawing.Point(15, 25);
-            this.lblImagePath.Name = "lblImagePath";
-            this.lblImagePath.Size = new System.Drawing.Size(103, 15);
-            this.lblImagePath.TabIndex = 0;
-            this.lblImagePath.Text = "影像檔案/資料夾:";
-            // 
-            // lstDefects
-            // 
-            this.lstDefects.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lstDefects.FormattingEnabled = true;
-            this.lstDefects.ItemHeight = 15;
-            this.lstDefects.Location = new System.Drawing.Point(10, 575);
-            this.lstDefects.Name = "lstDefects";
-            this.lstDefects.Size = new System.Drawing.Size(280, 93);
-            this.lstDefects.TabIndex = 3;
-            // 
-            // lblDefectList
-            // 
-            this.lblDefectList.Dock = System.Windows.Forms.DockStyle.Top;
-            this.lblDefectList.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblDefectList.Location = new System.Drawing.Point(10, 575);
-            this.lblDefectList.Name = "lblDefectList";
-            this.lblDefectList.Size = new System.Drawing.Size(280, 20);
-            this.lblDefectList.TabIndex = 4;
-            this.lblDefectList.Text = "瑕疵列表";
-            // 
-            // statusStrip
-            // 
-            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripStatusLabel,
-            this.toolStripZoomLabel});
-            this.statusStrip.Location = new System.Drawing.Point(0, 668);
-            this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Size = new System.Drawing.Size(1024, 22);
-            this.statusStrip.TabIndex = 1;
-            // 
-            // toolStripStatusLabel
-            // 
-            this.toolStripStatusLabel.Name = "toolStripStatusLabel";
-            this.toolStripStatusLabel.Size = new System.Drawing.Size(55, 17);
-            this.toolStripStatusLabel.Text = "就緒";
-            // 
-            // toolStripZoomLabel
-            // 
-            this.toolStripZoomLabel.Name = "toolStripZoomLabel";
-            this.toolStripZoomLabel.Size = new System.Drawing.Size(80, 17);
-            this.toolStripZoomLabel.Text = "| 縮放: 100%";
+            this.lblLogTitle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.lblLogTitle.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblLogTitle.ForeColor = System.Drawing.Color.White;
+            this.lblLogTitle.Location = new System.Drawing.Point(0, 0);
+            this.lblLogTitle.Name = "lblLogTitle";
+            this.lblLogTitle.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
+            this.lblLogTitle.Size = new System.Drawing.Size(910, 20);
+            this.lblLogTitle.TabIndex = 0;
+            this.lblLogTitle.Text = "日誌訊息";
+            this.lblLogTitle.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1024, 690);
-            this.Controls.Add(this.splitContainer);
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
+            this.ClientSize = new System.Drawing.Size(1264, 811);
+            this.Controls.Add(this.splitContainerMain);
             this.Controls.Add(this.statusStrip);
+            this.Controls.Add(this.toolStripMain);
             this.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F);
-            this.MinimumSize = new System.Drawing.Size(900, 600);
+            this.ForeColor = System.Drawing.Color.White;
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "PCB 視覺檢測系統";
-            this.splitContainer.Panel1.ResumeLayout(false);
-            this.splitContainer.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).EndInit();
-            this.splitContainer.ResumeLayout(false);
-            this.panelImageContainer.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.picPreview)).EndInit();
-            this.panelZoomInfo.ResumeLayout(false);
-            this.panelZoomInfo.PerformLayout();
-            this.panelStatus.ResumeLayout(false);
-            this.panelControls.ResumeLayout(false);
-            this.grpFeatures.ResumeLayout(false);
-            this.grpFeatures.PerformLayout();
-            this.grpInspection.ResumeLayout(false);
-            this.grpInfo.ResumeLayout(false);
-            this.grpInfo.PerformLayout();
-            this.grpConfig.ResumeLayout(false);
-            this.grpConfig.PerformLayout();
+            this.Text = "PCB Vision Builder";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+            this.toolStripMain.ResumeLayout(false);
+            this.toolStripMain.PerformLayout();
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();
+            this.splitContainerMain.Panel1.ResumeLayout(false);
+            this.splitContainerMain.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).EndInit();
+            this.splitContainerMain.ResumeLayout(false);
+            this.splitContainerLeft.Panel1.ResumeLayout(false);
+            this.splitContainerLeft.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerLeft)).EndInit();
+            this.splitContainerLeft.ResumeLayout(false);
+            this.tabToolbox.ResumeLayout(false);
+            this.tabPageTools.ResumeLayout(false);
+            this.grpProperties.ResumeLayout(false);
+            this.pnlFlowControl.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgvSequence)).EndInit();
+            this.panelCenter.ResumeLayout(false);
+            this.panelImage.ResumeLayout(false);
+            this.panelLog.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
         }
 
         #endregion
 
-        private System.Windows.Forms.SplitContainer splitContainer;
-        private System.Windows.Forms.Panel panelImageContainer;
-        private System.Windows.Forms.PictureBox picPreview;
-        private System.Windows.Forms.Panel panelZoomInfo;
-        private System.Windows.Forms.Label lblZoomLevel;
-        private System.Windows.Forms.Button btnZoomReset;
-        private System.Windows.Forms.Panel panelStatus;
-        private System.Windows.Forms.Label lblResult;
-        private System.Windows.Forms.Panel panelControls;
-        private System.Windows.Forms.GroupBox grpFeatures;
-        private System.Windows.Forms.Button btnMoveDown;
-        private System.Windows.Forms.Button btnMoveUp;
-        private System.Windows.Forms.Button btnRemove;
-        private System.Windows.Forms.Button btnAdd;
-        private System.Windows.Forms.PropertyGrid propertyGrid;
-        private System.Windows.Forms.Label lblSequence;
-        private System.Windows.Forms.Label lblAvailable;
-        private System.Windows.Forms.ListBox lstSequence;
-        private System.Windows.Forms.ListBox lstAvailable;
-        private System.Windows.Forms.GroupBox grpInspection;
-        private System.Windows.Forms.Button btnStop;
-        private System.Windows.Forms.Button btnStart;
-        private System.Windows.Forms.Button btnSingleShot;
-        private System.Windows.Forms.GroupBox grpInfo;
-        private System.Windows.Forms.Label lblProcessTime;
-        private System.Windows.Forms.Label lblDefectCount;
-        private System.Windows.Forms.Label lblComponentCount;
-        private System.Windows.Forms.GroupBox grpConfig;
-        private System.Windows.Forms.Button btnCalibration;
-        private System.Windows.Forms.Button btnLoadImage;
-        private System.Windows.Forms.TextBox txtImagePath;
-        private System.Windows.Forms.Label lblImagePath;
-        private System.Windows.Forms.ListBox lstDefects;
-        private System.Windows.Forms.Label lblDefectList;
+        // Top
+        private System.Windows.Forms.ToolStrip toolStripMain;
+        private System.Windows.Forms.ToolStripButton btnTsNew;
+        private System.Windows.Forms.ToolStripButton btnTsOpen;
+        private System.Windows.Forms.ToolStripButton btnTsSave;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripButton btnTsRunOnce;
+        private System.Windows.Forms.ToolStripButton btnTsRunLoop;
+        private System.Windows.Forms.ToolStripButton btnTsStop;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripButton btnTsSettings;
+
+        // Bottom
         private System.Windows.Forms.StatusStrip statusStrip;
-        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel;
-        private System.Windows.Forms.ToolStripStatusLabel toolStripZoomLabel;
+        private System.Windows.Forms.ToolStripStatusLabel lblStatusMain;
+        private System.Windows.Forms.ToolStripStatusLabel lblStatusTime;
+
+        // Main Layout
+        private System.Windows.Forms.SplitContainer splitContainerMain;
+        
+        // Left Panel (Toolbox & Sequence)
+        private System.Windows.Forms.SplitContainer splitContainerLeft;
+        private System.Windows.Forms.TabControl tabToolbox;
+        private System.Windows.Forms.TabPage tabPageTools;
+        private System.Windows.Forms.TreeView tvTools;
+        
+        private System.Windows.Forms.DataGridView dgvSequence;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colStepName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colTime;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colStatus;
+        private System.Windows.Forms.Panel pnlFlowControl;
+        private System.Windows.Forms.Button btnRemoveTool;
+        private System.Windows.Forms.Button btnMoveUp;
+        private System.Windows.Forms.Button btnMoveDown;
+
+        private System.Windows.Forms.GroupBox grpProperties;
+        private System.Windows.Forms.PropertyGrid propertyGrid;
+
+        // Center Panel (Results & Log)
+        private System.Windows.Forms.Panel panelCenter;
+        private System.Windows.Forms.Panel panelImage;
+        // Replace PictureBox with Custom Control
+        private PCBInspection.UI.Controls.InteractiveImageViewer imageViewer;
+        
+        private System.Windows.Forms.Panel panelLog;
+        private System.Windows.Forms.Label lblLogTitle;
+        private System.Windows.Forms.ListBox lstLog;
+
+        // Add Toolbar Buttons
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripButton btnTsZoomIn;
+        private System.Windows.Forms.ToolStripButton btnTsZoomOut;
+        private System.Windows.Forms.ToolStripButton btnTsFit;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
+        private System.Windows.Forms.ToolStripButton btnTsRoiRect;
+        private System.Windows.Forms.ToolStripButton btnTsRoiCircle;
+        private System.Windows.Forms.ToolStripButton btnTsRoiPoly;
+        private System.Windows.Forms.ToolStripButton btnTsPointer;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripButton btnTsUndo;
+        private System.Windows.Forms.ToolStripButton btnTsRedo;
     }
 }
