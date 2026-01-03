@@ -381,6 +381,19 @@ namespace PCBInspection.UI
 			};
 			infoPanel.NavigateToRequested += (s, p) => { imageViewer.CenterAt(new PointF((float)p.X, (float)p.Y)); };
 
+			// 清除檢測結果事件
+			infoPanel.ClearResultsRequested += (s, e) =>
+			{
+				_lastDetectedObjects.Clear();
+				infoPanel.BindDetectionResults(_lastDetectedObjects);
+				// 恢復原始影像（若有）
+				if (_originalImage != null)
+				{
+					imageViewer.Image = (Bitmap)_originalImage.Clone();
+				}
+				Log("已清除檢測結果", TraceLevel.Info);
+			};
+
 			// ThumbnailBar 事件
 			thumbnailBar.ThumbnailClicked += (s, tag) =>
 			{

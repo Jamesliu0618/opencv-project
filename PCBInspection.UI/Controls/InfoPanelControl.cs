@@ -23,6 +23,7 @@ namespace PCBInspection.UI.Controls
 		private int                  _navOffsetX, _navOffsetY;
 		private float                _navScale;
 		private Button               btnClearRoi;
+		private Button               btnClearResults;
 		private DataGridView         dgvResults;
 
 		// 圖表控制項
@@ -77,6 +78,7 @@ namespace PCBInspection.UI.Controls
 		public event EventHandler<(double X, double Y)> ZoomToPointRequested;
 		public event EventHandler                       ClearRoiRequested;
 		public event EventHandler<(double X, double Y)> NavigateToRequested;
+		public event EventHandler                       ClearResultsRequested;
 
 		private void InitializeComponents()
 		{
@@ -208,9 +210,29 @@ namespace PCBInspection.UI.Controls
 				Text      = "共 0 項",
 				BackColor = Color.WhiteSmoke,
 			};
+
+			// 工具列面板 (清除按鈕)
+			var toolbarPanel = new Panel
+			{
+				Dock   = DockStyle.Top,
+				Height = 28,
+			};
+			btnClearResults = new Button
+			{
+				Text      = "清除結果",
+				AutoSize  = true,
+				Font      = new Font("Microsoft JhengHei", 9f),
+				FlatStyle = FlatStyle.Flat,
+				Cursor    = Cursors.Hand,
+			};
+			btnClearResults.FlatAppearance.BorderSize = 1;
+			btnClearResults.Click += (s, e) => ClearResultsRequested?.Invoke(this, EventArgs.Empty);
+			toolbarPanel.Controls.Add(btnClearResults);
+
 			var resultsPanel = new Panel { Dock = DockStyle.Fill };
 			resultsPanel.Controls.Add(dgvResults);
 			resultsPanel.Controls.Add(lblResultStatus);
+			resultsPanel.Controls.Add(toolbarPanel);
 			grpResults.Controls.Add(resultsPanel);
 		}
 
@@ -776,6 +798,9 @@ namespace PCBInspection.UI.Controls
 			pbHistogram.Image = null;
 			oldBitmap?.Dispose();
 		}
+
+		/// <summary>取得當前檢測物件列表 (供幾何計算選擇使用)</summary>
+		public List<DetectedObject> GetCurrentObjects() => _currentObjects;
 
 		protected override void Dispose(bool disposing)
 		{
