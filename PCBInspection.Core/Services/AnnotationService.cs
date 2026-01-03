@@ -154,6 +154,73 @@ namespace PCBInspection.Core.Services
 		}
 
 		/// <summary>
+		///     繪製檢測物件標籤（編號、面積、圓度等）
+		/// </summary>
+		public static void DrawObjectLabels(Mat image, List<DetectedObject> objects, ObjectLabelStyle style = null)
+		{
+			if (image == null || image.Empty() || objects == null) return;
+
+			style = style ?? new ObjectLabelStyle();
+
+			for (int i = 0; i < objects.Count; i++)
+			{
+				var obj   = objects[i];
+				var color = obj.IsOk ? style.OkColor : style.NgColor;
+				var rect  = new Rect(obj.BoundingBox.X, obj.BoundingBox.Y, obj.BoundingBox.Width, obj.BoundingBox.Height);
+
+				// 繪製邊界框
+				if (style.ShowBoundingBox)
+				{
+					Cv2.Rectangle(image, rect, color, style.LineThickness);
+				}
+
+				// 建立標籤文字
+				var labels = new List<string>();
+
+				if (style.ShowId)
+				{
+					labels.Add($"#{obj.ObjectId}");
+				}
+				if (style.ShowArea && obj.Area > 0)
+				{
+					labels.Add($"{obj.Area:F0}px²");
+				}
+				if (style.ShowCircularity && obj.Circularity > 0)
+				{
+					labels.Add($"C:{obj.Circularity:F2}");
+				}
+
+				if (labels.Count == 0) continue;
+
+				string labelText = string.Join(" | ", labels);
+
+				// 計算文字大小
+				int baseline;
+				var textSize = Cv2.GetTextSize(labelText, HersheyFonts.HersheySimplex, style.FontScale, 1, out baseline);
+
+				// 繪製標籤背景
+				var labelRect = new Rect(rect.X, rect.Y - textSize.Height - 6, textSize.Width + 8, textSize.Height + 6);
+				if (labelRect.Y < 0)
+				{
+					labelRect.Y = rect.Y + rect.Height + 2; // 移到下方
+				}
+
+				using (var overlay = image.Clone())
+				{
+					Cv2.Rectangle(overlay, labelRect, color, -1);
+					Cv2.AddWeighted(overlay, 0.6, image, 0.4, 0, image);
+				}
+
+				// 繪製文字
+				var textPos = new Point(labelRect.X + 4, labelRect.Y + labelRect.Height - 4);
+				Cv2.PutText(image, labelText, textPos, HersheyFonts.HersheySimplex, style.FontScale, Scalar.White, 1);
+
+				// 繪製中心點
+				Cv2.Circle(image, new Point(obj.CenterX, obj.CenterY), 3, color, -1);
+			}
+		}
+
+		/// <summary>
 		///     儲存標註影像
 		/// </summary>
 		public static string SaveAnnotatedImage(Mat annotatedImage, string outputDir, string pcbId)
@@ -181,5 +248,52 @@ namespace PCBInspection.Core.Services
 		public int    LineThickness    { get; set; } = 2;
 		public Scalar ComponentColor   { get; set; } = new Scalar(0,   255, 0); // 綠色
 		public Scalar MeasurementColor { get; set; } = new Scalar(255, 200, 0); // 藍色
+
+		// 物件標籤選項
+		/// <summary>是否顯示物件編號</summary>
+		public bool ShowObjectId { get; set; } = true;
+
+		/// <summary>是否顯示面積</summary>
+		public bool ShowArea { get; set; } = false;
+
+		/// <summary>是否顯示圓度</summary>
+		public bool ShowCircularity { get; set; } = false;
+
+		/// <summary>OK 物件顏色</summary>
+		public Scalar OkColor { get; set; } = new Scalar(0, 255, 0); // 綠色
+
+		/// <summary>NG 物件顏色</summary>
+		public Scalar NgColor { get; set; } = new Scalar(0, 0, 255); // 紅色
+
+		/// <summary>標籤背景透明度 (0-1)</summary>
+		public double LabelBackgroundOpacity { get; set; } = 0.6;
+	}
+
+	/// <summary>檢測物件樣式設定</summary>
+	public class ObjectLabelStyle
+	{
+		/// <summary>是否顯示編號</summary>
+		public bool ShowId { get; set; } = true;
+
+		/// <summary>是否顯示面積</summary>
+		public bool ShowArea { get; set; } = true;
+
+		/// <summary>是否顯示圓度</summary>
+		public bool ShowCircularity { get; set; } = false;
+
+		/// <summary>是否顯示邊界框</summary>
+		public bool ShowBoundingBox { get; set; } = true;
+
+		/// <summary>OK 物件顏色</summary>
+		public Scalar OkColor { get; set; } = new Scalar(0, 255, 0);
+
+		/// <summary>NG 物件顏色</summary>
+		public Scalar NgColor { get; set; } = new Scalar(0, 0, 255);
+
+		/// <summary>標籤字體大小</summary>
+		public double FontScale { get; set; } = 0.45;
+
+		/// <summary>線條粗細</summary>
+		public int LineThickness { get; set; } = 2;
 	}
 }

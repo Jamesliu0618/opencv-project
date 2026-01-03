@@ -1,3 +1,4 @@
+using OpenCvSharp;
 using System.ComponentModel;
 
 namespace PCBInspection.Core.Models
@@ -8,6 +9,10 @@ namespace PCBInspection.Core.Models
 		/// <summary>物件識別編號</summary>
 		[DisplayName("編號")]
 		public int Id { get; set; }
+
+		/// <summary>物件編號 (用於標註顯示)</summary>
+		[Browsable(false)]
+		public int ObjectId { get => Id; set => Id = value; }
 
 		/// <summary>物件類型名稱</summary>
 		[DisplayName("類型")]
@@ -41,6 +46,10 @@ namespace PCBInspection.Core.Models
 		[DisplayName("圓度")]
 		public double Circularity { get; set; }
 
+		/// <summary>物件矩形度 (0-1，1 為完美矩形)</summary>
+		[DisplayName("矩形度")]
+		public double Rectangularity { get; set; }
+
 		/// <summary>物件旋轉角度 (度)</summary>
 		[DisplayName("角度")]
 		public double Angle { get; set; }
@@ -57,8 +66,26 @@ namespace PCBInspection.Core.Models
 		[Browsable(false)]
 		public bool IsPass { get => Status == "OK"; }
 
+		/// <summary>是否為 OK 物件 (用於標註顏色)</summary>
+		[Browsable(false)]
+		public bool IsOk { get => Status == "OK"; set => Status = value ? "OK" : "NG"; }
+
 		/// <summary>此物件是否在 UI 中被選中</summary>
 		[Browsable(false)]
 		public bool IsSelected { get; set; }
+
+		/// <summary>邊界框矩形 (用於繪製)</summary>
+		[Browsable(false)]
+		public Rect BoundingBox
+		{
+			get => new Rect((int)(CenterX - Width / 2), (int)(CenterY - Height / 2), (int)Width, (int)Height);
+			set
+			{
+				CenterX = value.X + value.Width / 2.0;
+				CenterY = value.Y + value.Height / 2.0;
+				Width   = value.Width;
+				Height  = value.Height;
+			}
+		}
 	}
 }
