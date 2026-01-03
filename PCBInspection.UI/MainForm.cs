@@ -1748,7 +1748,7 @@ namespace PCBInspection.UI
 				var lastItem = _sequence[targetStep];
 				if (lastItem.LastResultImage != null)
 				{
-					imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+					imageViewer.SetImagePreserveView((Bitmap)lastItem.LastResultImage.Clone());
 				}
 				
 				RefreshInfoPanel(sw.ElapsedMilliseconds); // 更新右側面板

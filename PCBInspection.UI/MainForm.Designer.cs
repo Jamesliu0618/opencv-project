@@ -481,7 +481,7 @@ namespace PCBInspection.UI
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.toolStripMain);
             this.Name = "MainForm";
-            this.Text = "PCB Vision Builder";
+            this.Text = "Vision Builder";
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
 
             this.splitContainerMain.Panel1.ResumeLayout(false);
