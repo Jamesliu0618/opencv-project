@@ -394,16 +394,19 @@ namespace PCBInspection.UI
 
             this.colStepName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
             this.colStepName.HeaderText = "步驟名稱";
+            this.colStepName.Name = "colStepName";
             this.colTime.HeaderText = "耗時";
+            this.colTime.Name = "colTime";
             this.colTime.Width = 60;
             this.colStatus.HeaderText = "狀態";
+            this.colStatus.Name = "colStatus";
             this.colStatus.Width = 60;
             this.colRun.Name = "colRun";
             this.colRun.HeaderText = "";
             this.colRun.Text = "▶";
             this.colRun.UseColumnTextForButtonValue = true;
             this.colRun.Width = 35;
-            this.colRun.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.colRun.FlatStyle = System.Windows.Forms.FlatStyle.Standard;
 
             this.colLoop.Name = "colLoop";
             this.colLoop.HeaderText = "";
@@ -411,7 +414,7 @@ namespace PCBInspection.UI
             this.colLoop.ToolTipText = "循環執行 (動態調參)";
             this.colLoop.UseColumnTextForButtonValue = true;
             this.colLoop.Width = 35;
-            this.colLoop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.colLoop.FlatStyle = System.Windows.Forms.FlatStyle.Standard;
 
             // 
             // pnlFlowControl

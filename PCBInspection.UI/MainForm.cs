@@ -7,6 +7,7 @@ using PCBInspection.UI.Controls;
 using PCBInspection.UI.Services;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -333,7 +334,7 @@ namespace PCBInspection.UI
 
 			// Grid
 			dgvSequence.SelectionChanged += DgvSequence_SelectionChanged;
-			dgvSequence.CellContentClick += DgvSequence_CellContentClick;
+			dgvSequence.CellClick += DgvSequence_CellClick;
 
 			// Log rendering
 			lstLog.DrawItem += LstLog_DrawItem;
@@ -619,18 +620,21 @@ namespace PCBInspection.UI
 		}
 
 		/// <summary>處理步驟列表的按鈕點擊事件</summary>
-		private void DgvSequence_CellContentClick(object sender, DataGridViewCellEventArgs e)
+		private void DgvSequence_CellClick(object sender, DataGridViewCellEventArgs e)
 		{
 			if(e.RowIndex < 0) return;
 
+			int colRunIndex = dgvSequence.Columns["colRun"].Index;
+			int colLoopIndex = dgvSequence.Columns["colLoop"].Index;
+				
 			// 檢查是否點擊「▶」按鈕欄位
-			if(e.ColumnIndex == dgvSequence.Columns["colRun"].Index)
+			if(e.ColumnIndex == colRunIndex)
 			{
 				StopLoopExecution(); // 停止循環
 				RunSingleStep(e.RowIndex);
 			}
 			// 檢查是否點擊「↻」循環按鈕
-			else if(e.ColumnIndex == dgvSequence.Columns["colLoop"].Index)
+			else if(e.ColumnIndex == colLoopIndex)
 			{
 				ToggleLoopExecution(e.RowIndex);
 			}
@@ -1549,15 +1553,40 @@ namespace PCBInspection.UI
 			row.Cells["colLoop"].Value = "■";
 			row.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;
 
-			// 初始化計時器
+			// 初始化計時器 (已改用 async/await 迴圈，保留此處為了相容性，實際不啟動)
 			if (_loopTimer == null)
 			{
 				_loopTimer = new System.Windows.Forms.Timer { Interval = 200 };
-				_loopTimer.Tick += LoopTimer_Tick;
 			}
-			_loopTimer.Start();
+			
+			// 啟動非同步循環
+			RunLoopAsync(stepIndex);
 
-			Log($"開始循環執行步驟 [{_sequence[stepIndex].Name}]，修改參數後將自動刷新", TraceLevel.Info);
+			Log($"開始循環執行步驟 [{_sequence[stepIndex].Name}]", TraceLevel.Info);
+		}
+
+		/// <summary>非同步循環執行核心</summary>
+		private async void RunLoopAsync(int stepIndex)
+		{
+			try
+			{
+				while (_isLooping && _loopStepIndex == stepIndex)
+				{
+					// 執行到指定步驟
+					RunToStep(stepIndex);
+
+					// 等待一段時間再執行下一次，保持 UI 響應
+					await Task.Delay(200);
+
+					// 檢查是否已被停止
+					if (!_isLooping || _loopStepIndex != stepIndex) break;
+				}
+			}
+			catch (Exception ex)
+			{
+				Log($"循環執行發生異常: {ex.Message}", TraceLevel.Error);
+				StopLoopExecution();
+			}
 		}
 
 		/// <summary>停止循環執行</summary>
@@ -1565,8 +1594,8 @@ namespace PCBInspection.UI
 		{
 			if (!_isLooping) return;
 
-			_loopTimer?.Stop();
 			_isLooping = false;
+			_loopTimer?.Stop(); // 確保 Timer 停止 (如果還有遺留)
 
 			// 還原 UI
 			if (_loopStepIndex >= 0 && _loopStepIndex < dgvSequence.Rows.Count)
@@ -1580,13 +1609,10 @@ namespace PCBInspection.UI
 			_loopStepIndex = -1;
 		}
 
-		/// <summary>循環計時器事件</summary>
+		/// <summary>循環計時器事件 (已棄用，保留避免編譯錯誤)</summary>
 		private void LoopTimer_Tick(object sender, EventArgs e)
 		{
-			if (!_isLooping || _loopStepIndex < 0) return;
-
-			// 從原始影像重新執行到目標步驟
-			RunToStep(_loopStepIndex);
+			// Legacy support or fallback
 		}
 
 		private void InjectContext(object parameters, List<Defect> defects)

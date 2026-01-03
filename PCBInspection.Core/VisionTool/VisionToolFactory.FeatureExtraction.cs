@@ -262,8 +262,41 @@ namespace PCBInspection.Core.Services
 						img.CopyTo(gray);
 					}
 
-					// HoughCircles has built-in Canny
-					var circles = Cv2.HoughCircles(gray, HoughModes.Gradient, pp.Dp, pp.MinDist, pp.Param1, pp.Param2, pp.MinRadius, pp.MaxRadius);
+					// ===== 效能優化：影像預縮放 =====
+					CircleSegment[] circles;
+
+					if(pp.EnablePreResize && pp.PreResizeScale > 0 && pp.PreResizeScale < 1.0)
+					{
+						double scale = pp.PreResizeScale;
+						// 使用 using 確保資源釋放
+						using(var workingGray = new Mat())
+						{
+							Cv2.Resize(gray, workingGray, new OpenCvSharp.Size(), scale, scale, InterpolationFlags.Linear);
+
+							// 調整半徑範圍與距離參數
+							int scaledMinRadius = Math.Max(1, (int)(pp.MinRadius * scale));
+							int scaledMaxRadius = Math.Max(1, (int)(pp.MaxRadius * scale));
+							double scaledMinDist = Math.Max(1, pp.MinDist * scale);
+
+							// HoughCircles 在縮放後的影像上執行
+							var rawCircles = Cv2.HoughCircles(workingGray, HoughModes.Gradient, pp.Dp, scaledMinDist, pp.Param1, pp.Param2, scaledMinRadius, scaledMaxRadius);
+
+							// 將結果座標轉換回原始尺度
+							circles = new CircleSegment[rawCircles.Length];
+							for(int i = 0; i < rawCircles.Length; i++)
+							{
+								circles[i] = new CircleSegment(
+									new Point2f(rawCircles[i].Center.X / (float)scale, rawCircles[i].Center.Y / (float)scale),
+									rawCircles[i].Radius / (float)scale
+								);
+							}
+						}
+					}
+					else
+					{
+						// 標準模式：直接在原圖執行
+						circles = Cv2.HoughCircles(gray, HoughModes.Gradient, pp.Dp, pp.MinDist, pp.Param1, pp.Param2, pp.MinRadius, pp.MaxRadius);
+					}
 
 					// 依半徑範圍過濾
 					IEnumerable<CircleSegment> filteredCircles = circles;
