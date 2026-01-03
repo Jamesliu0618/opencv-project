@@ -176,31 +176,98 @@ namespace PCBInspection.Core.Services
 						img.CopyTo(gray);
 					}
 
-					// Usually needs edge detection first. User responsibility? 
-					// Let's apply Canny internally if not binary?
-					// To keep it "Toolbox" style, user should add Canny before. 
-					// But HoughLines needs binary edge map.
+					// 自動套用 Canny 邊緣偵測
+					var edgeInput = gray;
+					if(pp.AutoCanny)
+					{
+						edgeInput = new Mat();
+						Cv2.Canny(gray, edgeInput, pp.CannyThreshold1, pp.CannyThreshold2);
+					}
+
+					// 解析線條顏色
+					Scalar lineColor = new Scalar(0, 255, 0); // 預設綠色
+					try
+					{
+						var parts = pp.LineColorBGR.Split(',');
+						if(parts.Length >= 3)
+						{
+							lineColor = new Scalar(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+						}
+					}
+					catch { }
+
+					var defects = new List<Defect>();
+					int lineCount = 0;
 
 					if(pp.UseProbabilistic)
 					{
-						var lines = Cv2.HoughLinesP(gray, pp.Rho, pp.ThetaDeg * Math.PI / 180, pp.Threshold, pp.MinLineLength, pp.MaxLineGap);
+						var lines = Cv2.HoughLinesP(edgeInput, pp.Rho, pp.ThetaDeg * Math.PI / 180, pp.Threshold, pp.MinLineLength, pp.MaxLineGap);
 
 						foreach(var line in lines)
 						{
-							Cv2.Line(result, line.P1, line.P2, Scalar.Red, 2);
+							if(pp.MaxLines > 0 && lineCount >= pp.MaxLines) break;
+
+							Cv2.Line(result, line.P1, line.P2, lineColor, pp.LineThickness);
+							lineCount++;
+
+							// 計算線段長度與角度
+							double length = Math.Sqrt(Math.Pow(line.P2.X - line.P1.X, 2) + Math.Pow(line.P2.Y - line.P1.Y, 2));
+							double angle  = Math.Atan2(line.P2.Y - line.P1.Y, line.P2.X - line.P1.X) * 180 / Math.PI;
+
+							defects.Add(new Defect
+							{
+								Id          = lineCount.ToString(),
+								Type        = "直線",
+								Confidence  = length,
+								BoundingBox = new[] { Math.Min(line.P1.X, line.P2.X), Math.Min(line.P1.Y, line.P2.Y), 
+								                      Math.Abs(line.P2.X - line.P1.X), Math.Abs(line.P2.Y - line.P1.Y) },
+							});
 						}
 					}
 					else
 					{
-						var lines = Cv2.HoughLines(gray, pp.Rho, pp.ThetaDeg * Math.PI / 180, pp.Threshold);
+						var lines = Cv2.HoughLines(edgeInput, pp.Rho, pp.ThetaDeg * Math.PI / 180, pp.Threshold);
 
-						// Standard Hough returns (rho, theta), harder to draw infinite lines easily
-						// Visualization omitted for standard Hough for brevity, falling back to P
+						// 標準霍夫返回 (rho, theta)，需要轉換為線段端點
+						foreach(var line in lines)
+						{
+							if(pp.MaxLines > 0 && lineCount >= pp.MaxLines) break;
+
+							double rho   = line.Rho;
+							double theta = line.Theta;
+							double a     = Math.Cos(theta);
+							double b     = Math.Sin(theta);
+							double x0    = a * rho;
+							double y0    = b * rho;
+							int    length = 2000; // 延伸長度
+
+							Point pt1 = new Point((int)(x0 + length * (-b)), (int)(y0 + length * a));
+							Point pt2 = new Point((int)(x0 - length * (-b)), (int)(y0 - length * a));
+
+							Cv2.Line(result, pt1, pt2, lineColor, pp.LineThickness);
+							lineCount++;
+
+							defects.Add(new Defect
+							{
+								Id          = lineCount.ToString(),
+								Type        = "直線",
+								Confidence  = rho,
+								BoundingBox = new[] { (int)x0 - 50, (int)y0 - 50, 100, 100 },
+							});
+						}
+					}
+
+					// 清理
+					if(pp.AutoCanny && edgeInput != gray)
+					{
+						edgeInput.Dispose();
 					}
 					gray.Dispose();
-					return (true, result, new List<Defect>());
+
+					return (true, result, defects);
 				},
 			});
+
 
 			tools.Add(new ToolDefinition
 			{
