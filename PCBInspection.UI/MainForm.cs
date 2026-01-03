@@ -171,11 +171,51 @@ namespace PCBInspection.UI
             {
                 _history.PushState(imageViewer.Image, imageViewer.Rois);
                 UpdateUndoRedoButtons();
+                
+                // 更新 InfoPanel ROI 資訊
+                if (imageViewer.Image != null)
+                {
+                    using (var mat = BitmapConverter.ToMat(imageViewer.Image))
+                    {
+                        infoPanel.UpdateRoiInfo(imageViewer.Rois, mat);
+                    }
+                }
+            };
+
+            // 視圖變更時更新導航
+            imageViewer.ViewChanged += (s, args) =>
+            {
+                 if (imageViewer.Image == null) return;
+                 var vp = imageViewer.GetViewport();
+                 var r = new Rectangle((int)vp.X, (int)vp.Y, (int)vp.Width, (int)vp.Height);
+                 infoPanel.UpdateNavigation(imageViewer.Image, r, imageViewer.Image.Size);
             };
 
             // InfoPanel 事件
             infoPanel.ObjectHighlightRequested += InfoPanel_ObjectHighlightRequested;
             infoPanel.ZoomToPointRequested += InfoPanel_ZoomToPointRequested;
+            
+            infoPanel.ClearRoiRequested += (s, e) =>
+            {
+                imageViewer.Rois.Clear();
+                imageViewer.Invalidate();
+                infoPanel.UpdateRoiInfo(imageViewer.Rois, null);
+            };
+
+            infoPanel.NavigateToRequested += (s, p) =>
+            {
+                imageViewer.CenterAt(new PointF((float)p.X, (float)p.Y));
+            };
+
+            // ThumbnailBar 事件
+            thumbnailBar.ThumbnailClicked += (s, tag) =>
+            {
+                if (tag is string path && File.Exists(path))
+                {
+                    LoadForInspection(path);
+                    RunSequence();
+                }
+            };
         }
 
         private void UpdateUndoRedoButtons()
@@ -303,23 +343,69 @@ namespace PCBInspection.UI
         {
             using (OpenFileDialog dlg = new OpenFileDialog())
             {
+                dlg.Multiselect = true;
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
-                    _currImagePath = dlg.FileName;
-                    using (var mat = Cv2.ImRead(_currImagePath))
-                    {
-                        var bmp = BitmapConverter.ToBitmap(mat);
-                        imageViewer.Image = bmp;
-
-                        // 保存原始圖片副本
-                        _originalImage?.Dispose();
-                        _originalImage = (Bitmap)bmp.Clone();
-                    }
-                    Log($"載入影像: {Path.GetFileName(_currImagePath)}", TraceLevel.Info);
+                    thumbnailBar.Clear();
+                    string[] files = dlg.FileNames;
                     
-                    _history.PushState(imageViewer.Image, imageViewer.Rois);
-                    UpdateUndoRedoButtons();
+                    if (files.Length > 0)
+                    {
+                        foreach(var file in files)
+                        {
+                            try 
+                            { 
+                                // 僅讀取縮圖
+                                using(var mat = Cv2.ImRead(file))
+                                {
+                                    if (!mat.Empty())
+                                    {
+                                        using (var bmp = BitmapConverter.ToBitmap(mat))
+                                        {
+                                            thumbnailBar.AddThumbnail(Path.GetFileName(file), bmp, file);
+                                        }
+                                    }
+                                }
+                            }
+                            catch { /* Ignore invalid images */ }
+                        }
+
+                        // 載入第一張
+                        LoadForInspection(files[0]);
+                        // 自動選取第一個縮圖
+                        thumbnailBar.SelectItem(files[0]);
+                    }
                 }
+            }
+        }
+
+        private void LoadForInspection(string path)
+        {
+            try
+            {
+                _currImagePath = path;
+                using (var mat = Cv2.ImRead(path))
+                {
+                    if (mat.Empty()) return;
+
+                    var bmp = BitmapConverter.ToBitmap(mat);
+                    imageViewer.Image = bmp;
+
+                    // 保存原始圖片副本
+                    _originalImage?.Dispose();
+                    _originalImage = (Bitmap)bmp.Clone();
+                }
+                
+                // 清除歷史與狀態
+                _history.Clear(); 
+                _history.PushState(imageViewer.Image, imageViewer.Rois);
+                UpdateUndoRedoButtons();
+
+                Log($"載入影像: {Path.GetFileName(path)}", TraceLevel.Info);
+            }
+            catch (Exception ex)
+            {
+                 Log($"載入失敗: {ex.Message}", TraceLevel.Error);
             }
         }
 
@@ -456,35 +542,7 @@ namespace PCBInspection.UI
                     {
                         imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
                         
-                        // 更新右側資訊面板
-                        // 轉換 Defect 為 DetectedObject
-                        _lastDetectedObjects = _sequence
-                            .SelectMany(s => s.LastDefects ?? new List<Defect>())
-                            .Select((d, idx) => new DetectedObject
-                            {
-                                Id = idx + 1,
-                                Type = d.Type ?? "未知",
-                                CenterX = d.BoundingBox != null && d.BoundingBox.Length >= 4 
-                                    ? d.BoundingBox[0] + d.BoundingBox[2] / 2.0 : 0,
-                                CenterY = d.BoundingBox != null && d.BoundingBox.Length >= 4 
-                                    ? d.BoundingBox[1] + d.BoundingBox[3] / 2.0 : 0,
-                                Width = d.BoundingBox != null && d.BoundingBox.Length >= 4 
-                                    ? d.BoundingBox[2] : 0,
-                                Height = d.BoundingBox != null && d.BoundingBox.Length >= 4 
-                                    ? d.BoundingBox[3] : 0,
-                                Radius = d.Confidence, // 半徑存儲在 Confidence 中
-                                Area = d.Type == "圓形" 
-                                    ? Math.PI * d.Confidence * d.Confidence 
-                                    : (d.BoundingBox != null && d.BoundingBox.Length >= 4 
-                                        ? d.BoundingBox[2] * d.BoundingBox[3] : 0),
-                                Status = "OK"
-                            })
-                            .ToList();
-
-                        using (var resultMat = BitmapConverter.ToMat(lastItem.LastResultImage))
-                        {
-                            UpdateInfoPanel(resultMat, swTotal.ElapsedMilliseconds);
-                        }
+                        RefreshInfoPanel(swTotal.ElapsedMilliseconds);
                     }
                 }
                 
@@ -565,6 +623,33 @@ namespace PCBInspection.UI
         {
             // 可實作縮放並移動到指定座標
             Log($"縮放到座標: ({point.X:F1}, {point.Y:F1})", TraceLevel.Info);
+        }
+
+        private void RefreshInfoPanel(long elapsedMs)
+        {
+             _lastDetectedObjects = _sequence
+                .SelectMany(s => s.LastDefects ?? new List<Defect>())
+                .Select((d, idx) => new DetectedObject
+                {
+                    Id = idx + 1,
+                    Type = d.Type ?? "未知",
+                    CenterX = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[0] + d.BoundingBox[2] / 2.0 : 0,
+                    CenterY = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[1] + d.BoundingBox[3] / 2.0 : 0,
+                    Width = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] : 0,
+                    Height = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[3] : 0,
+                    Radius = d.Confidence,
+                    Area = d.Type == "圓形" ? Math.PI * d.Confidence * d.Confidence : (d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] * d.BoundingBox[3] : 0),
+                    Status = "OK"
+                })
+                .ToList();
+
+             if (imageViewer.Image != null)
+             {
+                 using (var resultMat = BitmapConverter.ToMat(imageViewer.Image))
+                 {
+                     UpdateInfoPanel(resultMat, elapsedMs);
+                 }
+             }
         }
 
         /// <summary>更新 InfoPanel 顯示</summary>
@@ -710,6 +795,11 @@ namespace PCBInspection.UI
 
                     item.LastResultImage?.Dispose();
                     item.LastResultImage = BitmapConverter.ToBitmap(finalResult);
+                    item.LastDefects = result.Defects ?? new List<Defect>();
+
+                    imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
+                    
+                    RefreshInfoPanel(swStep.ElapsedMilliseconds);
 
                     imageViewer.Image = (Bitmap)item.LastResultImage.Clone();
 
@@ -814,6 +904,7 @@ namespace PCBInspection.UI
 
                             item.LastResultImage?.Dispose();
                             item.LastResultImage = BitmapConverter.ToBitmap(result.ResultImage);
+                            item.LastDefects = result.Defects ?? new List<Defect>();
 
                             currentMat.Dispose();
                             currentMat = result.ResultImage;
@@ -853,6 +944,7 @@ namespace PCBInspection.UI
                     if (lastItem.LastResultImage != null)
                     {
                         imageViewer.Image = (Bitmap)lastItem.LastResultImage.Clone();
+                        RefreshInfoPanel(swTotal.ElapsedMilliseconds);
                     }
                 }
 

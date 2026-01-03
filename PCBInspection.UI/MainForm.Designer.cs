@@ -74,6 +74,7 @@ namespace PCBInspection.UI
             this.lblLogTitle = new System.Windows.Forms.Label();
             this.lstLog = new System.Windows.Forms.ListBox();
             this.infoPanel = new PCBInspection.UI.Controls.InfoPanelControl();
+            this.thumbnailBar = new PCBInspection.UI.Controls.ThumbnailBarControl();
 
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).BeginInit();
             this.splitContainerMain.Panel1.SuspendLayout();
@@ -211,8 +212,14 @@ namespace PCBInspection.UI
             this.splitContainerCenterRight.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerCenterRight.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
             this.splitContainerCenterRight.Name = "splitContainerCenterRight";
-            this.splitContainerCenterRight.Panel1.Controls.Add(this.panelCenter);
+            this.splitContainerCenterRight.Panel1.Controls.Add(this.imageViewer);
+            this.splitContainerCenterRight.Panel1.Controls.Add(this.thumbnailBar);
+            this.thumbnailBar.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.imageViewer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.imageViewer.BringToFront();
+
             this.splitContainerCenterRight.Panel2.Controls.Add(this.infoPanel);
+            this.splitContainerCenterRight.Size = new System.Drawing.Size(910, 754);
             this.splitContainerCenterRight.SplitterDistance = 580;
             this.splitContainerCenterRight.Panel2MinSize = 280;
 
@@ -435,5 +442,6 @@ namespace PCBInspection.UI
         private System.Windows.Forms.ListBox lstLog;
         private System.Windows.Forms.SplitContainer splitContainerCenterRight;
         private PCBInspection.UI.Controls.InfoPanelControl infoPanel;
+        private PCBInspection.UI.Controls.ThumbnailBarControl thumbnailBar;
     }
 }

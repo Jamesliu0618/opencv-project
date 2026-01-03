@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using OpenCvSharp;
 using OpenCvSharp.Extensions; // For BitmapConverter
 using PCBInspection.Core.Models;
+using PCBInspection.Core.ROI;
 
 namespace PCBInspection.UI.Controls
 {
@@ -49,7 +50,8 @@ namespace PCBInspection.UI.Controls
         
         // Navigation Tab Controls
         private PictureBox pbNav;
-        private bool _isNavigating = false;
+        private float _navScale;
+        private int _navOffsetX, _navOffsetY;
 
         // Attribute Tab Controls
         private PropertyGrid pgObjectDetail;
@@ -562,7 +564,8 @@ namespace PCBInspection.UI.Controls
         }
 
         /// <summary>更新 ROI 資訊</summary>
-        public void UpdateRoiInfo(List<OpenCvSharp.Rect> rois, Mat image)
+        /// <summary>更新 ROI 資訊</summary>
+        public void UpdateRoiInfo(List<RoiBase> rois, Mat image)
         {
             if (rois == null || rois.Count == 0 || image == null)
             {
@@ -574,21 +577,33 @@ namespace PCBInspection.UI.Controls
             }
 
             var roi = rois[0]; // 目前只顯示第一個
-            lblRoiPosValue.Text = $"({roi.X}, {roi.Y})";
-            lblRoiSizeValue.Text = $"{roi.Width} x {roi.Height}";
-            lblRoiAreaValue.Text = $"{roi.Width * roi.Height} px²";
+
+            if (roi is RectangleRoi rr)
+            {
+                lblRoiPosValue.Text = $"({rr.Rect.X:F0}, {rr.Rect.Y:F0})";
+                lblRoiSizeValue.Text = $"{rr.Rect.Width:F0} x {rr.Rect.Height:F0}";
+                lblRoiAreaValue.Text = $"{rr.Rect.Width * rr.Rect.Height:F0} px²";
+            }
+            else if (roi is CircleRoi cr)
+            {
+                lblRoiPosValue.Text = $"({cr.Center.X:F0}, {cr.Center.Y:F0})";
+                lblRoiSizeValue.Text = $"R: {cr.Radius:F0}";
+                lblRoiAreaValue.Text = $"{Math.PI * cr.Radius * cr.Radius:F0} px²";
+            }
+            else
+            {
+                lblRoiPosValue.Text = "Poly/Other";
+                lblRoiSizeValue.Text = "-";
+                lblRoiAreaValue.Text = "-";
+            }
 
             try
             {
-                // Ensure ROI is within image bounds
-                var safeRoi = roi.Intersect(new Rect(0,0, image.Width, image.Height));
-                if (safeRoi.Width > 0 && safeRoi.Height > 0)
+                // 使用 Mask 計算 ROI 內的平均灰階
+                using (var mask = roi.GetMask(new OpenCvSharp.Size(image.Width, image.Height)))
                 {
-                    using(var roiImg = image.Clone(safeRoi))
-                    {
-                         Scalar mean = Cv2.Mean(roiImg);
-                         lblRoiMeanValue.Text = $"{mean.Val0:F1}";
-                    }
+                    Scalar mean = Cv2.Mean(image, mask);
+                    lblRoiMeanValue.Text = $"{mean.Val0:F1}";
                 }
             }
             catch
@@ -598,7 +613,7 @@ namespace PCBInspection.UI.Controls
         }
 
         /// <summary>更新導航縮圖與紅框</summary>
-        public void UpdateNavigation(Bitmap fullImage, Rectangle viewport, Size originalSize)
+        public void UpdateNavigation(Bitmap fullImage, Rectangle viewport, System.Drawing.Size originalSize)
         {
             if (fullImage == null) return;
             
@@ -618,23 +633,23 @@ namespace PCBInspection.UI.Controls
                 // 畫縮圖 - 保持比例
                 float scaleX = (float)pbNav.Width / originalSize.Width;
                 float scaleY = (float)pbNav.Height / originalSize.Height;
-                float scale = Math.Min(scaleX, scaleY);
+                _navScale = Math.Min(scaleX, scaleY);
                 
-                int w = (int)(originalSize.Width * scale);
-                int h = (int)(originalSize.Height * scale);
-                int dx = (pbNav.Width - w) / 2;
-                int dy = (pbNav.Height - h) / 2;
+                int w = (int)(originalSize.Width * _navScale);
+                int h = (int)(originalSize.Height * _navScale);
+                _navOffsetX = (pbNav.Width - w) / 2;
+                _navOffsetY = (pbNav.Height - h) / 2;
 
-                g.DrawImage(fullImage, dx, dy, w, h);
+                g.DrawImage(fullImage, _navOffsetX, _navOffsetY, w, h);
 
                 // 畫紅框
                 if (viewport.Width > 0 && viewport.Height > 0)
                 {
                     // Viewport is in original image coordinates
-                    float vx = dx + viewport.X * scale;
-                    float vy = dy + viewport.Y * scale;
-                    float vw = viewport.Width * scale;
-                    float vh = viewport.Height * scale;
+                    float vx = _navOffsetX + viewport.X * _navScale;
+                    float vy = _navOffsetY + viewport.Y * _navScale;
+                    float vw = viewport.Width * _navScale;
+                    float vh = viewport.Height * _navScale;
 
                     using (var pen = new Pen(Color.Red, 2))
                     {
@@ -649,14 +664,13 @@ namespace PCBInspection.UI.Controls
 
         private void PbNav_MouseClick(object sender, MouseEventArgs e)
         {
-            // Calculate clicked position in original coordinates and invoke event
-            if (pbNav.Image == null) return;
-            
-             // Reverse calculation of scale... tricky without proper state. 
-             // Let's assume the user clicked relative to the PictureBox.
-             // We need original image size to support this properly.
-             // For now, emit normalized coordinates?
-             // Or simpler: NavigateToRequested?.Invoke(this, (e.X, e.Y));
+            if (_navScale <= 0) return;
+
+            // 反算圖片座標
+            float imgX = (e.X - _navOffsetX) / _navScale;
+            float imgY = (e.Y - _navOffsetY) / _navScale;
+
+            NavigateToRequested?.Invoke(this, (imgX, imgY));
         }
 
         /// <summary>清除所有資料</summary>

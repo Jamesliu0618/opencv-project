@@ -50,6 +50,7 @@ namespace PCBInspection.UI.Controls
 
         // Events
         public event EventHandler<Point> MousePixelChanged;
+        public event EventHandler ViewChanged;
 
         public InteractiveImageViewer()
         {
@@ -73,11 +74,20 @@ namespace PCBInspection.UI.Controls
             _offsetY = (Height - _image.Height * _scale) / 2;
             
             Invalidate();
+            ViewChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void ZoomIn() => ApplyZoom(1.2f, new Point(Width/2, Height/2));
         public void ZoomOut() => ApplyZoom(0.8f, new Point(Width/2, Height/2));
-        public void SetZoom100() { _scale = 1.0f; CenterImage(); Invalidate(); }
+        public void SetZoom100() { _scale = 1.0f; CenterImage(); Invalidate(); ViewChanged?.Invoke(this, EventArgs.Empty); }
+
+        public void CenterAt(PointF p)
+        {
+            _offsetX = Width / 2.0f - p.X * _scale;
+            _offsetY = Height / 2.0f - p.Y * _scale;
+            Invalidate();
+            ViewChanged?.Invoke(this, EventArgs.Empty);
+        }
 
         private void CenterImage()
         {
@@ -101,11 +111,19 @@ namespace PCBInspection.UI.Controls
             _offsetY = center.Y - (center.Y - _offsetY) * (_scale / oldScale);
 
             Invalidate();
+            ViewChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private PointF ScreenToImage(Point p)
         {
             return new PointF((p.X - _offsetX) / _scale, (p.Y - _offsetY) / _scale);
+        }
+
+        public RectangleF GetViewport()
+        {
+             var p1 = ScreenToImage(new Point(0,0));
+             var p2 = ScreenToImage(new Point(Width, Height));
+             return new RectangleF(p1.X, p1.Y, p2.X - p1.X, p2.Y - p1.Y);
         }
 
         // --- Drawing ---
@@ -201,6 +219,7 @@ namespace PCBInspection.UI.Controls
                 _offsetY += e.Y - _lastMousePos.Y;
                 _lastMousePos = e.Location;
                 Invalidate();
+                ViewChanged?.Invoke(this, EventArgs.Empty);
                 return;
             }
 

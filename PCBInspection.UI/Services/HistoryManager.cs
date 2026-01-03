@@ -77,5 +77,14 @@ namespace PCBInspection.UI.Services
             StateChanged?.Invoke(this, EventArgs.Empty);
             return (snap.Image, snap.Rois);
         }
+
+        public void Clear()
+        {
+            foreach (var s in _undoStack) s.Image?.Dispose();
+            foreach (var s in _redoStack) s.Image?.Dispose();
+            _undoStack.Clear();
+            _redoStack.Clear();
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 }
