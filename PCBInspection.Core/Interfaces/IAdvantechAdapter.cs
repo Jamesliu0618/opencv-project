@@ -1,10 +1,10 @@
 namespace PCBInspection.Core.Interfaces
 {
-    public interface IAdvantechAdapter
-    {
-        void Initialize();
-        bool WriteDigitalOutput(string signalName, bool value, int pulseMs = 100);
-        bool ReadDigitalInput(string signalName);
-        void Dispose();
-    }
+	public interface IAdvantechAdapter
+	{
+		void Initialize();
+		bool WriteDigitalOutput(string signalName, bool value, int pulseMs = 100);
+		bool ReadDigitalInput(string   signalName);
+		void Dispose();
+	}
 }

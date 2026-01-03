@@ -1,370 +1,424 @@
+using PCBInspection.Core.ROI;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using PCBInspection.Core.ROI;
 
 namespace PCBInspection.UI.Controls
 {
-    public class InteractiveImageViewer : UserControl
-    {
-        // Image
-        private Bitmap _image;
-        public Bitmap Image
-        {
-            get => _image;
-            set
-            {
-                _image = value;
-                FitToWindow();
-                Invalidate();
-            }
+	public class InteractiveImageViewer : UserControl
+	{
+		// Interaction Mode
+		public enum ViewerMode
+		{
+			None,
+			Pan,
+			DrawRect,
+			DrawCircle,
+			DrawPoly,
+			EditROI,
         }
 
-        // Transformation
-        private float _scale = 1.0f;
-        private float _offsetX = 0;
-        private float _offsetY = 0;
-        private Point _lastMousePos;
+		// Image
+		private Bitmap     _image;
+		private Point      _lastMousePos;
+		private ViewerMode _mode = ViewerMode.Pan;
+		private float      _offsetX;
+		private float      _offsetY;
 
-        // Interaction Mode
-        public enum ViewerMode { None, Pan, DrawRect, DrawCircle, DrawPoly, EditROI }
-        private ViewerMode _mode = ViewerMode.Pan;
-        public ViewerMode Mode
-        {
-            get => _mode;
-            set
-            {
-                _mode = value;
-                Cursor = _mode == ViewerMode.Pan ? Cursors.Hand : Cursors.Cross;
-                if (_mode == ViewerMode.EditROI) Cursor = Cursors.Default;
-            }
-        }
+		// Transformation
+		private float   _scale = 1.0f;
+		private RoiBase _tempRoi; // For drawing
 
-        // ROI
-        public List<RoiBase> Rois { get; } = new List<RoiBase>();
-        public RoiBase SelectedRoi { get; private set; }
-        private RoiBase _tempRoi; // For drawing
-        public event EventHandler RoiListChanged;
+		public InteractiveImageViewer()
+		{
+			DoubleBuffered = true;
+			BackColor      = Color.Silver;
+			Cursor         = Cursors.Hand;
+		}
 
-        // Events
-        public event EventHandler<Point> MousePixelChanged;
-        public event EventHandler ViewChanged;
+		public Bitmap Image
+		{
+			get => _image;
+			set
+			{
+				_image = value;
+				FitToWindow();
+				Invalidate();
+			}
+		}
 
-        public InteractiveImageViewer()
-        {
-            this.DoubleBuffered = true;
-            this.BackColor = Color.Silver;
-            this.Cursor = Cursors.Hand;
-        }
+		public ViewerMode Mode
+		{
+			get => _mode;
+			set
+			{
+				_mode  = value;
+				Cursor = _mode == ViewerMode.Pan ? Cursors.Hand : Cursors.Cross;
 
-        public string GetDebugInfo()
-        {
-            return $"Scale={_scale:F3}, Offset={_offsetX:F1},{_offsetY:F1}, " +
-                   $"CtlSize={Width}x{Height}, Dock={Dock}, Parent={Parent?.Name} ({Parent?.Width}x{Parent?.Height}), " +
-                   $"ImgSize={(_image == null ? "null" : $"{_image.Width}x{_image.Height}")}, " +
-                   $"Visible={Visible}, Mode={Mode}";
-        }
+				if(_mode == ViewerMode.EditROI)
+				{
+					Cursor = Cursors.Default;
+				}
+			}
+		}
 
-        // --- Transformation Helpers ---
+		// ROI
+		public List<RoiBase>      Rois        { get; } = new List<RoiBase>();
+		public RoiBase            SelectedRoi { get; private set; }
+		public event EventHandler RoiListChanged;
 
-        public void FitToWindow()
-        {
-            if (_image == null) return;
-            
-            float scaleW = (float)Width / _image.Width;
-            float scaleH = (float)Height / _image.Height;
-            _scale = Math.Min(scaleW, scaleH) * 0.9f;
-            
-            // Center
-            _offsetX = (Width - _image.Width * _scale) / 2;
-            _offsetY = (Height - _image.Height * _scale) / 2;
-            
-            Invalidate();
-            ViewChanged?.Invoke(this, EventArgs.Empty);
-        }
+		// Events
+		public event EventHandler<Point> MousePixelChanged;
+		public event EventHandler        ViewChanged;
 
-        public void ZoomIn() => ApplyZoom(1.2f, new Point(Width/2, Height/2));
-        public void ZoomOut() => ApplyZoom(0.8f, new Point(Width/2, Height/2));
-        public void SetZoom100() { _scale = 1.0f; CenterImage(); Invalidate(); ViewChanged?.Invoke(this, EventArgs.Empty); }
+		public string GetDebugInfo()
+		{
+			return $"Scale={_scale:F3}, Offset={_offsetX:F1},{_offsetY:F1}, " + $"CtlSize={Width}x{Height}, Dock={Dock}, Parent={Parent?.Name} ({Parent?.Width}x{Parent?.Height}), " + $"ImgSize={(_image == null ? "null" : $"{_image.Width}x{_image.Height}")}, " + $"Visible={Visible}, Mode={Mode}";
+		}
 
-        public void CenterAt(PointF p)
-        {
-            _offsetX = Width / 2.0f - p.X * _scale;
-            _offsetY = Height / 2.0f - p.Y * _scale;
-            Invalidate();
-            ViewChanged?.Invoke(this, EventArgs.Empty);
-        }
+		// --- Transformation Helpers ---
 
-        private void CenterImage()
-        {
-             if (_image == null) return;
-            _offsetX = (Width - _image.Width * _scale) / 2;
-            _offsetY = (Height - _image.Height * _scale) / 2;
-        }
+		public void FitToWindow()
+		{
+			if(_image == null)
+			{
+				return;
+			}
+			float scaleW = (float)Width  / _image.Width;
+			float scaleH = (float)Height / _image.Height;
+			_scale = Math.Min(scaleW, scaleH) * 0.9f;
 
-        private void ApplyZoom(float factor, Point center)
-        {
-            float oldScale = _scale;
-            _scale *= factor;
-            
-            // Limit limits
-            if (_scale < 0.05f) _scale = 0.05f;
-            if (_scale > 20.0f) _scale = 20.0f;
+			// Center
+			_offsetX = (Width  - _image.Width  * _scale) / 2;
+			_offsetY = (Height - _image.Height * _scale) / 2;
+			Invalidate();
+			ViewChanged?.Invoke(this, EventArgs.Empty);
+		}
 
-            // Adjust offset to keep center point stable
-            // newOffset = mouse - (mouse - oldOffset) * (newScale / oldScale)
-            _offsetX = center.X - (center.X - _offsetX) * (_scale / oldScale);
-            _offsetY = center.Y - (center.Y - _offsetY) * (_scale / oldScale);
+		public void ZoomIn()  => ApplyZoom(1.2f, new Point(Width / 2, Height / 2));
+		public void ZoomOut() => ApplyZoom(0.8f, new Point(Width / 2, Height / 2));
 
-            Invalidate();
-            ViewChanged?.Invoke(this, EventArgs.Empty);
-        }
+		public void SetZoom100()
+		{
+			_scale = 1.0f;
+			CenterImage();
+			Invalidate();
+			ViewChanged?.Invoke(this, EventArgs.Empty);
+		}
 
-        private PointF ScreenToImage(Point p)
-        {
-            return new PointF((p.X - _offsetX) / _scale, (p.Y - _offsetY) / _scale);
-        }
+		public void CenterAt(PointF p)
+		{
+			_offsetX = Width  / 2.0f - p.X * _scale;
+			_offsetY = Height / 2.0f - p.Y * _scale;
+			Invalidate();
+			ViewChanged?.Invoke(this, EventArgs.Empty);
+		}
 
-        public RectangleF GetViewport()
-        {
-             var p1 = ScreenToImage(new Point(0,0));
-             var p2 = ScreenToImage(new Point(Width, Height));
-             return new RectangleF(p1.X, p1.Y, p2.X - p1.X, p2.Y - p1.Y);
-        }
+		private void CenterImage()
+		{
+			if(_image == null)
+			{
+				return;
+			}
+			_offsetX = (Width  - _image.Width  * _scale) / 2;
+			_offsetY = (Height - _image.Height * _scale) / 2;
+		}
 
-        // --- Drawing ---
+		private void ApplyZoom(float factor, Point center)
+		{
+			float oldScale = _scale;
+			_scale *= factor;
 
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            
-            var g = e.Graphics;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor; 
-            g.PixelOffsetMode = PixelOffsetMode.Half;
+			// Limit limits
+			if(_scale < 0.05f)
+			{
+				_scale = 0.05f;
+			}
 
-            // Draw Debug String FIRST to ensure visibility
-            try 
-            {
-                string debugText = $"[DEBUG] Ctl: {Width}x{Height}, Scale: {_scale:F2}, Offset: {_offsetX:F0},{_offsetY:F0}";
-                if (_image != null) 
-                    debugText += $" | Img: {_image.Width}x{_image.Height} | PixelFmt: {_image.PixelFormat}";
-                else 
-                    debugText += " | Img: NULL";
-                
-                g.DrawString(debugText, SystemFonts.DefaultFont, Brushes.Red, 10, 10);
-            }
-            catch { /* Ignore Font errors */ }
+			if(_scale > 20.0f)
+			{
+				_scale = 20.0f;
+			}
 
-            if (_image != null)
-            {
-                try
-                {
-                    g.DrawImage(_image, _offsetX, _offsetY, _image.Width * _scale, _image.Height * _scale);
-                }
-                catch (Exception ex)
-                {
-                    g.DrawString($"[DRAW ERROR] {ex.GetType().Name}: {ex.Message}", SystemFonts.DefaultFont, Brushes.Red, 10, 30);
-                }
-            }
+			// Adjust offset to keep center point stable
+			// newOffset = mouse - (mouse - oldOffset) * (newScale / oldScale)
+			_offsetX = center.X - (center.X - _offsetX) * (_scale / oldScale);
+			_offsetY = center.Y - (center.Y - _offsetY) * (_scale / oldScale);
+			Invalidate();
+			ViewChanged?.Invoke(this, EventArgs.Empty);
+		}
 
-            // Draw ROIs
-            foreach (var roi in Rois)
-            {
-                roi.Draw(g, _scale, _offsetX, _offsetY);
-            }
+		private PointF ScreenToImage(Point p)
+		{
+			return new PointF((p.X - _offsetX) / _scale, (p.Y - _offsetY) / _scale);
+		}
 
-            // Draw Temp ROI
-            _tempRoi?.Draw(g, _scale, _offsetX, _offsetY);
-        }
+		public RectangleF GetViewport()
+		{
+			var p1 = ScreenToImage(new Point(0,     0));
+			var p2 = ScreenToImage(new Point(Width, Height));
+			return new RectangleF(p1.X, p1.Y, p2.X - p1.X, p2.Y - p1.Y);
+		}
 
-        // --- Interaction ---
+		// --- Drawing ---
 
-        protected override void OnMouseDown(MouseEventArgs e)
-        {
-            base.OnMouseDown(e);
-            _lastMousePos = e.Location;
-            this.Focus();
+		protected override void OnPaint(PaintEventArgs e)
+		{
+			base.OnPaint(e);
+			var g = e.Graphics;
+			g.InterpolationMode = InterpolationMode.NearestNeighbor;
+			g.PixelOffsetMode   = PixelOffsetMode.Half;
 
-            if (e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Mode == ViewerMode.Pan))
-            {
-                Cursor = Cursors.NoMove2D;
-                return;
-            }
+			// Draw Debug String FIRST to ensure visibility
+			try
+			{
+				string debugText = $"[DEBUG] Ctl: {Width}x{Height}, Scale: {_scale:F2}, Offset: {_offsetX:F0},{_offsetY:F0}";
 
-            var imgPt = ScreenToImage(e.Location);
+				if(_image != null)
+				{
+					debugText += $" | Img: {_image.Width}x{_image.Height} | PixelFmt: {_image.PixelFormat}";
+				}
+				else
+				{
+					debugText += " | Img: NULL";
+				}
+				g.DrawString(debugText, SystemFonts.DefaultFont, Brushes.Red, 10, 10);
+			}
+			catch
+			{
+				/* Ignore Font errors */
+			}
 
-            if (e.Button == MouseButtons.Left)
-            {
-               if (Mode == ViewerMode.DrawRect)
-               {
-                   _tempRoi = new RectangleRoi(imgPt.X, imgPt.Y, 0, 0);
-               }
-               else if (Mode == ViewerMode.DrawCircle)
-               {
-                   var circ = new CircleRoi(imgPt, 0);
-                   circ.StartCorner = imgPt;
-                   _tempRoi = circ;
-               }
-               else if (Mode == ViewerMode.DrawPoly)
-               {
-                   if (_tempRoi == null) _tempRoi = new PolygonRoi();
-                   ((PolygonRoi)_tempRoi).Points.Add(imgPt);
-                   Invalidate();
-               }
-               else if (Mode == ViewerMode.EditROI)
-               {
-                   // Hit Test
-                   SelectedRoi = null;
-                   foreach(var roi in Rois)
-                   {
-                       roi.IsSelected = false;
-                       if (roi.HitTest(e.Location, _scale, _offsetX, _offsetY))
-                       {
-                           SelectedRoi = roi;
-                       }
-                   }
-                   if (SelectedRoi != null) SelectedRoi.IsSelected = true;
-                   Invalidate();
-               }
-            }
-        }
+			if(_image != null)
+			{
+				try
+				{
+					g.DrawImage(_image, _offsetX, _offsetY, _image.Width * _scale, _image.Height * _scale);
+				}
+				catch(Exception ex)
+				{
+					g.DrawString($"[DRAW ERROR] {ex.GetType().Name}: {ex.Message}", SystemFonts.DefaultFont, Brushes.Red, 10, 30);
+				}
+			}
 
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-            
-            var imgPt = ScreenToImage(e.Location);
-            // Report pixel pos
-            if (_image != null && imgPt.X >= 0 && imgPt.X < _image.Width && imgPt.Y >= 0 && imgPt.Y < _image.Height)
-            {
-                MousePixelChanged?.Invoke(this, new Point((int)imgPt.X, (int)imgPt.Y));
-            }
+			// Draw ROIs
+			foreach(var roi in Rois)
+			{
+				roi.Draw(g, _scale, _offsetX, _offsetY);
+			}
 
-            if (e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Cursor == Cursors.NoMove2D))
-            {
-                // Pan
-                _offsetX += e.X - _lastMousePos.X;
-                _offsetY += e.Y - _lastMousePos.Y;
-                _lastMousePos = e.Location;
-                Invalidate();
-                ViewChanged?.Invoke(this, EventArgs.Empty);
-                return;
-            }
+			// Draw Temp ROI
+			_tempRoi?.Draw(g, _scale, _offsetX, _offsetY);
+		}
 
-            if (e.Button == MouseButtons.Left && _tempRoi != null)
-            {
-                // Dragging shape creation
-                if (_tempRoi is RectangleRoi rect)
-                {
-                    float w = imgPt.X - rect.Rect.X;
-                    float h = imgPt.Y - rect.Rect.Y;
-                    rect.Rect = new RectangleF(rect.Rect.X, rect.Rect.Y, w, h);
-                }
-                else if (_tempRoi is CircleRoi circ)
-                {
-                    // Calculate bounding box from start corner to current mouse position
-                    float x1 = circ.StartCorner.X;
-                    float y1 = circ.StartCorner.Y;
-                    float x2 = imgPt.X;
-                    float y2 = imgPt.Y;
+		// --- Interaction ---
 
-                    float minX = Math.Min(x1, x2);
-                    float minY = Math.Min(y1, y2);
-                    float maxX = Math.Max(x1, x2);
-                    float maxY = Math.Max(y1, y2);
+		protected override void OnMouseDown(MouseEventArgs e)
+		{
+			base.OnMouseDown(e);
+			_lastMousePos = e.Location;
+			Focus();
 
-                    float width = maxX - minX;
-                    float height = maxY - minY;
+			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Mode == ViewerMode.Pan))
+			{
+				Cursor = Cursors.NoMove2D;
+				return;
+			}
+			var imgPt = ScreenToImage(e.Location);
 
-                    // Inscribed circle: center of bounding box, radius = half of smaller dimension
-                    circ.Center = new PointF(minX + width / 2, minY + height / 2);
-                    circ.Radius = Math.Min(width, height) / 2;
-                }
-                Invalidate();
-            }
-            else if (e.Button == MouseButtons.Left && SelectedRoi != null && Mode == ViewerMode.EditROI)
-            {
-                // Move ROI
-                int dx = (int)(imgPt.X - ScreenToImage(_lastMousePos).X);
-                int dy = (int)(imgPt.Y - ScreenToImage(_lastMousePos).Y);
-                if (dx != 0 || dy != 0)
-                {
-                    SelectedRoi.Move(dx, dy);
-                    _lastMousePos = e.Location;
-                    Invalidate();
-                }
-            }
-        }
+			if(e.Button == MouseButtons.Left)
+			{
+				if(Mode == ViewerMode.DrawRect)
+				{
+					_tempRoi = new RectangleRoi(imgPt.X, imgPt.Y, 0, 0);
+				}
+				else if(Mode == ViewerMode.DrawCircle)
+				{
+					var circ = new CircleRoi(imgPt, 0);
+					circ.StartCorner = imgPt;
+					_tempRoi         = circ;
+				}
+				else if(Mode == ViewerMode.DrawPoly)
+				{
+					if(_tempRoi == null)
+					{
+						_tempRoi = new PolygonRoi();
+					}
+					((PolygonRoi)_tempRoi).Points.Add(imgPt);
+					Invalidate();
+				}
+				else if(Mode == ViewerMode.EditROI)
+				{
+					// Hit Test
+					SelectedRoi = null;
 
-        protected override void OnMouseUp(MouseEventArgs e)
-        {
-            base.OnMouseUp(e);
-            
-            if (Cursor == Cursors.NoMove2D)
-            {
-                Cursor = Mode == ViewerMode.Pan ? Cursors.Hand : Cursors.Cross;
-                if (Mode == ViewerMode.EditROI) Cursor = Cursors.Default;
-            }
+					foreach(var roi in Rois)
+					{
+						roi.IsSelected = false;
 
-            if (_tempRoi != null && Mode != ViewerMode.DrawPoly)
-            {
-                // Finish shape
-                // Ensure Rect is normalized (width/height not negative)
-                if (_tempRoi is RectangleRoi r)
-                {
-                    float x = r.Rect.X;
-                    float y = r.Rect.Y;
-                    float w = r.Rect.Width;
-                    float h = r.Rect.Height;
-                    if (w < 0) { x += w; w = Math.Abs(w); }
-                    if (h < 0) { y += h; h = Math.Abs(h); }
-                    r.Rect = new RectangleF(x, y, w, h);
-                }
+						if(roi.HitTest(e.Location, _scale, _offsetX, _offsetY))
+						{
+							SelectedRoi = roi;
+						}
+					}
 
-                Rois.Add(_tempRoi);
-                _tempRoi = null;
-                Mode = ViewerMode.EditROI; // Auto switch to edit after draw
-                RoiListChanged?.Invoke(this, EventArgs.Empty);
-                Invalidate();
-            }
-        }
+					if(SelectedRoi != null)
+					{
+						SelectedRoi.IsSelected = true;
+					}
+					Invalidate();
+				}
+			}
+		}
 
-        protected override void OnMouseWheel(MouseEventArgs e)
-        {
-            // Zoom to mouse ptr
-            float factor = e.Delta > 0 ? 1.1f : 0.9f;
-            ApplyZoom(factor, e.Location);
-        }
+		protected override void OnMouseMove(MouseEventArgs e)
+		{
+			base.OnMouseMove(e);
+			var imgPt = ScreenToImage(e.Location);
 
-        protected override void OnMouseDoubleClick(MouseEventArgs e)
-        {
-            if (Mode == ViewerMode.DrawPoly && _tempRoi != null)
-            {
-                // Finish Poly
-                Rois.Add(_tempRoi);
-                _tempRoi = null;
-                Mode = ViewerMode.EditROI;
-                RoiListChanged?.Invoke(this, EventArgs.Empty);
-                Invalidate();
-            }
-        }
+			// Report pixel pos
+			if(_image != null && imgPt.X >= 0 && imgPt.X < _image.Width && imgPt.Y >= 0 && imgPt.Y < _image.Height)
+			{
+				MousePixelChanged?.Invoke(this, new Point((int)imgPt.X, (int)imgPt.Y));
+			}
+
+			if(e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && Cursor == Cursors.NoMove2D))
+			{
+				// Pan
+				_offsetX      += e.X - _lastMousePos.X;
+				_offsetY      += e.Y - _lastMousePos.Y;
+				_lastMousePos =  e.Location;
+				Invalidate();
+				ViewChanged?.Invoke(this, EventArgs.Empty);
+				return;
+			}
+
+			if(e.Button == MouseButtons.Left && _tempRoi != null)
+			{
+				// Dragging shape creation
+				if(_tempRoi is RectangleRoi rect)
+				{
+					float w = imgPt.X - rect.Rect.X;
+					float h = imgPt.Y - rect.Rect.Y;
+					rect.Rect = new RectangleF(rect.Rect.X, rect.Rect.Y, w, h);
+				}
+				else if(_tempRoi is CircleRoi circ)
+				{
+					// Calculate bounding box from start corner to current mouse position
+					float x1     = circ.StartCorner.X;
+					float y1     = circ.StartCorner.Y;
+					float x2     = imgPt.X;
+					float y2     = imgPt.Y;
+					float minX   = Math.Min(x1, x2);
+					float minY   = Math.Min(y1, y2);
+					float maxX   = Math.Max(x1, x2);
+					float maxY   = Math.Max(y1, y2);
+					float width  = maxX - minX;
+					float height = maxY - minY;
+
+					// Inscribed circle: center of bounding box, radius = half of smaller dimension
+					circ.Center = new PointF(minX + width / 2, minY + height / 2);
+					circ.Radius = Math.Min(width, height) / 2;
+				}
+				Invalidate();
+			}
+			else if(e.Button == MouseButtons.Left && SelectedRoi != null && Mode == ViewerMode.EditROI)
+			{
+				// Move ROI
+				int dx = (int)(imgPt.X - ScreenToImage(_lastMousePos).X);
+				int dy = (int)(imgPt.Y - ScreenToImage(_lastMousePos).Y);
+
+				if(dx != 0 || dy != 0)
+				{
+					SelectedRoi.Move(dx, dy);
+					_lastMousePos = e.Location;
+					Invalidate();
+				}
+			}
+		}
+
+		protected override void OnMouseUp(MouseEventArgs e)
+		{
+			base.OnMouseUp(e);
+
+			if(Cursor == Cursors.NoMove2D)
+			{
+				Cursor = Mode == ViewerMode.Pan ? Cursors.Hand : Cursors.Cross;
+
+				if(Mode == ViewerMode.EditROI)
+				{
+					Cursor = Cursors.Default;
+				}
+			}
+
+			if(_tempRoi != null && Mode != ViewerMode.DrawPoly)
+			{
+				// Finish shape
+				// Ensure Rect is normalized (width/height not negative)
+				if(_tempRoi is RectangleRoi r)
+				{
+					float x = r.Rect.X;
+					float y = r.Rect.Y;
+					float w = r.Rect.Width;
+					float h = r.Rect.Height;
+
+					if(w < 0)
+					{
+						x += w;
+						w =  Math.Abs(w);
+					}
+
+					if(h < 0)
+					{
+						y += h;
+						h =  Math.Abs(h);
+					}
+					r.Rect = new RectangleF(x, y, w, h);
+				}
+				Rois.Add(_tempRoi);
+				_tempRoi = null;
+				Mode     = ViewerMode.EditROI; // Auto switch to edit after draw
+				RoiListChanged?.Invoke(this, EventArgs.Empty);
+				Invalidate();
+			}
+		}
+
+		protected override void OnMouseWheel(MouseEventArgs e)
+		{
+			// Zoom to mouse ptr
+			float factor = e.Delta > 0 ? 1.1f : 0.9f;
+			ApplyZoom(factor, e.Location);
+		}
+
+		protected override void OnMouseDoubleClick(MouseEventArgs e)
+		{
+			if(Mode == ViewerMode.DrawPoly && _tempRoi != null)
+			{
+				// Finish Poly
+				Rois.Add(_tempRoi);
+				_tempRoi = null;
+				Mode     = ViewerMode.EditROI;
+				RoiListChanged?.Invoke(this, EventArgs.Empty);
+				Invalidate();
+			}
+		}
 
         /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
+        ///     Required method for Designer support - do not modify
+        ///     the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
-        {
-            this.SuspendLayout();
+		{
+			SuspendLayout();
 
-            // 
-            // InteractiveImageViewer
-            // 
-            this.Name = "InteractiveImageViewer";
-            this.Size = new System.Drawing.Size(233, 228);
-            this.ResumeLayout(false);
-        }
-    }
+			// 
+			// InteractiveImageViewer
+			// 
+			Name = "InteractiveImageViewer";
+			Size = new Size(233, 228);
+			ResumeLayout(false);
+		}
+	}
 }
