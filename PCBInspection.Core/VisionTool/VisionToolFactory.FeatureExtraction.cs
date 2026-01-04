@@ -667,7 +667,7 @@ namespace PCBInspection.Core.Services
 												
 												if(!duplicate)
 												{
-													Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 0, 255), 2);
+													Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 255, 0), 3);
 													defects.Add(new Defect
 													{
 														Id          = (defects.Count + 1).ToString(),
@@ -717,7 +717,7 @@ namespace PCBInspection.Core.Services
 										int realX = matchLoc.X + offsetX;
 										int realY = matchLoc.Y + offsetY;
 
-										Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 0, 255), 2);
+										Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 255, 0), 3);
 
 										defects.Add(new Defect
 										{

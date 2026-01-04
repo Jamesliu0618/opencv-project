@@ -1222,6 +1222,7 @@ namespace PCBInspection.UI
 
 			// 使用原始影像來執行此步驟
 			Mat inputMat = _originalImage.ToMat();
+			if(inputMat.Channels() >= 3) Cv2.CvtColor(inputMat, inputMat, ColorConversionCodes.RGB2BGR);
 			Mat roiMask  = null;
 
 			try
@@ -1380,6 +1381,7 @@ namespace PCBInspection.UI
 				r.DefaultCellStyle.BackColor = Color.White;
 			}
 			Mat currentMat = _originalImage.ToMat();
+			if(currentMat.Channels() >= 3) Cv2.CvtColor(currentMat, currentMat, ColorConversionCodes.RGB2BGR);
 			Mat roiMask    = null;
 
 			if(imageViewer.Rois.Count > 0)
@@ -1675,6 +1677,7 @@ namespace PCBInspection.UI
 			try
 			{
 				Mat currentMat = _originalImage.ToMat();
+				if(currentMat.Channels() >= 3) Cv2.CvtColor(currentMat, currentMat, ColorConversionCodes.RGB2BGR);
 				Mat roiMask    = null;
 				
 				// [Fix] 建立 ROI 遮罩
