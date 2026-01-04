@@ -689,48 +689,73 @@ namespace PCBInspection.Core.Services
 							}
 							else
 							{
-								// 標準搜尋
+								// 優化搜尋：使用閾值化批次找出所有匹配點 (比迭代式 MinMaxLoc 快很多)
 								using(var resMap = new Mat())
 								{
 									Cv2.MatchTemplate(imgGray, tmplGray, resMap, mode);
 									
-									for(int i = 0; i < maxMatches; i++)
+									// 根據匹配模式決定閾值化方向
+									using(var threshMap = new Mat())
 									{
-										Cv2.MinMaxLoc(resMap, out double minVal, out double maxVal, out Point minLoc, out Point maxLoc);
-
-										double score = 0;
 										if (useSqDiff)
 										{
-											if (mode == TemplateMatchModes.SqDiffNormed)
-												score = 1.0 - minVal;
-											else
-												score = 1000.0 / (1.0 + minVal);
+											// SqDiff: 值越小越好，反轉後閾值化
+											double thresh = mode == TemplateMatchModes.SqDiffNormed ? 
+												(1.0 - pp.MatchThreshold) : (1.0 / pp.MatchThreshold);
+											Cv2.Threshold(resMap, threshMap, thresh, 255, ThresholdTypes.BinaryInv);
 										}
 										else
 										{
-											score = maxVal;
+											// CCorr/CCoeff: 值越大越好
+											Cv2.Threshold(resMap, threshMap, pp.MatchThreshold, 255, ThresholdTypes.Binary);
 										}
-
-										if(score < pp.MatchThreshold) break;
-
-										Point matchLoc = useSqDiff ? minLoc : maxLoc;
-										int realX = matchLoc.X + offsetX;
-										int realY = matchLoc.Y + offsetY;
-
-										Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 255, 0), 3);
-
-										defects.Add(new Defect
+										
+										// 轉為 8U 以便 FindContours
+										using(var threshU8 = new Mat())
 										{
-											Id          = (i + 1).ToString(),
-											Type        = "模板匹配",
-											Confidence  = score,
-											CenterX     = realX + w / 2.0,
-											CenterY     = realY + h / 2.0,
-											BoundingBox = new[] { realX, realY, w, h }
-										});
-
-										Cv2.Rectangle(resMap, new Rect(matchLoc.X - w / 2, matchLoc.Y - h / 2, w, h),
-											useSqDiff ? new Scalar(1) : new Scalar(0), -1);
+											threshMap.ConvertTo(threshU8, MatType.CV_8U);
+											Cv2.FindContours(threshU8, out Point[][] contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+											
+											// 收集所有匹配中心點
+											var matchPoints = new List<(Point Loc, double Score)>();
+											foreach (var c in contours)
+											{
+												var rect = Cv2.BoundingRect(c);
+												int cx = rect.X + rect.Width / 2;
+												int cy = rect.Y + rect.Height / 2;
+												
+												// 確保在有效範圍內
+												if (cx >= 0 && cy >= 0 && cx < resMap.Width && cy < resMap.Height)
+												{
+													double val = resMap.At<float>(cy, cx);
+													double score = useSqDiff ? 
+														(mode == TemplateMatchModes.SqDiffNormed ? 1.0 - val : 1000.0 / (1.0 + val)) : val;
+													matchPoints.Add((new Point(cx, cy), score));
+												}
+											}
+											
+											// 依分數排序並限制數量
+											var sorted = matchPoints.OrderByDescending(p => p.Score).Take(maxMatches > 0 ? maxMatches : int.MaxValue);
+											
+											int idx = 0;
+											foreach (var match in sorted)
+											{
+												int realX = match.Loc.X + offsetX;
+												int realY = match.Loc.Y + offsetY;
+												
+												Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 255, 0), 2);
+												
+												defects.Add(new Defect
+												{
+													Id          = (++idx).ToString(),
+													Type        = "模板匹配",
+													Confidence  = match.Score,
+													CenterX     = realX + w / 2.0,
+													CenterY     = realY + h / 2.0,
+													BoundingBox = new[] { realX, realY, w, h }
+												});
+											}
+										}
 									}
 								}
 							}
