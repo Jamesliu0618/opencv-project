@@ -18,6 +18,13 @@ namespace PCBInspection.Core.Tools
 			XPosition,
 		}
 
+		// ===== 搜尋區域 =====
+
+		/// <summary>搜尋區域 ROI 編號</summary>
+		[Category("搜尋區域")]
+		[DisplayName("ROI 編號")] [Description("使用指定編號的 ROI 作為搜尋區域 (0 = 使用全圖)")]
+		public int RoiIndex { get; set; } = 0;
+
 		// ===== 效能優化選項 =====
 
 		/// <summary>啟用影像預縮放 (大幅提升效能)</summary>

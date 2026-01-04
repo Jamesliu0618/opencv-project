@@ -473,9 +473,53 @@ namespace PCBInspection.UI.Controls
 			_currentObjects = objects ?? new List<DetectedObject>();
 			dgvResults.Rows.Clear();
 
+			// 動態調整欄位名稱
+			// 預設為 "半徑"
+			string col5Name = "半徑"; 
+			
+			if (_currentObjects.Count > 0)
+			{
+				var firstType = _currentObjects[0].Type;
+				if (firstType.Contains("匹配") || firstType.Contains("Match"))
+				{
+					col5Name = "分數";
+				}
+				else if (firstType.Contains("線") || firstType.Contains("Line"))
+				{
+					col5Name = "角度";
+				}
+				else if (firstType.Contains("輪廓") || firstType.Contains("Contour") || firstType.Contains("Blob"))
+				{
+					col5Name = "周長";
+				}
+			}
+			dgvResults.Columns["colRadius"].HeaderText = col5Name;
+
 			foreach(var obj in _currentObjects)
 			{
-				int rowIndex = dgvResults.Rows.Add(obj.Id, obj.Type, obj.CenterX.ToString("F1"), obj.CenterY.ToString("F1"), obj.Radius.ToString("F1"), obj.Area.ToString("F0"), obj.Status);
+				string val5 = "";
+				if(col5Name == "分數")
+				{
+				    // 分數顯示到小數點下3位
+					val5 = obj.Confidence.ToString("F3");
+				}
+				else if(col5Name == "角度")
+				{
+					// 角度顯示 F1
+					val5 = obj.Angle.ToString("F1") + "°";
+				}
+				else if(col5Name == "周長")
+				{
+					// 周長顯示 F0
+					val5 = obj.Perimeter.ToString("F0");
+				}
+				else
+				{
+					// 半徑顯示到小數點下1位
+					val5 = obj.Radius.ToString("F1");
+				}
+				
+				int rowIndex = dgvResults.Rows.Add(obj.Id, obj.Type, obj.CenterX.ToString("F1"), obj.CenterY.ToString("F1"), val5, obj.Area.ToString("F0"), obj.Status);
 				var row      = dgvResults.Rows[rowIndex];
 				row.Tag = obj;
 

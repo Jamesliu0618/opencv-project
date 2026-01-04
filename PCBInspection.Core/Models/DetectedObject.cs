@@ -58,6 +58,10 @@ namespace PCBInspection.Core.Models
 		[DisplayName("角度")]
 		public double Angle { get; set; }
 
+		/// <summary>匹配確信度或分數 (0-1 或其他範圍)</summary>
+		[DisplayName("確信度")]
+		public double Confidence { get; set; }
+
 		/// <summary>若是圓形，則為其半徑</summary>
 		[DisplayName("半徑")]
 		public double Radius { get; set; }

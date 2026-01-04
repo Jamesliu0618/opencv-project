@@ -8,8 +8,18 @@ namespace PCBInspection.Core.Tools
 		// ===== 核心參數 =====
 
 		/// <summary>模板影像之磁碟路徑</summary>
-		[Category("01. 模板設定")]
-		[DisplayName("模板路徑")] [Description("模板影像檔案的完整路徑 (建議使用具有明顯邊緣特徵的圖案)")]
+		[Category("00. ROI 設定")]
+    [DisplayName("來源 ROI 編號")]
+    [Description("指定來源影像的搜尋區域 ROI 編號 (0 = 全圖)")]
+    public int SourceRoiIndex { get; set; } = 0;
+
+    [Category("00. ROI 設定")]
+    [DisplayName("模板 ROI 編號")]
+    [Description("指定模板影像的擷取區域 ROI 編號 (0 = 全圖)")]
+    public int TemplateRoiIndex { get; set; } = 0;
+
+    [Category("01. 模板設定")]
+    [DisplayName("模板路徑")] [Description("模板影像檔案的完整路徑 (建議使用具有明顯邊緣特徵的圖案)")]
 		public string TemplatePath { get; set; } = "";
 
 		/// <summary>匹配確信度閾值 (0-1)</summary>
