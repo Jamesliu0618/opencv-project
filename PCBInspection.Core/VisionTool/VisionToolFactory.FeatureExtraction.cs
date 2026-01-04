@@ -305,6 +305,13 @@ namespace PCBInspection.Core.Services
 					{
 						Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 					}
+					else if(result.Channels() == 4)
+					{
+						var tmp = new Mat();
+						Cv2.CvtColor(result, tmp, ColorConversionCodes.BGRA2BGR);
+						result.Dispose();
+						result = tmp;
+					}
 					var gray = new Mat();
 
 					if(img.Channels() == 3)

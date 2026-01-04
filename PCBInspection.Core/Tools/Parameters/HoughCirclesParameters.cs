@@ -23,7 +23,7 @@ namespace PCBInspection.Core.Tools
 		/// <summary>啟用影像預縮放 (大幅提升效能)</summary>
 		[Category("效能優化")]
 		[DisplayName("啟用預縮放")] [Description("在偵測前先縮小影像，可大幅提升效能 (建議對 2000px 以上影像啟用)")]
-		public bool EnablePreResize { get; set; } = false;
+		public bool EnablePreResize { get; set; } = true;
 
 		/// <summary>預縮放比例 (0.25-1.0)</summary>
 		[Category("效能優化")]

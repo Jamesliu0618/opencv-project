@@ -42,15 +42,18 @@ namespace PCBInspection.Core.Services
 
 				tool.Action = (img, p) =>
 				{
+					var sw = System.Diagnostics.Stopwatch.StartNew();
 					try
 					{
 						var res = originalAction(img, p);
-						OnLog?.Invoke($"[Vision] {tool.Name} OK.", false);
+						sw.Stop();
+						OnLog?.Invoke($"[Vision] {tool.Name} OK. ({sw.ElapsedMilliseconds} ms)", false);
 						return res;
 					}
 					catch(Exception ex)
 					{
-						OnLog?.Invoke($"[Vision] {tool.Name} ERROR: {ex.Message}", true);
+						sw.Stop();
+						OnLog?.Invoke($"[Vision] {tool.Name} ERROR: {ex.Message} ({sw.ElapsedMilliseconds} ms)", true);
 						throw;
 					}
 				};
