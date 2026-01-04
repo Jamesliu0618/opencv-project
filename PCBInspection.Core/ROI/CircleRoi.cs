@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using OpenCvSharp;
 using System;
 using System.Drawing;
@@ -96,6 +97,21 @@ namespace PCBInspection.Core.ROI
 				Cv2.Circle(mask, (int)Center.X, (int)Center.Y, (int)Radius, Scalar.All(255), -1);
 			}
 			return mask;
+		}
+
+		/// <summary>序列化為 JSON 字串</summary>
+		public override string ToGeometryJson()
+		{
+			return JsonConvert.SerializeObject(new { CenterX = Center.X, CenterY = Center.Y, Radius });
+		}
+
+		/// <summary>從 JSON 還原幾何資料</summary>
+		public override void FromGeometryJson(string json)
+		{
+			if (string.IsNullOrEmpty(json)) return;
+			var obj = JsonConvert.DeserializeAnonymousType(json, new { CenterX = 0f, CenterY = 0f, Radius = 0f });
+			Center = new PointF(obj.CenterX, obj.CenterY);
+			Radius = obj.Radius;
 		}
 	}
 }

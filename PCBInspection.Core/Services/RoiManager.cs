@@ -65,5 +65,57 @@ namespace PCBInspection.Core.Services
 			var roi = GetByIndex(index);
 			return GetRectFromRoi(roi);
 		}
+
+		/// <summary>匯出 ROI 清單為可序列化的 RoiDefinition 格式</summary>
+		public static List<Models.RoiDefinition> ExportRoiDefinitions()
+		{
+			var definitions = new List<Models.RoiDefinition>();
+			foreach (var roi in _rois)
+			{
+				definitions.Add(new Models.RoiDefinition
+				{
+					Name         = roi.Name,
+					Type         = roi.GetType().Name,
+					Enabled      = true,
+					GeometryJson = roi.ToGeometryJson()
+				});
+			}
+			return definitions;
+		}
+
+		/// <summary>從 RoiDefinition 清單匯入並還原 ROI</summary>
+		public static List<RoiBase> ImportRoiDefinitions(List<Models.RoiDefinition> definitions)
+		{
+			var rois = new List<RoiBase>();
+			if (definitions == null) return rois;
+
+			foreach (var def in definitions)
+			{
+				RoiBase roi = null;
+				switch (def.Type)
+				{
+					case nameof(RectangleRoi):
+						roi = new RectangleRoi(0, 0, 100, 100);
+						break;
+					case nameof(CircleRoi):
+						roi = new CircleRoi(new System.Drawing.PointF(50, 50), 25);
+						break;
+					case nameof(EllipseRoi):
+						roi = new EllipseRoi(new System.Drawing.PointF(50, 50), 50, 30, 0);
+						break;
+					case nameof(PolygonRoi):
+						roi = new PolygonRoi();
+						break;
+				}
+
+				if (roi != null)
+				{
+					roi.Name = def.Name;
+					roi.FromGeometryJson(def.GeometryJson);
+					rois.Add(roi);
+				}
+			}
+			return rois;
+		}
 	}
 }

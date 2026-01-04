@@ -29,6 +29,16 @@ namespace PCBInspection.Core.ROI
 		public abstract Mat  GetMask(Size  imageSize);
 
 		/// <summary>
+		/// 將 ROI 幾何資料轉換為 JSON 字串（用於序列化儲存）
+		/// </summary>
+		public abstract string ToGeometryJson();
+
+		/// <summary>
+		/// 從 JSON 字串還原 ROI 幾何資料（用於反序列化載入）
+		/// </summary>
+		public abstract void FromGeometryJson(string json);
+
+		/// <summary>
 		/// 取得滑鼠位置對應的控制點類型
 		/// </summary>
 		public virtual RoiHandle GetHandle(Point mousePt, float scale, float offsetX, float offsetY)

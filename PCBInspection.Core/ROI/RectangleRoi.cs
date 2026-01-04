@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using OpenCvSharp;
 using System;
 using System.Drawing;
@@ -111,6 +112,20 @@ namespace PCBInspection.Core.ROI
 				Cv2.Rectangle(mask, rect, Scalar.All(255), -1);
 			}
 			return mask;
+		}
+
+		/// <summary>序列化為 JSON 字串</summary>
+		public override string ToGeometryJson()
+		{
+			return JsonConvert.SerializeObject(new { X = Rect.X, Y = Rect.Y, Width = Rect.Width, Height = Rect.Height });
+		}
+
+		/// <summary>從 JSON 還原幾何資料</summary>
+		public override void FromGeometryJson(string json)
+		{
+			if (string.IsNullOrEmpty(json)) return;
+			var obj = JsonConvert.DeserializeAnonymousType(json, new { X = 0f, Y = 0f, Width = 0f, Height = 0f });
+			Rect = new RectangleF(obj.X, obj.Y, obj.Width, obj.Height);
 		}
 	}
 }

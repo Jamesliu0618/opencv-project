@@ -88,15 +88,29 @@ namespace PCBInspection.Core.Services
 				var toolDef = availableTools.FirstOrDefault(t => t.Name == step.ToolName);
 				if (toolDef == null) continue;
 
-				// 2. 獲取預設參數
-				object parameters = toolDef.DefaultParameters;
+			// 2. 獲取預設參數 (深拷貝避免共用參考)
+				object parameters = null;
+				Type targetType = null;
+
+				if (toolDef.DefaultParameters != null)
+				{
+					targetType = toolDef.DefaultParameters.GetType();
+					var defaultJson = JsonConvert.SerializeObject(toolDef.DefaultParameters, JsonSettings);
+					parameters = JsonConvert.DeserializeObject(defaultJson, targetType, JsonSettings);
+				}
 
 				// 3. 如果配方中有儲存參數 JSON，則嘗試反序列化為正確的參數型別
-				if (!string.IsNullOrEmpty(step.ParametersJson) && !string.IsNullOrEmpty(step.ParametersTypeName))
+				if (!string.IsNullOrEmpty(step.ParametersJson))
 				{
 					try
 					{
-						var paramType = Type.GetType(step.ParametersTypeName);
+						// 優先使用 DefaultParameters 的型別，若無則嘗試從字串解析型別
+						var paramType = targetType;
+						if (paramType == null && !string.IsNullOrEmpty(step.ParametersTypeName))
+						{
+							paramType = Type.GetType(step.ParametersTypeName);
+						}
+
 						if (paramType != null)
 							parameters = JsonConvert.DeserializeObject(step.ParametersJson, paramType, JsonSettings);
 					}

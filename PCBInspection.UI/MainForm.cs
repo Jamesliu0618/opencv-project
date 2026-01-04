@@ -328,7 +328,8 @@ namespace PCBInspection.UI
 
 			// Toolbar - Batch & Recipe
 			btnTsBatch.Click  += (s, e) => OpenBatchProcessing();
-			btnTsRecipe.Click += (s, e) => OpenRecipeManager();
+			btnTsSave.Click   += (s, e) => SaveStepsToRecipe();
+			btnTsRecipe.Click += (s, e) => LoadStepsFromRecipe();
 
 			// Toolbox
 			tvTools.NodeMouseDoubleClick += (s, e) => AddToolToSequence(e.Node);
@@ -912,8 +913,21 @@ namespace PCBInspection.UI
 							item.LastResultImage?.Dispose();
 							item.LastResultImage = finalResult.ToBitmap();
 							item.LastDefects     = result.Defects ?? new List<Defect>();
-							currentMat.Dispose();
-							currentMat = finalResult;
+							
+							// 判斷是否為「視覺標註型工具」 (只為了顯示結果，不應改變影像內容傳給下一步)
+							if (IsVisualAnnotationTool(item.Name))
+							{
+								// 若是標註工具，則不更新 processing pipeline 的影像
+								// 釋放 finalResult (因為它只用於顯示，已經轉存到 LastResultImage)
+								finalResult.Dispose();
+								// currentMat 保持不變，作為下一步驟的輸入
+							}
+							else
+							{
+								// 若是影像處理工具 (如二值化、濾波)，則將結果傳遞給下一步
+								currentMat.Dispose();
+								currentMat = finalResult;
+							}
 						}
 						else
 						{
@@ -955,20 +969,133 @@ namespace PCBInspection.UI
 						RefreshInfoPanel(swTotal.ElapsedMilliseconds);
 					}
 				}
-				currentMat?.Dispose();
+					currentMat?.Dispose();
 				roiMask?.Dispose();
 			}
 		}
 
-		private void Log(string msg, TraceLevel level)
+	/// <summary>儲存當前檢測步驟與 ROI 至配方檔案</summary>
+	private void SaveStepsToRecipe()
+	{
+		if (_sequence.Count == 0)
 		{
-			string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-			string fullMsg   = $"[{timestamp}] {msg}";
+			MessageBox.Show("目前沒有檢測步驟可儲存", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+
+		using (var dlg = new SaveFileDialog { Filter = "配方檔案|*.json", FileName = "MyRecipe.json" })
+		{
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				try
+				{
+					// 1. 將 _sequence 轉換為 ToolSequenceItem
+					var toolItems = _sequence.Select((item, i) => new ToolSequenceItem
+					{
+						ToolName   = item.Name,
+						Category   = "",
+						Parameters = item.Parameters,
+						Enabled    = true,
+						Action     = item.Action
+					}).ToList();
+
+					// 2. 使用 RecipeService 建立配方
+					var recipeService = new RecipeService();
+					var recipe = recipeService.CreateFromToolSequence(toolItems, Path.GetFileNameWithoutExtension(dlg.FileName));
+
+					// 3. 匯出 ROI 清單
+					recipe.Settings.Rois = RoiManager.ExportRoiDefinitions();
+
+					// 4. 儲存
+					recipeService.SaveRecipe(recipe, dlg.FileName);
+					Log($"已儲存配方: {dlg.FileName}", TraceLevel.Info);
+					MessageBox.Show("配方儲存成功", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show($"儲存失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					Log($"儲存配方失敗: {ex.Message}", TraceLevel.Error);
+				}
+			}
+		}
+	}
+
+	/// <summary>從配方檔案載入檢測步驟與 ROI</summary>
+	private void LoadStepsFromRecipe()
+	{
+		using (var dlg = new OpenFileDialog { Filter = "配方檔案|*.json" })
+		{
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				try
+				{
+					// 1. 載入配方
+					var recipeService = new RecipeService();
+					var recipe = recipeService.LoadRecipe(dlg.FileName);
+
+					// 2. 取得可用工具清單
+					var availableTools = VisionToolFactory.GetAllTools();
+
+					// 3. 套用配方步驟
+					var toolItems = recipeService.ApplyRecipeToSequence(recipe, availableTools);
+
+					// 4. 清空現有步驟並還原
+					_sequence.Clear();
+					dgvSequence.Rows.Clear();
+
+					foreach (var item in toolItems)
+					{
+						var inspItem = new InspectionItem
+						{
+							Name       = item.ToolName,
+							Parameters = item.Parameters,
+							Action     = item.Action
+						};
+						_sequence.Add(inspItem);
+
+						int idx = dgvSequence.Rows.Add(inspItem.Name, "", "Wait");
+						dgvSequence.Rows[idx].Tag = inspItem;
+					}
+					
+					// 自動選取第一行以觸發參數顯示
+					if (dgvSequence.Rows.Count > 0)
+					{
+						dgvSequence.ClearSelection();
+						dgvSequence.Rows[0].Selected = true;
+						// 手動觸發 SelectionChanged 事件處理邏輯 (確保更新 PropertyGrid)
+						DgvSequence_SelectionChanged(dgvSequence, EventArgs.Empty);
+					}
+
+					// 5. 還原 ROI
+					if (recipe.Settings?.Rois != null && recipe.Settings.Rois.Count > 0)
+					{
+						var rois = RoiManager.ImportRoiDefinitions(recipe.Settings.Rois);
+						imageViewer.Rois.Clear();
+						imageViewer.Rois.AddRange(rois);
+						RoiManager.SetRois(rois);
+						imageViewer.Invalidate();
+					}
+
+					Log($"已載入配方: {recipe.Name} ({recipe.Steps.Count} 步驟, {recipe.Settings?.Rois?.Count ?? 0} ROI)", TraceLevel.Info);
+					MessageBox.Show($"已載入配方: {recipe.Name}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show($"載入失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					Log($"載入配方失敗: {ex.Message}", TraceLevel.Error);
+				}
+			}
+		}
+	}
+
+	private void Log(string msg, TraceLevel level)
+	{
+		string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+		string fullMsg   = $"[{timestamp}] {msg}";
 
 			try
 			{
 				lstLog.Items.Add(new LogItem { Message = fullMsg, Level = level });
-				lstLog.TopIndex = lstLog.Items.Count - 1;
 			}
 			catch
 			{
@@ -1826,6 +1953,35 @@ namespace PCBInspection.UI
 			}
 		}
 
+
+		/// <summary>
+		/// 判斷工具是否僅為視覺標註性質 (不應改變傳遞給下一步的影像)
+		/// </summary>
+		private bool IsVisualAnnotationTool(string toolName)
+		{
+			// 定義標註型/檢測型工具的關鍵字
+			string[] annotationKeywords = new[]
+			{
+				"模板匹配", "Template Match",
+				"幾何匹配", "Geometric Match",
+				"霍夫", "Hough",
+				"輪廓搜尋", "Find Contours",
+				"繪製", "Draw",
+				"測量", "Measure",
+				"檢測", "Inspection", // 若有其他檢測類
+				"讀取", "Read"
+			};
+
+			// 例外：某些工具雖然名字像，但可能是處理型
+			// 目前沒有明顯的例外，邊緣偵測 (Edge) 通常算特徵提取但產出新圖，不在此列
+			
+			foreach (var kw in annotationKeywords)
+			{
+				if (toolName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+					return true;
+			}
+			return false;
+		}
 
 		private class InspectionItem
 		{

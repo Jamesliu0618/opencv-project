@@ -1,7 +1,9 @@
+using Newtonsoft.Json;
 using OpenCvSharp;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using Point = System.Drawing.Point;
 using Size = OpenCvSharp.Size;
 
@@ -89,6 +91,21 @@ namespace PCBInspection.Core.ROI
 				Cv2.FillPoly(mask, new[] { cvPoints }, Scalar.All(255));
 			}
 			return mask;
+		}
+
+		/// <summary>序列化為 JSON 字串</summary>
+		public override string ToGeometryJson()
+		{
+			var pts = Points.Select(p => new { X = p.X, Y = p.Y }).ToArray();
+			return JsonConvert.SerializeObject(pts);
+		}
+
+		/// <summary>從 JSON 還原幾何資料</summary>
+		public override void FromGeometryJson(string json)
+		{
+			if (string.IsNullOrEmpty(json)) return;
+			var pts = JsonConvert.DeserializeAnonymousType(json, new[] { new { X = 0f, Y = 0f } });
+			Points = pts.Select(p => new PointF(p.X, p.Y)).ToList();
 		}
 	}
 }
