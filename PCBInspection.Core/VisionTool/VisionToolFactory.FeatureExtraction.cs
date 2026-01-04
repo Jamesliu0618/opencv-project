@@ -499,8 +499,23 @@ namespace PCBInspection.Core.Services
 				Action = (img, p) =>
 				{
 					var pp     = (TemplateMatchParameters)p;
-					var result = img.Clone();
-					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+					
+					// [Fix] 確保結果影像一定是 BGR 格式，以便彩色繪圖能正確顯示
+					Mat result;
+					if(img.Channels() == 1)
+					{
+						result = new Mat();
+						Cv2.CvtColor(img, result, ColorConversionCodes.GRAY2BGR);
+					}
+					else if(img.Channels() == 4)
+					{
+						result = new Mat();
+						Cv2.CvtColor(img, result, ColorConversionCodes.BGRA2BGR);
+					}
+					else
+					{
+						result = img.Clone();
+					}
 
 					Mat tmplFull = null;
 
@@ -652,7 +667,7 @@ namespace PCBInspection.Core.Services
 												
 												if(!duplicate)
 												{
-													Cv2.Rectangle(result, new Rect(realX, realY, w, h), Scalar.Magenta, 2);
+													Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 0, 255), 2);
 													defects.Add(new Defect
 													{
 														Id          = (defects.Count + 1).ToString(),
@@ -702,7 +717,7 @@ namespace PCBInspection.Core.Services
 										int realX = matchLoc.X + offsetX;
 										int realY = matchLoc.Y + offsetY;
 
-										Cv2.Rectangle(result, new Rect(realX, realY, w, h), Scalar.Magenta, 2);
+										Cv2.Rectangle(result, new Rect(realX, realY, w, h), new Scalar(0, 0, 255), 2);
 
 										defects.Add(new Defect
 										{

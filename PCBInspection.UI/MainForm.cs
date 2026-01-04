@@ -798,8 +798,10 @@ namespace PCBInspection.UI
 				r.DefaultCellStyle.BackColor = Color.White;
 			}
 			
-			// 使用原始影像的副本開始
+		// 使用原始影像的副本開始
+			// [Fix] Bitmap.ToMat() 可能產生 RGB 格式，強制轉為 BGR 確保色彩正確
 			Mat currentMat = _originalImage.ToMat();
+			if(currentMat.Channels() >= 3) Cv2.CvtColor(currentMat, currentMat, ColorConversionCodes.RGB2BGR);
 			Mat roiMask    = null;
 			List<Defect> accumulatedDefects = new List<Defect>(); // [Fix] 累積缺陷 context
 
@@ -870,36 +872,35 @@ namespace PCBInspection.UI
 								int dstCh         = currentMat.Channels();
 								int srcCh         = result.ResultImage.Channels();
 
-								if(dstCh != srcCh)
+								// [Fix] 若原圖是灰階 (1ch) 但結果是彩色 (3ch/4ch)，必須將基底圖轉為彩色才能顯示顏色
+								if(dstCh == 1 && srcCh >= 3)
 								{
-									resultToMerge = new Mat();
-
-									if(dstCh == 4)
+									finalResult = new Mat();
+									Cv2.CvtColor(currentMat, finalResult, ColorConversionCodes.GRAY2BGR);
+									
+									if(srcCh == 4)
 									{
-										if(srcCh == 1)
-										{
-											Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
-										}
-										else if(srcCh == 3)
-										{
-											Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
-										}
+										Mat bgrResult = new Mat();
+										Cv2.CvtColor(resultToMerge, bgrResult, ColorConversionCodes.BGRA2BGR);
+										if(resultToMerge != result.ResultImage) resultToMerge.Dispose();
+										resultToMerge = bgrResult;
 									}
-									else if(dstCh == 3)
+								}
+								else
+								{
+									finalResult = currentMat.Clone(); // Default 
+
+									if(dstCh != srcCh)
 									{
-										if(srcCh == 1)
-										{
-											Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
-										}
-										else if(srcCh == 4)
-										{
-											Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
-										}
+										resultToMerge = new Mat();
+										if(dstCh == 4 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
+										else if(dstCh == 4 && srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
+										else if(dstCh == 3 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+										else if(dstCh == 3 && srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
 									}
 								}
 
 								// 將結果的 ROI 區域複製到原圖上
-								finalResult = currentMat.Clone();
 								resultToMerge.CopyTo(finalResult, roiMask);
 
 								if(resultToMerge != result.ResultImage)
@@ -1122,6 +1123,7 @@ namespace PCBInspection.UI
 				                                Width   = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] : 0,
 				                                Height  = d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[3] : 0,
 				                                Radius  = d.Confidence,
+												Confidence = d.Confidence, // [Fix] 確保分數能被正確顯示
 	                                    Area    = d.Type == "圓形" ? Math.PI * d.Confidence * d.Confidence : d.BoundingBox != null && d.BoundingBox.Length >= 4 ? d.BoundingBox[2] * d.BoundingBox[3] : 0,
 	                                    Status  = "OK",
 	                                    Angle   = d.Angle,
@@ -1269,51 +1271,59 @@ namespace PCBInspection.UI
 					row.Cells[2].Value           = "OK";
 					row.Cells[2].Style.ForeColor = Color.Green;
 
-					// 如果有 ROI，將結果合併回原始影像 (保留 ROI 外區域)
-					Mat finalResult = result.ResultImage;
+						// 如果有 ROI，將結果合併回原始影像 (保留 ROI 外區域)
+							Mat finalResult = result.ResultImage;
 
-					if(roiMask != null)
-					{
-						Mat resultToMerge = result.ResultImage;
-						int dstCh         = inputMat.Channels();
-						int srcCh         = result.ResultImage.Channels();
-
-						if(dstCh != srcCh)
-						{
-							resultToMerge = new Mat();
-
-							if(dstCh == 4)
+							if(roiMask != null)
 							{
-								if(srcCh == 1)
-								{
-									Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
-								}
-								else if(srcCh == 3)
-								{
-									Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
-								}
-							}
-							else if(dstCh == 3)
-							{
-								if(srcCh == 1)
-								{
-									Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
-								}
-								else if(srcCh == 4)
-								{
-									Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
-								}
-							}
-						}
-						finalResult = inputMat.Clone();
-						resultToMerge.CopyTo(finalResult, roiMask);
+								Mat resultToMerge = result.ResultImage;
+								int dstCh         = inputMat.Channels();
+								int srcCh         = result.ResultImage.Channels();
 
-						if(resultToMerge != result.ResultImage)
-						{
-							resultToMerge.Dispose();
-						}
-						result.ResultImage.Dispose();
-					}
+								// [Fix] 若原圖是灰階 (1ch) 但結果是彩色 (3ch/4ch)，必須將基底圖轉為彩色才能顯示顏色
+								if(dstCh == 1 && srcCh >= 3)
+								{
+									finalResult = new Mat();
+									Cv2.CvtColor(inputMat, finalResult, ColorConversionCodes.GRAY2BGR);
+									
+									// 如果結果是 4ch，轉為 3ch 以便合併
+									if(srcCh == 4)
+									{
+										Mat bgrResult = new Mat();
+										Cv2.CvtColor(resultToMerge, bgrResult, ColorConversionCodes.BGRA2BGR);
+										if(resultToMerge != result.ResultImage) resultToMerge.Dispose();
+										resultToMerge = bgrResult;
+									}
+								}
+								else
+								{
+									finalResult = inputMat.Clone();
+
+									if(dstCh != srcCh)
+									{
+										resultToMerge = new Mat();
+										if(dstCh == 4)
+										{
+											if(srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
+											else if(srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
+										}
+										else if(dstCh == 3)
+										{
+											if(srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+											else if(srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
+										}
+									}
+								}
+
+								// 將結果的 ROI 區域複製到原圖上
+								resultToMerge.CopyTo(finalResult, roiMask);
+
+								if(resultToMerge != result.ResultImage)
+								{
+									resultToMerge.Dispose();
+								}
+								result.ResultImage.Dispose();
+							}
 					item.LastResultImage?.Dispose();
 					item.LastResultImage = finalResult.ToBitmap();
 					item.LastDefects     = result.Defects ?? new List<Defect>();
@@ -1724,16 +1734,34 @@ namespace PCBInspection.UI
 								int dstCh = currentMat.Channels();
 								int srcCh = result.ResultImage.Channels();
 
-								if(dstCh != srcCh)
+								// [Fix] 若原圖是灰階 (1ch) 但結果是彩色 (3ch/4ch)，必須將基底圖轉為彩色才能顯示顏色
+								if(dstCh == 1 && srcCh >= 3)
 								{
-									resultToMerge = new Mat();
-									if(dstCh == 4 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
-									else if(dstCh == 4 && srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
-									else if(dstCh == 3 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
-									else if(dstCh == 3 && srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
+									finalResult = new Mat();
+									Cv2.CvtColor(currentMat, finalResult, ColorConversionCodes.GRAY2BGR);
+									
+									if(srcCh == 4)
+									{
+										Mat bgrResult = new Mat();
+										Cv2.CvtColor(resultToMerge, bgrResult, ColorConversionCodes.BGRA2BGR);
+										if(resultToMerge != result.ResultImage) resultToMerge.Dispose();
+										resultToMerge = bgrResult;
+									}
+								}
+								else
+								{
+									finalResult = currentMat.Clone(); // Default 
+
+									if(dstCh != srcCh)
+									{
+										resultToMerge = new Mat();
+										if(dstCh == 4 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGRA);
+										else if(dstCh == 4 && srcCh == 3) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGR2BGRA);
+										else if(dstCh == 3 && srcCh == 1) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.GRAY2BGR);
+										else if(dstCh == 3 && srcCh == 4) Cv2.CvtColor(result.ResultImage, resultToMerge, ColorConversionCodes.BGRA2BGR);
+									}
 								}
 
-								finalResult = currentMat.Clone();
 								resultToMerge.CopyTo(finalResult, roiMask);
 
 								if(resultToMerge != result.ResultImage) resultToMerge.Dispose();

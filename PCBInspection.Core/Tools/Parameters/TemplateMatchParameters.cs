@@ -40,68 +40,68 @@ namespace PCBInspection.Core.Tools
 		[DisplayName("最大匹配數量")] [Description("要尋找的最大匹配數量。設為 0 或 1 僅尋找最佳匹配。")]
 		public int MaxMatches { get; set; } = 1;
 
-		// ===== 來源影像 ROI =====
+// ===== 來源影像 ROI =====
 
 		/// <summary>來源 ROI 編號 (優先使用，設為 0 則使用手動座標)</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("來源 ROI 編號")] [Description("使用指定編號的 ROI 作為搜尋區域 (0 = 不使用 ROI 或使用手動座標)")]
+		[DisplayName("01. 來源 ROI 編號")] [Description("使用指定編號的 ROI 作為搜尋區域 (0 = 不使用 ROI 或使用手動座標)")]
 		public int SourceRoiIndex { get; set; } = 0;
 
 		/// <summary>是否使用手動來源 ROI</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("啟用手動 ROI")] [Description("若 ROI 編號為 0，可手動輸入搜尋區域座標")]
+		[DisplayName("02. 啟用手動 ROI")] [Description("若 ROI 編號為 0，可手動輸入搜尋區域座標")]
 		public bool UseManualSourceRoi { get; set; } = false;
 
 		/// <summary>來源 ROI 左上角 X</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("手動 ROI X")] [Description("搜尋區域左上角 X 座標")]
+		[DisplayName("03. 手動 ROI X")] [Description("搜尋區域左上角 X 座標")]
 		public int SourceRoiX { get; set; } = 0;
 
 		/// <summary>來源 ROI 左上角 Y</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("手動 ROI Y")] [Description("搜尋區域左上角 Y 座標")]
+		[DisplayName("04. 手動 ROI Y")] [Description("搜尋區域左上角 Y 座標")]
 		public int SourceRoiY { get; set; } = 0;
 
 		/// <summary>來源 ROI 寬度</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("手動 ROI 寬度")] [Description("搜尋區域寬度 (0 = 使用全圖)")]
+		[DisplayName("05. 手動 ROI 寬度")] [Description("搜尋區域寬度 (0 = 使用全圖)")]
 		public int SourceRoiWidth { get; set; } = 0;
 
 		/// <summary>來源 ROI 高度</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("手動 ROI 高度")] [Description("搜尋區域高度 (0 = 使用全圖)")]
+		[DisplayName("06. 手動 ROI 高度")] [Description("搜尋區域高度 (0 = 使用全圖)")]
 		public int SourceRoiHeight { get; set; } = 0;
 
 		// ===== 模板 ROI =====
 
 		/// <summary>模板 ROI 編號 (優先使用，設為 0 則使用手動座標)</summary>
 		[Category("03. 模板 ROI")]
-		[DisplayName("模板 ROI 編號")] [Description("使用指定編號的 ROI 擷取模板 (0 = 使用完整模板或手動座標)")]
+		[DisplayName("01. 模板 ROI 編號")] [Description("使用指定編號的 ROI 擷取模板 (0 = 使用完整模板或手動座標)")]
 		public int TemplateRoiIndex { get; set; } = 0;
 
 		/// <summary>是否使用手動模板 ROI</summary>
 		[Category("03. 模板 ROI")]
-		[DisplayName("啟用模板 ROI")] [Description("僅使用模板影像的指定區域")]
+		[DisplayName("02. 啟用模板 ROI")] [Description("僅使用模板影像的指定區域")]
 		public bool UseManualTemplateRoi { get; set; } = false;
 
 		/// <summary>模板 ROI 左上角 X</summary>
 		[Category("03. 模板 ROI")]
-		[DisplayName("模板 ROI X")] [Description("模板擷取區域左上角 X 座標")]
+		[DisplayName("03. 模板 ROI X")] [Description("模板擷取區域左上角 X 座標")]
 		public int TemplateRoiX { get; set; } = 0;
 
 		/// <summary>模板 ROI 左上角 Y</summary>
 		[Category("03. 模板 ROI")]
-		[DisplayName("模板 ROI Y")] [Description("模板擷取區域左上角 Y 座標")]
+		[DisplayName("04. 模板 ROI Y")] [Description("模板擷取區域左上角 Y 座標")]
 		public int TemplateRoiY { get; set; } = 0;
 
 		/// <summary>模板 ROI 寬度</summary>
 		[Category("03. 模板 ROI")]
-		[DisplayName("模板 ROI 寬度")] [Description("模板擷取區域寬度")]
+		[DisplayName("05. 模板 ROI 寬度")] [Description("模板擷取區域寬度")]
 		public int TemplateRoiWidth { get; set; } = 0;
 
 		/// <summary>模板 ROI 高度</summary>
 		[Category("03. 模板 ROI")]
-		[DisplayName("模板 ROI 高度")] [Description("模板擷取區域高度")]
+		[DisplayName("06. 模板 ROI 高度")] [Description("模板擷取區域高度")]
 		public int TemplateRoiHeight { get; set; } = 0;
 	}
 }
