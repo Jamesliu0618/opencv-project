@@ -75,9 +75,24 @@ namespace PCBInspection.Core.Services
 							}
 							imageSize = calibImg.Size();
 
-							if(Cv2.FindChessboardCorners(calibImg, patternSize, out Point2f[] corners))
+							Point2f[] corners = null;
+							bool found = false;
+
+							if (pp.PatternType == CameraCalibrationParameters.CalibPatternType.CrossPattern)
 							{
-								Cv2.CornerSubPix(calibImg, corners, new Size(11, 11), new Size(-1, -1), new TermCriteria(CriteriaTypes.Eps | CriteriaTypes.MaxIter, 30, 0.001));
+								found = FindCrossPatterns(calibImg, patternSize, pp.BinaryThreshold, out corners);
+							}
+							else
+							{
+								found = Cv2.FindChessboardCorners(calibImg, patternSize, out corners);
+								if (found)
+								{
+									Cv2.CornerSubPix(calibImg, corners, new Size(11, 11), new Size(-1, -1), new TermCriteria(CriteriaTypes.Eps | CriteriaTypes.MaxIter, 30, 0.001));
+								}
+							}
+
+							if (found && corners != null)
+							{
 								objPoints.Add(objp);
 								imgPoints.Add(corners.ToList());
 								validCount++;
@@ -375,6 +390,99 @@ namespace PCBInspection.Core.Services
 					}
 				},
 			});
+		}
+
+		/// <summary>
+		/// 尋找並排序十字標記中心點
+		/// </summary>
+		private static bool FindCrossPatterns(Mat img, Size patternSize, int threshold, out Point2f[] sortedCenters)
+		{
+			sortedCenters = null;
+			using (var gray = new Mat())
+			using (var binary = new Mat())
+			{
+				// 1. 轉灰階
+				if (img.Channels() == 3) Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
+				else if (img.Channels() == 4) Cv2.CvtColor(img, gray, ColorConversionCodes.BGRA2GRAY);
+				else img.CopyTo(gray);
+
+				// 2. 二值化 (假設背景白，十字黑 -> BinaryInv 讓十字變白)
+				Cv2.Threshold(gray, binary, threshold, 255, ThresholdTypes.BinaryInv);
+
+				// 3. 輪廓搜尋
+				Cv2.FindContours(binary, out Point[][] contours, out HierarchyIndex[] h, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+
+				var centers = new List<Point2f>();
+				double imgArea = img.Width * img.Height;
+
+				foreach (var c in contours)
+				{
+					double area = Cv2.ContourArea(c);
+					// 過濾雜訊：面積過小或過大都不是目標十字
+					// 假設十字至少佔畫面 0.01% ? 調整為絕對像素較安全，例如 50px
+					if (area < 50 || area > imgArea * 0.1) continue;
+
+					// 計算重心
+					var m = Cv2.Moments(c);
+					if (m.M00 != 0)
+					{
+						centers.Add(new Point2f((float)(m.M10 / m.M00), (float)(m.M01 / m.M00)));
+					}
+				}
+
+				// 4. 檢查數量
+				int expectedCount = patternSize.Width * patternSize.Height;
+				if (centers.Count != expectedCount)
+				{
+					// 數量不符 (可能檢測到雜訊或漏測)
+					return false; 
+				}
+
+				// 5. 排序：Row-Major (左上 -> 右下)
+				// 演算法：
+				// a. 先依 Y 排序所有點
+				// b. 分組：若 Y 差異小於閾值則視為同一列
+				// c. 同一列內依 X 排序
+				
+				var sortedByY = centers.OrderBy(p => p.Y).ToList();
+				var rows = new List<List<Point2f>>();
+				var currentRow = new List<Point2f>();
+				
+				// 動態計算行高閾值 (假設均勻分佈)
+				double rowTolerance = (double)img.Height / (patternSize.Height * 2.0); 
+
+				if (sortedByY.Count > 0)
+				{
+					currentRow.Add(sortedByY[0]);
+					
+					for (int i = 1; i < sortedByY.Count; i++)
+					{
+						if (Math.Abs(sortedByY[i].Y - currentRow[0].Y) < rowTolerance) // 使用第一點作為該列基準
+						{
+							currentRow.Add(sortedByY[i]);
+						}
+						else
+						{
+							// 結束這一列，開始新列
+							rows.Add(currentRow.OrderBy(p => p.X).ToList());
+							currentRow = new List<Point2f> { sortedByY[i] };
+						}
+					}
+					// 加入最後一列
+					if (currentRow.Count > 0)
+					{
+						rows.Add(currentRow.OrderBy(p => p.X).ToList());
+					}
+				}
+
+				// 驗證是否正確分為 Height 列，且每列有 Width 個
+				// 注意：如果影像歪斜太嚴重，此簡單分列法可能失敗
+				if (rows.Count != patternSize.Height) return false;
+				if (rows.Any(r => r.Count != patternSize.Width)) return false;
+
+				sortedCenters = rows.SelectMany(r => r).ToArray();
+				return true;
+			}
 		}
 	}
 }

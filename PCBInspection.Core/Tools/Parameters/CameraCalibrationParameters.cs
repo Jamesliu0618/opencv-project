@@ -32,5 +32,21 @@ namespace PCBInspection.Core.Tools
 		/// <summary>是否在 Log 中輸出重投影誤差</summary>
 		[DisplayName("顯示重投影誤差")] [Description("是否在 Log 中顯示校正的重投影誤差值")]
 		public bool ShowReprojectionError { get; set; } = true;
+		/// <summary>校正板類型</summary>
+		public enum CalibPatternType
+		{
+			/// <summary>標準棋盤格</summary>
+			Chessboard,
+			/// <summary>十字標記矩陣</summary>
+			CrossPattern
+		}
+
+		/// <summary>選擇校正板樣式</summary>
+		[DisplayName("校正板樣式")] [Description("選擇使用的校正板類型 (棋盤格或十字標記)")]
+		public CalibPatternType PatternType { get; set; } = CalibPatternType.Chessboard;
+
+		/// <summary>二值化閾值 (僅用於十字標記)</summary>
+		[DisplayName("二值化閾值")] [Description("用於分割十字標記的二值化閾值 (僅十字模式有效, 0-255)")]
+		public int BinaryThreshold { get; set; } = 100;
 	}
 }
