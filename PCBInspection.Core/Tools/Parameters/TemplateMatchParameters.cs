@@ -30,8 +30,68 @@ namespace PCBInspection.Core.Tools
 		[DisplayName("模板路徑")] [Description("模板影像檔案的完整路徑")]
 		public string TemplatePath { get; set; } = "";
 
-		/// <summary>匹配確信度閾值 (適用於 Normed 方法，範圍 0-1)</summary>
+	/// <summary>匹配確信度閾值 (適用於 Normed 方法，範圍 0-1)</summary>
+		[Category("01. 匹配設定")]
 		[DisplayName("匹配閾值")] [Description("匹配分數閾值 (0-1 for Normed methods)")]
 		public double MatchThreshold { get; set; } = 0.8;
+
+		/// <summary>最大匹配數量 (設為 0 表示僅尋找最佳匹配)</summary>
+		[Category("01. 匹配設定")]
+		[DisplayName("最大匹配數量")] [Description("要尋找的最大匹配數量。設為 0 或 1 僅尋找最佳匹配。")]
+		public int MaxMatches { get; set; } = 1;
+
+		// ===== 來源影像 ROI =====
+
+		/// <summary>是否啟用來源 ROI</summary>
+		[Category("02. 來源 ROI")]
+		[DisplayName("啟用來源 ROI")] [Description("僅在指定的矩形區域內搜尋模板")]
+		public bool EnableSourceRoi { get; set; } = false;
+
+		/// <summary>來源 ROI 左上角 X</summary>
+		[Category("02. 來源 ROI")]
+		[DisplayName("來源 ROI X")] [Description("搜尋區域左上角 X 座標")]
+		public int SourceRoiX { get; set; } = 0;
+
+		/// <summary>來源 ROI 左上角 Y</summary>
+		[Category("02. 來源 ROI")]
+		[DisplayName("來源 ROI Y")] [Description("搜尋區域左上角 Y 座標")]
+		public int SourceRoiY { get; set; } = 0;
+
+		/// <summary>來源 ROI 寬度</summary>
+		[Category("02. 來源 ROI")]
+		[DisplayName("來源 ROI 寬度")] [Description("搜尋區域寬度 (0 = 使用全圖)")]
+		public int SourceRoiWidth { get; set; } = 0;
+
+		/// <summary>來源 ROI 高度</summary>
+		[Category("02. 來源 ROI")]
+		[DisplayName("來源 ROI 高度")] [Description("搜尋區域高度 (0 = 使用全圖)")]
+		public int SourceRoiHeight { get; set; } = 0;
+
+		// ===== 模板 ROI =====
+
+		/// <summary>是否啟用模板 ROI</summary>
+		[Category("03. 模板 ROI")]
+		[DisplayName("啟用模板 ROI")] [Description("僅使用模板影像的指定區域")]
+		public bool EnableTemplateRoi { get; set; } = false;
+
+		/// <summary>模板 ROI 左上角 X</summary>
+		[Category("03. 模板 ROI")]
+		[DisplayName("模板 ROI X")] [Description("模板擷取區域左上角 X 座標")]
+		public int TemplateRoiX { get; set; } = 0;
+
+		/// <summary>模板 ROI 左上角 Y</summary>
+		[Category("03. 模板 ROI")]
+		[DisplayName("模板 ROI Y")] [Description("模板擷取區域左上角 Y 座標")]
+		public int TemplateRoiY { get; set; } = 0;
+
+		/// <summary>模板 ROI 寬度</summary>
+		[Category("03. 模板 ROI")]
+		[DisplayName("模板 ROI 寬度")] [Description("模板擷取區域寬度")]
+		public int TemplateRoiWidth { get; set; } = 0;
+
+		/// <summary>模板 ROI 高度</summary>
+		[Category("03. 模板 ROI")]
+		[DisplayName("模板 ROI 高度")] [Description("模板擷取區域高度")]
+		public int TemplateRoiHeight { get; set; } = 0;
 	}
 }

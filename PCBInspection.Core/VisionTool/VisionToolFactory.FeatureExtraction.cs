@@ -12,7 +12,7 @@ namespace PCBInspection.Core.Services
 	{
 		/// <summary>
 		/// 註冊特徵提取類別工具。
-		/// 包含：邊緣偵測 (Canny/Sobel/Laplacian)、輪廓搜尋、霍夫直線/圓形偵測、模板匹配。
+		/// 包含：邊緣偵測 (Canny/Sobel/Laplacian)、輪廓搜尋、霍夫直線/圓形偵測、模板匹配、幾何匹配。
 		/// </summary>
 		/// <param name="tools">欲加入工具定義的清單物件</param>
 		private static void AddFeatureExtractionTools(List<ToolDefinition> tools)
@@ -446,87 +446,258 @@ namespace PCBInspection.Core.Services
 				},
 			});
 
-			tools.Add(new ToolDefinition
+				tools.Add(new ToolDefinition
 			{
 				Name              = "模板匹配 (Template Match)",
 				Category          = "03. 特徵提取",
 				DefaultParameters = new TemplateMatchParameters(),
 				Action = (img, p) =>
 				{
-					// 1. 初始化與參數準備
 					var pp     = (TemplateMatchParameters)p;
 					var result = img.Clone();
-
 					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
 
-					// 檢查標靶圖案路徑是否存在
-					if(File.Exists(pp.TemplatePath))
+					if(!File.Exists(pp.TemplatePath))
 					{
-						using(var tmpl = Cv2.ImRead(pp.TemplatePath))
+						OnLog?.Invoke("[TemplateMatch] 模板檔案不存在。", true);
+						return (false, result, new List<Defect>());
+					}
+
+					using(var tmplFull = Cv2.ImRead(pp.TemplatePath))
+					{
+						if(tmplFull.Empty()) return (false, result, new List<Defect>());
+
+						// 1. 處理模板 ROI
+						Mat tmpl;
+						if(pp.EnableTemplateRoi && pp.TemplateRoiWidth > 0 && pp.TemplateRoiHeight > 0)
 						{
-							if(!tmpl.Empty())
+							var tRect = new Rect(pp.TemplateRoiX, pp.TemplateRoiY, pp.TemplateRoiWidth, pp.TemplateRoiHeight);
+							tRect = tRect.Intersect(new Rect(0, 0, tmplFull.Width, tmplFull.Height));
+							tmpl = new Mat(tmplFull, tRect);
+						}
+						else { tmpl = tmplFull; }
+
+						int w = tmpl.Width;
+						int h = tmpl.Height;
+
+						// 2. 處理來源 ROI
+						Mat srcRegion;
+						int offsetX = 0, offsetY = 0;
+						if(pp.EnableSourceRoi && pp.SourceRoiWidth > 0 && pp.SourceRoiHeight > 0)
+						{
+							var sRect = new Rect(pp.SourceRoiX, pp.SourceRoiY, pp.SourceRoiWidth, pp.SourceRoiHeight);
+							sRect = sRect.Intersect(new Rect(0, 0, img.Width, img.Height));
+							srcRegion = new Mat(img, sRect);
+							offsetX = sRect.X;
+							offsetY = sRect.Y;
+						}
+						else { srcRegion = img; }
+
+						// 3. 灰階轉換
+						using(var imgGray = new Mat())
+						using(var tmplGray = new Mat())
+						{
+							if(srcRegion.Channels() >= 3) Cv2.CvtColor(srcRegion, imgGray, ColorConversionCodes.BGR2GRAY);
+							else srcRegion.CopyTo(imgGray);
+
+							if(tmpl.Channels() >= 3) Cv2.CvtColor(tmpl, tmplGray, ColorConversionCodes.BGR2GRAY);
+							else tmpl.CopyTo(tmplGray);
+
+							// 4. 執行模板匹配
+							TemplateMatchModes mode = TemplateMatchModes.CCoeffNormed;
+							switch(pp.Method)
 							{
-								// 2. 影像預處理：將來源與模板皆轉為灰階圖以提升比對效率
-								int w = tmpl.Width;
-								int h = tmpl.Height;
-								var imgGray = new Mat();
-								if(img.Channels() >= 3) Cv2.CvtColor(img, imgGray, ColorConversionCodes.BGR2GRAY);
-								else img.CopyTo(imgGray);
+								case TemplateMatchParameters.MatchMethod.SqDiff: mode = TemplateMatchModes.SqDiff; break;
+								case TemplateMatchParameters.MatchMethod.SqDiffNormed: mode = TemplateMatchModes.SqDiffNormed; break;
+								case TemplateMatchParameters.MatchMethod.CCorr: mode = TemplateMatchModes.CCorr; break;
+								case TemplateMatchParameters.MatchMethod.CCorrNormed: mode = TemplateMatchModes.CCorrNormed; break;
+								case TemplateMatchParameters.MatchMethod.CCoeff: mode = TemplateMatchModes.CCoeff; break;
+								case TemplateMatchParameters.MatchMethod.CCoeffNormed: mode = TemplateMatchModes.CCoeffNormed; break;
+							}
 
-								var tmplGray = new Mat();
-								if(tmpl.Channels() >= 3) Cv2.CvtColor(tmpl, tmplGray, ColorConversionCodes.BGR2GRAY);
-								else tmpl.CopyTo(tmplGray);
-
-								// 3. 執行模板匹配運算
-								var resMap = new Mat();
-								TemplateMatchModes mode = TemplateMatchModes.CCoeffNormed; // 預設使用正規化相關係數
-
-								switch(pp.Method)
-								{
-									case TemplateMatchParameters.MatchMethod.SqDiff: mode = TemplateMatchModes.SqDiff; break;
-									case TemplateMatchParameters.MatchMethod.SqDiffNormed: mode = TemplateMatchModes.SqDiffNormed; break;
-									case TemplateMatchParameters.MatchMethod.CCorr: mode = TemplateMatchModes.CCorr; break;
-									case TemplateMatchParameters.MatchMethod.CCorrNormed: mode = TemplateMatchModes.CCorrNormed; break;
-									case TemplateMatchParameters.MatchMethod.CCoeff: mode = TemplateMatchModes.CCoeff; break;
-									case TemplateMatchParameters.MatchMethod.CCoeffNormed: mode = TemplateMatchModes.CCoeffNormed; break;
-								}
-								
+							using(var resMap = new Mat())
+							{
 								Cv2.MatchTemplate(imgGray, tmplGray, resMap, mode);
-								
-								// 4. 尋找最佳匹配點 (最小值或最大值位置)
-								Cv2.MinMaxLoc(resMap, out double minVal, out double maxVal, out Point minLoc, out Point maxLoc);
-								
-								bool  isMatch  = false;
-								Point matchLoc = new Point();
 
-								// 差異類演算法值越小越準；係數類演算法值越大越準
-								if(mode == TemplateMatchModes.SqDiff || mode == TemplateMatchModes.SqDiffNormed)
+								var defects = new List<Defect>();
+								int maxMatches = pp.MaxMatches <= 0 ? 1 : pp.MaxMatches;
+								bool useSqDiff = (mode == TemplateMatchModes.SqDiff || mode == TemplateMatchModes.SqDiffNormed);
+
+								for(int i = 0; i < maxMatches; i++)
 								{
-									matchLoc = minLoc;
-									isMatch  = true; // 此處暫簡化為一律匹配，實務上需定義差異上限
-								}
-								else
-								{
-									if(maxVal >= pp.MatchThreshold)
+									Cv2.MinMaxLoc(resMap, out double minVal, out double maxVal, out Point minLoc, out Point maxLoc);
+
+									double score = useSqDiff ? (1 - minVal) : maxVal;
+									Point matchLoc = useSqDiff ? minLoc : maxLoc;
+
+									if(!useSqDiff && maxVal < pp.MatchThreshold) break;
+									if(useSqDiff && minVal > (1 - pp.MatchThreshold)) break;
+
+									// 將座標轉換回原圖
+									int realX = matchLoc.X + offsetX;
+									int realY = matchLoc.Y + offsetY;
+
+									Cv2.Rectangle(result, new Rect(realX, realY, w, h), Scalar.Magenta, 2);
+
+									defects.Add(new Defect
 									{
-										matchLoc = maxLoc;
-										isMatch  = true;
-									}
+										Id          = (i + 1).ToString(),
+										Type        = "模板匹配",
+										Confidence  = score,
+										CenterX     = realX + w / 2.0,
+										CenterY     = realY + h / 2.0,
+										BoundingBox = new[] { realX, realY, w, h }
+									});
+
+									// 遮蔽已找到的區域，避免重複偵測 (NMS 風格)
+									Cv2.Rectangle(resMap, new Rect(matchLoc.X - w / 2, matchLoc.Y - h / 2, w, h),
+										useSqDiff ? new Scalar(1) : new Scalar(0), -1);
 								}
 
-								// 5. 繪製匹配結果 (洋紅色方塊)
-								if(isMatch)
-								{
-									Cv2.Rectangle(result, new Rect(matchLoc.X, matchLoc.Y, w, h), Scalar.Magenta, 2);
-								}
-								
-								imgGray.Dispose();
-								tmplGray.Dispose();
-								resMap.Dispose();
+								if(pp.EnableTemplateRoi && tmpl != tmplFull) tmpl.Dispose();
+								if(pp.EnableSourceRoi && srcRegion != img) srcRegion.Dispose();
+
+								return (true, result, defects);
 							}
 						}
 					}
-					return (true, result, new List<Defect>());
+				},
+			});
+
+			tools.Add(new ToolDefinition
+			{
+				Name              = "幾何匹配 (Geometric Match)",
+				Category          = "03. 特徵提取",
+				DefaultParameters = new GeometricMatchParameters(),
+				Action = (img, p) =>
+				{
+					var pp     = (GeometricMatchParameters)p;
+					var result = img.Clone();
+					if(result.Channels() == 1) Cv2.CvtColor(result, result, ColorConversionCodes.GRAY2BGR);
+					else if(result.Channels() == 4) { var tmp = new Mat(); Cv2.CvtColor(result, tmp, ColorConversionCodes.BGRA2BGR); result.Dispose(); result = tmp; }
+
+					if(!File.Exists(pp.TemplatePath))
+					{
+						OnLog?.Invoke("[GeometricMatch] 模板檔案不存在。", true);
+						return (false, result, new List<Defect>());
+					}
+
+					using(var tmpl = Cv2.ImRead(pp.TemplatePath))
+					{
+						if(tmpl.Empty()) return (false, result, new List<Defect>());
+
+						// 1. 影像預處理：縮放與灰階
+						double scale = pp.SearchScale;
+						using(var srcGray  = new Mat())
+						using(var tmplGray = new Mat())
+						{
+							if(img.Channels() >= 3) Cv2.CvtColor(img, srcGray, ColorConversionCodes.BGR2GRAY); else img.CopyTo(srcGray);
+							if(tmpl.Channels() >= 3) Cv2.CvtColor(tmpl, tmplGray, ColorConversionCodes.BGR2GRAY); else tmpl.CopyTo(tmplGray);
+
+							using(var srcWork  = new Mat())
+							using(var tmplWork = new Mat())
+							{
+								if(scale < 1.0)
+								{
+									Cv2.Resize(srcGray, srcWork, new Size(), scale, scale);
+									Cv2.Resize(tmplGray, tmplWork, new Size(), scale, scale);
+								}
+								else { srcGray.CopyTo(srcWork); tmplGray.CopyTo(tmplWork); }
+
+								// 2. 邊緣提取 (取得幾何特徵)
+								using(var srcEdges  = new Mat())
+								using(var tmplEdges = new Mat())
+								{
+									Cv2.Canny(srcWork, srcEdges, pp.CannyThreshold1, pp.CannyThreshold2);
+									Cv2.Canny(tmplWork, tmplEdges, pp.CannyThreshold1, pp.CannyThreshold2);
+
+									double maxScore = -1;
+									Point  bestLoc  = new Point();
+									double bestAngle = 0;
+
+									// 3. 旋轉搜尋 (若啟用)
+									if(pp.EnableRotation)
+									{
+										var angles = new List<double>();
+										for(double angle = pp.MinAngle; angle <= pp.MaxAngle; angle += pp.AngleStep)
+											angles.Add(angle);
+
+										object lockObj = new object();
+
+										System.Threading.Tasks.Parallel.ForEach(angles, (angle) =>
+										{
+											using(var rotTmpl = new Mat())
+											{
+												var center = new Point2f(tmplEdges.Cols / 2f, tmplEdges.Rows / 2f);
+												using(var matrix = Cv2.GetRotationMatrix2D(center, angle, 1.0))
+												{
+													Cv2.WarpAffine(tmplEdges, rotTmpl, matrix, tmplEdges.Size());
+												}
+
+												using(var resMap = new Mat())
+												{
+													Cv2.MatchTemplate(srcEdges, rotTmpl, resMap, TemplateMatchModes.CCoeffNormed);
+													Cv2.MinMaxLoc(resMap, out _, out double curMax, out _, out Point curLoc);
+
+													lock(lockObj)
+													{
+														if(curMax > maxScore)
+														{
+															maxScore = curMax;
+															bestLoc  = curLoc;
+															bestAngle = angle;
+														}
+													}
+												}
+											}
+										});
+									}
+									else
+									{
+										using(var resMap = new Mat())
+										{
+											Cv2.MatchTemplate(srcEdges, tmplEdges, resMap, TemplateMatchModes.CCoeffNormed);
+											Cv2.MinMaxLoc(resMap, out _, out maxScore, out _, out bestLoc);
+										}
+									}
+
+									// 4. 結果輸出
+									var defects = new List<Defect>();
+									if(maxScore >= pp.MatchThreshold)
+									{
+										int realX = (int)(bestLoc.X / scale);
+										int realY = (int)(bestLoc.Y / scale);
+										int realW = (int)(tmpl.Width);
+										int realH = (int)(tmpl.Height);
+
+										if(pp.EnableRotation)
+										{
+											var center = new Point2f(realX + realW / 2f, realY + realH / 2f);
+											var rect   = new RotatedRect(center, new Size2f(realW, realH), (float)bestAngle);
+											var pts    = rect.Points();
+											for(int j = 0; j < 4; j++) Cv2.Line(result, (Point)pts[j], (Point)pts[(j + 1) % 4], Scalar.Yellow, 2);
+										}
+										else
+										{
+											Cv2.Rectangle(result, new Rect(realX, realY, realW, realH), Scalar.Yellow, 2);
+										}
+
+										defects.Add(new Defect
+										{
+											Id          = "1",
+											Type        = "幾何匹配",
+											Confidence  = maxScore,
+											CenterX     = realX + realW / 2.0,
+											CenterY     = realY + realH / 2.0,
+											Angle       = bestAngle,
+											BoundingBox = new[] { realX, realY, realW, realH }
+										});
+									}
+									return (true, result, defects);
+								}
+							}
+						}
+					}
 				},
 			});
 		}
