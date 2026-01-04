@@ -32,6 +32,17 @@ namespace PCBInspection.Core.ROI
 				g.DrawRectangle(pen, screenRect.X, screenRect.Y, screenRect.Width, screenRect.Height);
 			}
 
+			// 顯示 ROI 編號 (在左上角)
+			if(Index > 0)
+			{
+				string label = Index.ToString();
+				using(var font = new Font("Arial", 10, FontStyle.Bold))
+				using(var brush = new SolidBrush(IsSelected ? Color.Yellow : Color))
+				{
+					g.DrawString(label, font, brush, screenRect.X + 2, screenRect.Y + 2);
+				}
+			}
+
 			// 顯示控制點以便調整大小
 			if(IsSelected)
 			{

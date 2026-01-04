@@ -467,12 +467,21 @@ namespace PCBInspection.Core.Services
 					{
 						if(tmplFull.Empty()) return (false, result, new List<Defect>());
 
-						// 1. 處理模板 ROI
+						// 1. 處理模板 ROI (優先使用 TemplateRoiIndex)
 						Mat tmpl;
-						if(pp.EnableTemplateRoi && pp.TemplateRoiWidth > 0 && pp.TemplateRoiHeight > 0)
+						Rect? tmplRect = null;
+						if(pp.TemplateRoiIndex > 0)
 						{
-							var tRect = new Rect(pp.TemplateRoiX, pp.TemplateRoiY, pp.TemplateRoiWidth, pp.TemplateRoiHeight);
-							tRect = tRect.Intersect(new Rect(0, 0, tmplFull.Width, tmplFull.Height));
+							tmplRect = RoiManager.GetRectByIndex(pp.TemplateRoiIndex);
+						}
+						else if(pp.EnableTemplateRoi && pp.TemplateRoiWidth > 0 && pp.TemplateRoiHeight > 0)
+						{
+							tmplRect = new Rect(pp.TemplateRoiX, pp.TemplateRoiY, pp.TemplateRoiWidth, pp.TemplateRoiHeight);
+						}
+
+						if(tmplRect.HasValue)
+						{
+							var tRect = tmplRect.Value.Intersect(new Rect(0, 0, tmplFull.Width, tmplFull.Height));
 							tmpl = new Mat(tmplFull, tRect);
 						}
 						else { tmpl = tmplFull; }
@@ -480,13 +489,22 @@ namespace PCBInspection.Core.Services
 						int w = tmpl.Width;
 						int h = tmpl.Height;
 
-						// 2. 處理來源 ROI
+						// 2. 處理來源 ROI (優先使用 SourceRoiIndex)
 						Mat srcRegion;
 						int offsetX = 0, offsetY = 0;
-						if(pp.EnableSourceRoi && pp.SourceRoiWidth > 0 && pp.SourceRoiHeight > 0)
+						Rect? srcRect = null;
+						if(pp.SourceRoiIndex > 0)
 						{
-							var sRect = new Rect(pp.SourceRoiX, pp.SourceRoiY, pp.SourceRoiWidth, pp.SourceRoiHeight);
-							sRect = sRect.Intersect(new Rect(0, 0, img.Width, img.Height));
+							srcRect = RoiManager.GetRectByIndex(pp.SourceRoiIndex);
+						}
+						else if(pp.EnableSourceRoi && pp.SourceRoiWidth > 0 && pp.SourceRoiHeight > 0)
+						{
+							srcRect = new Rect(pp.SourceRoiX, pp.SourceRoiY, pp.SourceRoiWidth, pp.SourceRoiHeight);
+						}
+
+						if(srcRect.HasValue)
+						{
+							var sRect = srcRect.Value.Intersect(new Rect(0, 0, img.Width, img.Height));
 							srcRegion = new Mat(img, sRect);
 							offsetX = sRect.X;
 							offsetY = sRect.Y;

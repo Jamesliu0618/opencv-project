@@ -356,6 +356,9 @@ namespace PCBInspection.UI
 				_history.PushState(imageViewer.Image, imageViewer.Rois, "編輯 ROI");
 				// UpdateUndoRedoButtons(); // Handled by StateChanged
 
+				// 同步 ROI 清單到 Core 層的 RoiManager (支援編號選取)
+				RoiManager.SetRois(imageViewer.Rois);
+
 				// 更新 InfoPanel ROI 資訊
 				if(imageViewer.Image != null)
 				{

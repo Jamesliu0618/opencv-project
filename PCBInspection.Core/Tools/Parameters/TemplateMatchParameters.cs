@@ -42,32 +42,42 @@ namespace PCBInspection.Core.Tools
 
 		// ===== 來源影像 ROI =====
 
+		/// <summary>來源 ROI 編號 (優先使用，設為 0 則使用手動座標)</summary>
+		[Category("02. 來源 ROI")]
+		[DisplayName("來源 ROI 編號")] [Description("使用指定編號的 ROI 作為搜尋區域 (0 = 不使用 ROI 或使用手動座標)")]
+		public int SourceRoiIndex { get; set; } = 0;
+
 		/// <summary>是否啟用來源 ROI</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("啟用來源 ROI")] [Description("僅在指定的矩形區域內搜尋模板")]
+		[DisplayName("啟用手動 ROI")] [Description("若 ROI 編號為 0，可手動輸入搜尋區域座標")]
 		public bool EnableSourceRoi { get; set; } = false;
 
 		/// <summary>來源 ROI 左上角 X</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("來源 ROI X")] [Description("搜尋區域左上角 X 座標")]
+		[DisplayName("手動 ROI X")] [Description("搜尋區域左上角 X 座標")]
 		public int SourceRoiX { get; set; } = 0;
 
 		/// <summary>來源 ROI 左上角 Y</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("來源 ROI Y")] [Description("搜尋區域左上角 Y 座標")]
+		[DisplayName("手動 ROI Y")] [Description("搜尋區域左上角 Y 座標")]
 		public int SourceRoiY { get; set; } = 0;
 
 		/// <summary>來源 ROI 寬度</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("來源 ROI 寬度")] [Description("搜尋區域寬度 (0 = 使用全圖)")]
+		[DisplayName("手動 ROI 寬度")] [Description("搜尋區域寬度 (0 = 使用全圖)")]
 		public int SourceRoiWidth { get; set; } = 0;
 
 		/// <summary>來源 ROI 高度</summary>
 		[Category("02. 來源 ROI")]
-		[DisplayName("來源 ROI 高度")] [Description("搜尋區域高度 (0 = 使用全圖)")]
+		[DisplayName("手動 ROI 高度")] [Description("搜尋區域高度 (0 = 使用全圖)")]
 		public int SourceRoiHeight { get; set; } = 0;
 
 		// ===== 模板 ROI =====
+
+		/// <summary>模板 ROI 編號 (優先使用，設為 0 則使用手動座標)</summary>
+		[Category("03. 模板 ROI")]
+		[DisplayName("模板 ROI 編號")] [Description("使用指定編號的 ROI 擷取模板 (0 = 使用完整模板或手動座標)")]
+		public int TemplateRoiIndex { get; set; } = 0;
 
 		/// <summary>是否啟用模板 ROI</summary>
 		[Category("03. 模板 ROI")]

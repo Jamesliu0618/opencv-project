@@ -12,6 +12,8 @@ namespace PCBInspection.Core.ROI
 	public abstract class RoiBase
 	{
 		public Guid   Id         { get; } = Guid.NewGuid();
+		/// <summary>ROI 編號 (從 1 開始)</summary>
+		public int    Index      { get; set; } = 0;
 		public string Name       { get; set; }
 		public Color  Color      { get; set; } = Color.Lime; // 預設亮綠色
 		public bool   IsSelected { get; set; }

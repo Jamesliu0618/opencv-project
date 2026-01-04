@@ -506,6 +506,23 @@ namespace PCBInspection.UI.Controls
 		}
 
 		/// <summary>
+		/// 鍵盤按下：處理 Delete 鍵刪除選定的 ROI
+		/// </summary>
+		protected override void OnKeyDown(KeyEventArgs e)
+		{
+			base.OnKeyDown(e);
+
+			if(e.KeyCode == Keys.Delete && SelectedRoi != null)
+			{
+				Rois.Remove(SelectedRoi);
+				SelectedRoi = null;
+				RoiListChanged?.Invoke(this, EventArgs.Empty);
+				Invalidate();
+				e.Handled = true;
+			}
+		}
+
+		/// <summary>
 		///     Required method for Designer support - do not modify
 		///     the contents of this method with the code editor.
 		/// </summary>
