@@ -850,7 +850,11 @@ namespace PCBInspection.UI
 						// 執行工具
 						(bool IsOk, Mat ResultImage, List<Defect> Defects) result = item.Action(inputToTool, item.Parameters);
 						swStep.Stop();
-						row.Cells[1].Value = $"{swStep.ElapsedMilliseconds}ms";
+						long algorithmMs = swStep.ElapsedMilliseconds;
+						
+						// 開始計時後處理 (ToBitmap, UI更新等)
+						Stopwatch swPost = Stopwatch.StartNew();
+						row.Cells[1].Value = $"{algorithmMs}ms";
 						
 						// [Fix] 收集缺陷
 						if (result.Defects != null)
@@ -941,6 +945,11 @@ namespace PCBInspection.UI
 						{
 							imageViewer.SetImagePreserveView((Bitmap)item.LastResultImage.Clone());
 						}
+						
+						// 停止後處理計時並輸出分開的時間
+						swPost.Stop();
+						Log($"[計時] {item.Name}: 演算法={algorithmMs}ms, 後處理={swPost.ElapsedMilliseconds}ms", TraceLevel.Info);
+						
 						maskedInput?.Dispose();
 					}
 					catch(Exception ex)
@@ -1392,7 +1401,9 @@ namespace PCBInspection.UI
 				}
 				(bool IsOk, Mat ResultImage, List<Defect> Defects) result = item.Action(toolInput, item.Parameters);
 				swStep.Stop();
-				row.Cells[1].Value = $"{swStep.ElapsedMilliseconds}ms";
+				long algorithmMs = swStep.ElapsedMilliseconds;
+				Stopwatch swPost = Stopwatch.StartNew();
+				row.Cells[1].Value = $"{algorithmMs}ms";
 
 				if(result.IsOk)
 				{
@@ -1469,6 +1480,9 @@ namespace PCBInspection.UI
 					row.Cells[2].Style.ForeColor = Color.Red;
 					result.ResultImage?.Dispose();
 				}
+				swPost.Stop();
+				Log($"[計時] {item.Name}: 演算法={algorithmMs}ms, 後處理={swPost.ElapsedMilliseconds}ms", TraceLevel.Info);
+
 				maskedInput?.Dispose();
 				Log($"執行步驟: {item.Name} - {row.Cells[2].Value}", TraceLevel.Info);
 			}

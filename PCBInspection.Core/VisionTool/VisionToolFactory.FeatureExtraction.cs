@@ -735,7 +735,7 @@ namespace PCBInspection.Core.Services
 											}
 											
 											// 依分數排序並限制數量
-											var sorted = matchPoints.OrderByDescending(p => p.Score).Take(maxMatches > 0 ? maxMatches : int.MaxValue);
+											var sorted = matchPoints.OrderByDescending(pt => pt.Score).Take(maxMatches > 0 ? maxMatches : int.MaxValue);
 											
 											int idx = 0;
 											foreach (var match in sorted)
