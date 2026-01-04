@@ -47,10 +47,10 @@ namespace PCBInspection.Core.Tools
 		[DisplayName("來源 ROI 編號")] [Description("使用指定編號的 ROI 作為搜尋區域 (0 = 不使用 ROI 或使用手動座標)")]
 		public int SourceRoiIndex { get; set; } = 0;
 
-		/// <summary>是否啟用來源 ROI</summary>
+		/// <summary>是否使用手動來源 ROI</summary>
 		[Category("02. 來源 ROI")]
 		[DisplayName("啟用手動 ROI")] [Description("若 ROI 編號為 0，可手動輸入搜尋區域座標")]
-		public bool EnableSourceRoi { get; set; } = false;
+		public bool UseManualSourceRoi { get; set; } = false;
 
 		/// <summary>來源 ROI 左上角 X</summary>
 		[Category("02. 來源 ROI")]
@@ -79,10 +79,10 @@ namespace PCBInspection.Core.Tools
 		[DisplayName("模板 ROI 編號")] [Description("使用指定編號的 ROI 擷取模板 (0 = 使用完整模板或手動座標)")]
 		public int TemplateRoiIndex { get; set; } = 0;
 
-		/// <summary>是否啟用模板 ROI</summary>
+		/// <summary>是否使用手動模板 ROI</summary>
 		[Category("03. 模板 ROI")]
 		[DisplayName("啟用模板 ROI")] [Description("僅使用模板影像的指定區域")]
-		public bool EnableTemplateRoi { get; set; } = false;
+		public bool UseManualTemplateRoi { get; set; } = false;
 
 		/// <summary>模板 ROI 左上角 X</summary>
 		[Category("03. 模板 ROI")]

@@ -535,7 +535,7 @@ namespace PCBInspection.Core.Services
 						{
 							tmplRect = RoiManager.GetRectByIndex(pp.TemplateRoiIndex);
 						}
-						else if(pp.EnableTemplateRoi && pp.TemplateRoiWidth > 0 && pp.TemplateRoiHeight > 0)
+						else if(pp.UseManualTemplateRoi && pp.TemplateRoiWidth > 0 && pp.TemplateRoiHeight > 0)
 						{
 							tmplRect = new Rect(pp.TemplateRoiX, pp.TemplateRoiY, pp.TemplateRoiWidth, pp.TemplateRoiHeight);
 						}
@@ -558,7 +558,7 @@ namespace PCBInspection.Core.Services
 						{
 							srcRect = RoiManager.GetRectByIndex(pp.SourceRoiIndex);
 						}
-						else if(pp.EnableSourceRoi && pp.SourceRoiWidth > 0 && pp.SourceRoiHeight > 0)
+						else if(pp.UseManualSourceRoi && pp.SourceRoiWidth > 0 && pp.SourceRoiHeight > 0)
 						{
 							srcRect = new Rect(pp.SourceRoiX, pp.SourceRoiY, pp.SourceRoiWidth, pp.SourceRoiHeight);
 						}
@@ -583,9 +583,6 @@ namespace PCBInspection.Core.Services
 							else tmpl.CopyTo(tmplGray);
 
 							// 4. 智慧型加速：金字塔搜尋 (Pyramid Search)
-							
-							int resultX = 0, resultY = 0;
-							
 							var mode = TemplateMatchModes.CCoeffNormed;
 							switch(pp.Method)
 							{
@@ -598,7 +595,8 @@ namespace PCBInspection.Core.Services
 							}
 							bool useSqDiff = (mode == TemplateMatchModes.SqDiff || mode == TemplateMatchModes.SqDiffNormed);
 
-							bool enablePyramid = (imgGray.Width > 1000 && tmplGray.Width > 100 && pp.MaxMatches == 1);
+							// 加速條件：圖片寬 > 1000 且模板寬 > 64 啟用
+							bool enablePyramid = (imgGray.Width > 1000 && tmplGray.Width > 64);
 							var defects = new List<Defect>();
 							int maxMatches = pp.MaxMatches <= 0 ? 1 : pp.MaxMatches;
 
@@ -613,52 +611,70 @@ namespace PCBInspection.Core.Services
 									Cv2.Resize(tmplGray, smallTmpl, new Size(), scale, scale);
 									
 									Cv2.MatchTemplate(smallImg, smallTmpl, smallRes, mode);
-									Cv2.MinMaxLoc(smallRes, out double minVal, out double maxVal, out Point minLoc, out Point maxLoc);
 									
-									Point coarseLoc = useSqDiff ? minLoc : maxLoc;
-									
-									int searchMargin = 20; 
-									int coarseX = (int)(coarseLoc.X / scale);
-									int coarseY = (int)(coarseLoc.Y / scale);
-									
-									int roiX = Math.Max(0, coarseX - searchMargin);
-									int roiY = Math.Max(0, coarseY - searchMargin);
-									int roiW = Math.Min(imgGray.Width - roiX, tmplGray.Width + searchMargin * 2);
-									int roiH = Math.Min(imgGray.Height - roiY, tmplGray.Height + searchMargin * 2);
-									
-									using(var roiImg = new Mat(imgGray, new Rect(roiX, roiY, roiW, roiH)))
-									using(var fineRes = new Mat())
+									// 在縮圖結果中尋找多個候選點
+									for(int k=0; k < maxMatches; k++)
 									{
-										Cv2.MatchTemplate(roiImg, tmplGray, fineRes, mode);
-										Cv2.MinMaxLoc(fineRes, out double fMinVal, out double fMaxVal, out Point fMinLoc, out Point fMaxLoc);
+										Cv2.MinMaxLoc(smallRes, out double cMinVal, out double cMaxVal, out Point cMinLoc, out Point cMaxLoc);
 										
-										double finalScore = useSqDiff ? (1.0 - fMinVal) : fMaxVal;
-										Point fineLoc = useSqDiff ? fMinLoc : fMaxLoc;
-
-										if(finalScore >= pp.MatchThreshold)
+										double coarseScore = useSqDiff ? (1.0 - cMinVal) : cMaxVal;
+										// 寬鬆閾值過濾
+										if(coarseScore < (pp.MatchThreshold * 0.8)) break; // 稍微放寬閾值以免漏掉
+										
+										Point coarseLoc = useSqDiff ? cMinLoc : cMaxLoc;
+										
+										// --- 精確搜尋 (Fine Search) ---
+										int searchMargin = 20; 
+										int coarseX = (int)(coarseLoc.X / scale);
+										int coarseY = (int)(coarseLoc.Y / scale);
+										
+										int roiX = Math.Max(0, coarseX - searchMargin);
+										int roiY = Math.Max(0, coarseY - searchMargin);
+										int roiW = Math.Min(imgGray.Width - roiX, tmplGray.Width + searchMargin * 2);
+										int roiH = Math.Min(imgGray.Height - roiY, tmplGray.Height + searchMargin * 2);
+										
+										using(var roiImg = new Mat(imgGray, new Rect(roiX, roiY, roiW, roiH)))
+										using(var fineRes = new Mat())
 										{
-											resultX = roiX + fineLoc.X;
-											resultY = roiY + fineLoc.Y;
-
-											int realX = resultX + offsetX;
-											int realY = resultY + offsetY;
+											Cv2.MatchTemplate(roiImg, tmplGray, fineRes, mode);
+											Cv2.MinMaxLoc(fineRes, out double fMinVal, out double fMaxVal, out Point fMinLoc, out Point fMaxLoc);
 											
-											Cv2.Rectangle(result, new Rect(realX, realY, w, h), Scalar.Magenta, 2);
-											defects.Add(new Defect
+											double finalScore = useSqDiff ? (1.0 - fMinVal) : fMaxVal;
+											Point fineLoc = useSqDiff ? fMinLoc : fMaxLoc;
+
+											if(finalScore >= pp.MatchThreshold)
 											{
-												Id          = "1",
-												Type        = "模板匹配",
-												Confidence  = finalScore,
-												CenterX     = realX + w / 2.0,
-												CenterY     = realY + h / 2.0,
-												BoundingBox = new[] { realX, realY, w, h }
-											});
+												int realX = roiX + fineLoc.X + offsetX;
+												int realY = roiY + fineLoc.Y + offsetY;
+												
+												// 避免重複加入太接近的結果 (NMS check in final list)
+												bool duplicate = defects.Any(d => Math.Abs(d.CenterX - (realX + w/2.0)) < w/4.0 && Math.Abs(d.CenterY - (realY + h/2.0)) < h/4.0);
+												
+												if(!duplicate)
+												{
+													Cv2.Rectangle(result, new Rect(realX, realY, w, h), Scalar.Magenta, 2);
+													defects.Add(new Defect
+													{
+														Id          = (defects.Count + 1).ToString(),
+														Type        = "模板匹配",
+														Confidence  = finalScore,
+														CenterX     = realX + w / 2.0,
+														CenterY     = realY + h / 2.0,
+														BoundingBox = new[] { realX, realY, w, h }
+													});
+												}
+											}
 										}
+										
+										// 遮蔽縮圖已找到的區域
+										Cv2.Rectangle(smallRes, new Rect(coarseLoc.X - smallTmpl.Width/2, coarseLoc.Y - smallTmpl.Height/2, smallTmpl.Width, smallTmpl.Height),
+											useSqDiff ? new Scalar(1) : new Scalar(0), -1);
 									}
 								}
 							}
 							else
 							{
+								// 標準搜尋
 								using(var resMap = new Mat())
 								{
 									Cv2.MatchTemplate(imgGray, tmplGray, resMap, mode);
@@ -704,8 +720,8 @@ namespace PCBInspection.Core.Services
 								}
 							}
 
-							if((pp.EnableTemplateRoi || pp.TemplateRoiIndex > 0) && tmpl != tmplFull) tmpl.Dispose();
-							if((pp.EnableSourceRoi || pp.SourceRoiIndex > 0) && srcRegion != img) srcRegion.Dispose();
+							if((pp.UseManualTemplateRoi || pp.TemplateRoiIndex > 0) && tmpl != tmplFull) tmpl.Dispose();
+							if((pp.UseManualSourceRoi || pp.SourceRoiIndex > 0) && srcRegion != img) srcRegion.Dispose();
 
 							return (true, result, defects);
 						}
